@@ -6,6 +6,7 @@ export {
   releaseOperatorPresence,
   releaseLocalDevice,
   heartbeatDevice,
+  updateThisDevicePrinterPath,
   OperatorInUseError,
   DeviceLimitError,
 } from './services/device-service'

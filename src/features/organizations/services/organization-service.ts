@@ -143,6 +143,8 @@ function mapOrganization(id: string, data: Record<string, unknown>): Organizatio
   const ownerEmail = data.ownerEmail as string | undefined
   const ownerName = data.ownerName as string | undefined
   const updatedAt = data.updatedAt as string | undefined
+  const printerPath = data.printerPath as string | undefined
+  const receiptPaperWidth = data.receiptPaperWidth as Organization['receiptPaperWidth']
 
   if (document) organization.document = document
   if (segment) organization.segment = segment
@@ -152,6 +154,12 @@ function mapOrganization(id: string, data: Record<string, unknown>): Organizatio
   organization.themeColor = themeColor
   if (logoDataUrl) organization.logoDataUrl = logoDataUrl
   if (whatsapp) organization.whatsapp = whatsapp
+  organization.printReceiptOnSale = Boolean(data.printReceiptOnSale)
+  organization.sendReceiptOnSale = Boolean(data.sendReceiptOnSale)
+  if (printerPath) organization.printerPath = printerPath
+  if (receiptPaperWidth === '58mm' || receiptPaperWidth === '80mm') {
+    organization.receiptPaperWidth = receiptPaperWidth
+  }
   if (ownerId) organization.ownerId = ownerId
   if (ownerEmail) organization.ownerEmail = ownerEmail
   if (ownerName) organization.ownerName = ownerName
@@ -176,6 +184,10 @@ export interface OrganizationSettingsInput {
   themeColor?: string
   logoDataUrl?: string | null
   whatsapp?: string
+  printReceiptOnSale?: boolean
+  sendReceiptOnSale?: boolean
+  printerPath?: string
+  receiptPaperWidth?: '58mm' | '80mm'
 }
 
 export async function updateOrganizationSettings(
@@ -218,6 +230,21 @@ export async function updateOrganizationSettings(
   if (whatsapp) next.whatsapp = whatsapp
   else delete next.whatsapp
 
+  if (input.printReceiptOnSale !== undefined) {
+    next.printReceiptOnSale = input.printReceiptOnSale
+  }
+  if (input.sendReceiptOnSale !== undefined) {
+    next.sendReceiptOnSale = input.sendReceiptOnSale
+  }
+  if (input.receiptPaperWidth) {
+    next.receiptPaperWidth = input.receiptPaperWidth
+  }
+  const printerPath = input.printerPath?.trim()
+  if (input.printerPath !== undefined) {
+    if (printerPath) next.printerPath = printerPath
+    else delete next.printerPath
+  }
+
   if (input.logoDataUrl === null) {
     delete next.logoDataUrl
   } else if (input.logoDataUrl) {
@@ -235,6 +262,10 @@ export async function updateOrganizationSettings(
       themeColor: next.themeColor,
       logoDataUrl: next.logoDataUrl ?? null,
       whatsapp: next.whatsapp ?? null,
+      printReceiptOnSale: next.printReceiptOnSale ?? false,
+      sendReceiptOnSale: next.sendReceiptOnSale ?? false,
+      printerPath: next.printerPath ?? null,
+      receiptPaperWidth: next.receiptPaperWidth ?? '58mm',
       updatedAt,
     }),
   )

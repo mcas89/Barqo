@@ -92,6 +92,21 @@
   font-weight: 500;
 }
 
+.settings-page__switch {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.65rem !important;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-page__switch input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--balqo-brand, #0b1f3a);
+  padding: 0;
+}
+
 .settings-page__themes {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));

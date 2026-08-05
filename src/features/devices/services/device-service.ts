@@ -56,7 +56,22 @@ function mapDevice(id: string, data: Record<string, unknown>): OrgDevice {
   }
   if (data.operatorId) device.operatorId = data.operatorId as string
   if (data.operatorName) device.operatorName = data.operatorName as string
+  if (typeof data.printerPath === 'string' && data.printerPath.trim()) {
+    device.printerPath = data.printerPath.trim()
+  }
   return device
+}
+
+export async function updateThisDevicePrinterPath(
+  organizationId: string,
+  printerPath: string,
+): Promise<void> {
+  const deviceId = getLocalDeviceId()
+  const trimmed = printerPath.trim()
+  await updateDoc(doc(requireDb(), 'organizations', organizationId, 'devices', deviceId), {
+    printerPath: trimmed || null,
+    lastSeenAt: nowIso(),
+  })
 }
 
 export async function listOrgDevices(organizationId: string): Promise<OrgDevice[]> {

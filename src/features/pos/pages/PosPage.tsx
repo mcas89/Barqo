@@ -8,6 +8,8 @@ import {
   planHasFeature,
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
+import { fulfillSaleReceipt, resolveReceiptSettings } from '../../receipts'
 import { PinAuthorizeModal } from '../components/PinAuthorizeModal'
 import { PosCustomerPicker } from '../components/PosCustomerPicker'
 import { PosUnlockScreen } from '../components/PosUnlockScreen'
@@ -33,6 +35,7 @@ export function PosPage() {
   const [showCustomerPicker, setShowCustomerPicker] = useState(false)
 
   const { subscription, organization: authOrg } = useAuth()
+  const { devices, deviceId } = useDeviceSession()
   const planId =
     subscription?.planId ?? authOrg?.planId ?? DEFAULT_PLAN_ID
   const canUseFiado = planHasFeature(planId, PLAN_FEATURES.RECEIVABLES)
@@ -174,11 +177,23 @@ export function PosPage() {
           ]
         : [{ method: activeMethod, amountCents: totalCents }]
 
-    await finishSale(payment)
+    const sale = await finishSale(payment)
+    if (!sale || !organization) return
     setSelectedMethod(null)
     setCashReceived('')
     setShowDiscount(false)
     searchRef.current?.focus()
+
+    const devicePrinterPath = devices.find((device) => device.id === deviceId)?.printerPath
+    const settings = resolveReceiptSettings({
+      organization,
+      devicePrinterPath,
+    })
+    if (settings.printOnSale || settings.sendReceiptOnSale) {
+      void fulfillSaleReceipt({ sale, organization, settings }).catch((err) => {
+        console.error(err)
+      })
+    }
   }
 
   function requestRemove(productId: string) {

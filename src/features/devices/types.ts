@@ -5,6 +5,8 @@ export interface OrgDevice {
   lastSeenAt: string
   operatorId?: string | null
   operatorName?: string | null
+  /** Nome ou caminho UNC da impressora neste aparelho. */
+  printerPath?: string | null
 }
 
 export interface OperatorPresence {

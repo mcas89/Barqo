@@ -18,6 +18,14 @@ export interface Organization {
   logoDataUrl?: string
   /** WhatsApp da loja (somente números, com DDI). */
   whatsapp?: string
+  /** Imprime cupom ao finalizar a venda no PDV. */
+  printReceiptOnSale?: boolean
+  /** Enfileira/envia comprovante (e-mail) ao finalizar a venda. */
+  sendReceiptOnSale?: boolean
+  /** Caminho ou nome padrão da impressora (fallback do aparelho). */
+  printerPath?: string
+  /** Largura do cupom térmico. */
+  receiptPaperWidth?: '58mm' | '80mm'
   ownerId?: string
   ownerEmail?: string
   ownerName?: string

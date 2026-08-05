@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { resolvePersonName } from '../../../shared/lib/person-name'
+import { playScanBeep } from '../../../shared/lib/scan-beep'
 import { useAuth } from '../../../shared/hooks/useAuth'
 
 import {
@@ -107,21 +108,23 @@ export function usePos() {
     return false
   }
 
-  function addProduct(product: Product, quantity = 1) {
+  function addProduct(product: Product, quantity = 1): boolean {
     setLastSale(null)
-    if (!ensureCashOpen()) return
+    if (!ensureCashOpen()) return false
 
     if (product.type === 'product' && product.stock <= 0) {
       setError(`${product.name} sem estoque.`)
-      return
+      return false
     }
 
+    let added = true
     setCart((current) => {
       const existing = current.find((item) => item.productId === product.id)
       const nextQty = (existing?.quantity ?? 0) + quantity
 
       if (product.type === 'product' && nextQty > product.stock) {
         setError(`Estoque insuficiente para ${product.name}.`)
+        added = false
         return current
       }
 
@@ -146,6 +149,7 @@ export function usePos() {
         },
       ]
     })
+    return added
   }
 
   function addBySearchEnter() {
@@ -157,15 +161,21 @@ export function usePos() {
       (product) => product.barcode?.toLowerCase() === term,
     )
     if (exactBarcode) {
-      addProduct(exactBarcode)
-      setSearch('')
+      const ok = addProduct(exactBarcode)
+      playScanBeep(ok ? 'ok' : 'error')
+      if (ok) setSearch('')
       return
     }
 
     if (filteredCatalog[0]) {
-      addProduct(filteredCatalog[0])
-      setSearch('')
+      const ok = addProduct(filteredCatalog[0])
+      playScanBeep(ok ? 'ok' : 'error')
+      if (ok) setSearch('')
+      return
     }
+
+    playScanBeep('error')
+    setError('Nenhum produto encontrado.')
   }
 
   function setItemQuantity(productId: string, quantity: number) {
@@ -238,7 +248,7 @@ export function usePos() {
     }
   }
 
-  async function finishSale(paymentOverride?: SalePayment[]) {
+  async function finishSale(paymentOverride?: SalePayment[]): Promise<Sale | undefined> {
     if (!organizationId || !user) {
       setError('Sessão inválida.')
       return
@@ -292,6 +302,7 @@ export function usePos() {
       clearCart()
       setCustomer(null)
       await refreshCatalog()
+      return sale
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'Falha ao finalizar a venda.')

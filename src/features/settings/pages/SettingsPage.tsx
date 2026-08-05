@@ -14,9 +14,17 @@ import { requestPwaUpdateCheck } from '../../../shared/lib/pwa-updates'
 import { formatWhatsappDisplay, whatsappUrl } from '../../../shared/lib/whatsapp'
 import { getPlan } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
-import { useDeviceSession } from '../../devices'
+import { updateThisDevicePrinterPath, useDeviceSession } from '../../devices'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import { POS_ROLE_LABELS } from '../../pos/types/operator'
+import {
+  flushReceiptOutbox,
+  normalizePaperWidth,
+  printSampleReceipt,
+  resolveReceiptSettings,
+  writeLocalPrinterPath,
+  type ReceiptPaperWidth,
+} from '../../receipts'
 import { useSettings } from '../hooks/useSettings'
 import './SettingsPage.css'
 
@@ -62,6 +70,11 @@ export function SettingsPage() {
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const [logoDirty, setLogoDirty] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+  const [printOnSale, setPrintOnSale] = useState(false)
+  const [sendReceiptOnSale, setSendReceiptOnSale] = useState(false)
+  const [printerPath, setPrinterPath] = useState('')
+  const [paperWidth, setPaperWidth] = useState<ReceiptPaperWidth>('58mm')
+  const [testingPrint, setTestingPrint] = useState(false)
 
   useEffect(() => {
     const root = globalThis.document?.documentElement
@@ -90,7 +103,19 @@ export function SettingsPage() {
     setThemeColor(resolveThemeColor(organization.themeColor))
     setLogoDataUrl(organization.logoDataUrl ?? null)
     setLogoDirty(false)
+    setPrintOnSale(Boolean(organization.printReceiptOnSale))
+    setSendReceiptOnSale(Boolean(organization.sendReceiptOnSale))
+    setPaperWidth(normalizePaperWidth(organization.receiptPaperWidth))
   }, [organization])
+
+  useEffect(() => {
+    const devicePath = devices.find((device) => device.id === deviceId)?.printerPath
+    setPrinterPath(devicePath?.trim() || organization?.printerPath?.trim() || '')
+  }, [devices, deviceId, organization?.printerPath])
+
+  useEffect(() => {
+    void flushReceiptOutbox()
+  }, [])
 
   const planName = subscription
     ? getPlan(subscription.planId).name
@@ -129,10 +154,49 @@ export function SettingsPage() {
         whatsapp,
         themeColor,
         logoDataUrl: logoDirty ? logoDataUrl : undefined,
+        printReceiptOnSale: printOnSale,
+        sendReceiptOnSale,
+        receiptPaperWidth: paperWidth,
+        printerPath,
       })
+      writeLocalPrinterPath(printerPath)
+      if (organization) {
+        await updateThisDevicePrinterPath(organization.id, printerPath).catch(() => undefined)
+        await refreshDevices().catch(() => undefined)
+      }
       setLogoDirty(false)
     } catch {
       // feedback já vem do hook
+    }
+  }
+
+  async function handleTestPrint() {
+    if (!organization) return
+    setTestingPrint(true)
+    setLocalError(null)
+    try {
+      const settings = resolveReceiptSettings({
+        organization: {
+          ...organization,
+          printReceiptOnSale: printOnSale,
+          sendReceiptOnSale,
+          receiptPaperWidth: paperWidth,
+          printerPath,
+        },
+        devicePrinterPath: printerPath,
+      })
+      const result = await printSampleReceipt({
+        organizationName: name || organization.name,
+        settings: { ...settings, printOnSale: true, printerPath, paperWidth },
+        logoDataUrl: logoDataUrl ?? undefined,
+      })
+      if (result.status === 'failed') {
+        setLocalError(result.message || 'Não foi possível testar a impressora.')
+      }
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Falha ao testar a impressora.')
+    } finally {
+      setTestingPrint(false)
     }
   }
 
@@ -275,6 +339,66 @@ export function SettingsPage() {
                 Remover logo e usar BALQO
               </button>
             )}
+          </section>
+
+          <section className="settings-page__card">
+            <h2>Impressora e comprovante</h2>
+            <p className="settings-page__hint">
+              Informe o nome ou o caminho da impressora deste caixa. Sem um agente local, o
+              Windows ainda abre a janela de impressão — o caminho fica salvo para a API.
+            </p>
+            <label className="settings-page__switch">
+              <input
+                type="checkbox"
+                checked={printOnSale}
+                onChange={(e) => setPrintOnSale(e.target.checked)}
+                disabled={saving || !canEdit}
+              />
+              <span>Imprimir cupom ao finalizar a venda</span>
+            </label>
+            <label className="settings-page__switch">
+              <input
+                type="checkbox"
+                checked={sendReceiptOnSale}
+                onChange={(e) => setSendReceiptOnSale(e.target.checked)}
+                disabled={saving || !canEdit}
+              />
+              <span>Enviar comprovante (e-mail) ao finalizar</span>
+            </label>
+            <p className="settings-page__hint">
+              O envio de comprovante já está preparado. Sem a API ligada, o comprovante fica
+              na fila deste aparelho para disparar depois.
+            </p>
+            <div className="settings-page__fields">
+              <label className="settings-page__span">
+                Caminho / nome da impressora
+                <input
+                  value={printerPath}
+                  onChange={(e) => setPrinterPath(e.target.value)}
+                  disabled={saving || !canEdit}
+                  placeholder="EPSON TM-T20 ou \\CAIXA01\ELGIN_I9"
+                />
+              </label>
+              <label>
+                Largura do cupom
+                <select
+                  value={paperWidth}
+                  onChange={(e) => setPaperWidth(normalizePaperWidth(e.target.value))}
+                  disabled={saving || !canEdit}
+                >
+                  <option value="58mm">58 mm</option>
+                  <option value="80mm">80 mm</option>
+                </select>
+              </label>
+            </div>
+            <button
+              type="button"
+              className="settings-page__clear-logo"
+              onClick={() => void handleTestPrint()}
+              disabled={saving || testingPrint || !canEdit}
+            >
+              {testingPrint ? 'Testando…' : 'Testar impressão'}
+            </button>
           </section>
 
           {!canEdit && (

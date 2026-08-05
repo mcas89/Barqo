@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly VITE_APP_ENV: string
   readonly VITE_INFINITEPAY_HANDLE?: string
   readonly VITE_PAYMENT_GATEWAY?: string
+  readonly VITE_PRINT_AGENT_URL?: string
+  readonly VITE_RECEIPT_API_URL?: string
 }
 
 interface ImportMeta {
