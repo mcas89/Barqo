@@ -36,6 +36,7 @@
 .product-list strong {
   display: block;
   color: #0b1f3a;
+  text-transform: uppercase;
 }
 
 .product-list__code {

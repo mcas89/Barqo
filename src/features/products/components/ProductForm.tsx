@@ -3,6 +3,7 @@ import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
 import {
   PRODUCT_TYPES,
   PRODUCT_UNITS,
+  formatProductTextInput,
   type Product,
   type ProductInput,
   type ProductUnit,
@@ -277,7 +278,7 @@ export function ProductForm({
           <input
             ref={nameRef}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setName(formatProductTextInput(e.target.value))}
             disabled={saving}
             required
           />
@@ -335,7 +336,7 @@ export function ProductForm({
           Categoria
           <input
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => setCategory(formatProductTextInput(e.target.value))}
             disabled={saving}
             placeholder="Ex.: Bebidas"
           />

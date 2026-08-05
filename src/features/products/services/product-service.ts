@@ -13,7 +13,7 @@ import { createId } from '../../../shared/lib/ids'
 import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
 import type { OrganizationId } from '../../../shared/types'
-import type { Product, ProductInput } from '../types'
+import { normalizeProductText, type Product, type ProductInput } from '../types'
 
 function requireDb() {
   const db = getFirestoreDb()
@@ -31,9 +31,9 @@ function mapProduct(id: string, data: Record<string, unknown>): Product {
   return {
     id,
     organizationId: data.organizationId as string,
-    name: data.name as string,
+    name: normalizeProductText(String(data.name ?? '')),
     barcode: (data.barcode as string | undefined) || undefined,
-    category: (data.category as string | undefined) || undefined,
+    category: data.category ? normalizeProductText(String(data.category)) : undefined,
     unit: (data.unit as Product['unit']) || 'UN',
     type: (data.type as Product['type']) || 'product',
     priceCents: Number(data.priceCents ?? 0),
@@ -77,7 +77,7 @@ export async function createProduct(
   const product: Product = {
     id,
     organizationId,
-    name: input.name.trim(),
+    name: normalizeProductText(input.name),
     unit: input.unit,
     type: input.type,
     priceCents: Math.max(0, Math.round(input.priceCents)),
@@ -90,7 +90,7 @@ export async function createProduct(
   }
 
   const barcode = input.barcode?.trim()
-  const category = input.category?.trim()
+  const category = input.category ? normalizeProductText(input.category) : ''
   if (barcode) product.barcode = barcode
   if (category) product.category = category
 
@@ -113,7 +113,7 @@ export async function updateProduct(
 
   const updated: Product = {
     ...existing,
-    name: input.name.trim(),
+    name: normalizeProductText(input.name),
     unit: input.unit,
     type: input.type,
     priceCents: Math.max(0, Math.round(input.priceCents)),
@@ -125,7 +125,7 @@ export async function updateProduct(
   }
 
   const barcode = input.barcode?.trim()
-  const category = input.category?.trim()
+  const category = input.category ? normalizeProductText(input.category) : ''
   if (barcode) updated.barcode = barcode
   else delete updated.barcode
   if (category) updated.category = category

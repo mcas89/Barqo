@@ -27,6 +27,14 @@ export interface Product {
   updatedAt: string
 }
 
+export function normalizeProductText(value: string): string {
+  return value.trim().toLocaleUpperCase('pt-BR')
+}
+
+export function formatProductTextInput(value: string): string {
+  return value.toLocaleUpperCase('pt-BR')
+}
+
 export type ProductInput = {
   name: string
   barcode?: string

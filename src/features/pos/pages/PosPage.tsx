@@ -36,9 +36,10 @@ export function PosPage() {
   const planId =
     subscription?.planId ?? authOrg?.planId ?? DEFAULT_PLAN_ID
   const canUseFiado = planHasFeature(planId, PLAN_FEATURES.RECEIVABLES)
-  const paymentMethods = (
-    Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]
-  ).filter((method) => method !== PAYMENT_METHODS.ON_ACCOUNT || canUseFiado)
+  const paymentMethods = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).filter(
+    (method) =>
+      method !== PAYMENT_METHODS.ON_ACCOUNT || (canUseFiado && Boolean(customer)),
+  )
 
   const {
     operator,
@@ -136,13 +137,6 @@ export function PosPage() {
   }
 
   function choosePayment(method: PaymentMethod) {
-    if (method === PAYMENT_METHODS.ON_ACCOUNT && !customer) {
-      setShowCustomerPicker(true)
-      setSelectedMethod(method)
-      payFullWith(method)
-      return
-    }
-
     setSelectedMethod(method)
     if (method === 'cash') {
       const received = cashReceived
@@ -385,7 +379,15 @@ export function PosPage() {
       {showCustomerPicker && (
         <PosCustomerPicker
           currentId={customer?.id}
-          onSelect={setCustomer}
+          onSelect={(next) => {
+            setCustomer(next)
+            if (!next) {
+              setSelectedMethod((current) =>
+                current === PAYMENT_METHODS.ON_ACCOUNT ? null : current,
+              )
+              setPaymentAmount(PAYMENT_METHODS.ON_ACCOUNT, 0)
+            }
+          }}
           onClose={() => setShowCustomerPicker(false)}
         />
       )}
@@ -528,12 +530,6 @@ export function PosPage() {
               </button>
             ))}
           </div>
-
-          {activeMethod === PAYMENT_METHODS.ON_ACCOUNT && !customer && (
-            <p className="pos-page__fiado-hint">
-              Selecione o cliente para liberar o fiado.
-            </p>
-          )}
 
           {activeMethod === 'cash' && (
             <label className="pos-page__cash">
