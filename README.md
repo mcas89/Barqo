@@ -12,10 +12,11 @@ PDV SaaS multissegmento para pequenos e médios comerciantes.
 
 ## Firebase
 
-1. Copie `.env.example` → `.env` (já configurado localmente no projeto)
+1. Copie `.env.example` → `.env` para desenvolver no PC
 2. No Firebase Console, ative **Authentication → E-mail/senha**
 3. Publique `firestore.rules` no Console antes de produção
-4. No Vercel, cadastre as mesmas variáveis do `.env.example` (prefixo `VITE_`)
+4. As chaves públicas do Firebase de produção estão em `.env.production` (sobe no GitHub).
+   A Vercel usa esse arquivo no `vite build`. Não precisa cadastrar de novo no painel.
 
 ```bash
 npm install
@@ -47,19 +48,9 @@ Catálogo e gates: `src/features/billing/plans/`.
 
 Repositório: https://github.com/mcas89/Barqo
 
-No Vercel, importe o repo e defina:
+No Vercel, importe o repo. As variáveis `VITE_*` de produção vêm de `.env.production`.
 
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
-- `VITE_APP_ENV=production`
-- `VITE_INFINITEPAY_HANDLE`
-- `VITE_PAYMENT_GATEWAY=infinitepay`
-
-No Firebase Auth, autorize o domínio `*.vercel.app` e o domínio final.
+No Firebase Auth, autorize o domínio `balqo.vercel.app` e o domínio final.
 
 ## PWA e atualizações
 

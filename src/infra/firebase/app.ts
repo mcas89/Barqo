@@ -2,8 +2,7 @@ import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getApps } from 'firebase/app'
 
 /**
- * Firebase fica desligado até as variáveis VITE_FIREBASE_* estarem no .env
- * Copie .env.example → .env e preencha as chaves do console.
+ * Firebase usa VITE_FIREBASE_* do `.env` (dev) ou `.env.production` (build/Vercel).
  */
 export function isFirebaseConfigured(): boolean {
   return Boolean(
