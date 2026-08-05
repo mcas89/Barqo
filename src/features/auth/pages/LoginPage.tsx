@@ -113,7 +113,18 @@ export function LoginPage() {
 
         {!firebaseReady ? (
           <p className="login-page__setup">
-            Firebase ainda sem chaves. Copie <code>.env.example</code> para <code>.env</code>.
+            {import.meta.env.PROD ? (
+              <>
+                Firebase não entrou neste deploy. Na Vercel, em Settings → Environment
+                Variables, cadastre as <code>VITE_FIREBASE_*</code> em Production e faça
+                Redeploy com limpar cache.
+              </>
+            ) : (
+              <>
+                Firebase ainda sem chaves. Copie <code>.env.example</code> para{' '}
+                <code>.env</code> e reinicie o servidor.
+              </>
+            )}
           </p>
         ) : (
           <form className="login-page__form" onSubmit={(event) => void handleSubmit(event)}>
