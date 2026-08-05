@@ -130,7 +130,13 @@
   color: #0b1f3a;
 }
 
-.login-page__form input {
+.login-page__form .legal-accept {
+  flex-direction: row;
+  align-items: flex-start;
+  font-weight: 600;
+}
+
+.login-page__form input:not([type='checkbox']) {
   width: 100%;
   border: 1px solid rgba(11, 31, 58, 0.16);
   border-radius: 0.6rem;
@@ -139,7 +145,7 @@
   color: #0b1f3a;
 }
 
-.login-page__form input:focus {
+.login-page__form input:not([type='checkbox']):focus {
   outline: 2px solid rgba(26, 58, 102, 0.28);
   border-color: #1a3a66;
   background: #ffffff;
@@ -247,6 +253,23 @@
 }
 
 .login-page__footer-link:hover {
+  color: #0b1f3a;
+}
+
+.login-page__legal {
+  margin: 0.55rem 0 0;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.login-page__legal a {
+  color: #5b6b80;
+  text-decoration: none;
+}
+
+.login-page__legal a:hover {
   color: #0b1f3a;
 }
 

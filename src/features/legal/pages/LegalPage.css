@@ -1,0 +1,91 @@
+.legal-page {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 1rem;
+  padding: 1.4rem 1.35rem 1.6rem;
+}
+
+.legal-page h1 {
+  margin: 0;
+  color: #0b1f3a;
+  font-size: 1.55rem;
+}
+
+.legal-page__updated {
+  margin: 0.35rem 0 1rem;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.legal-page h2 {
+  margin: 1.15rem 0 0.35rem;
+  color: #0b1f3a;
+  font-size: 1.02rem;
+}
+
+.legal-page p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.legal-page__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 1.4rem;
+}
+
+.legal-page__nav a {
+  color: var(--balqo-brand, #1a3a66);
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.legal-page__nav a:hover {
+  text-decoration: underline;
+}
+
+.fiscal-notice {
+  margin: 0 0 1rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.7rem;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.onboarding-page__block .fiscal-notice {
+  margin: 0;
+}
+
+.legal-accept {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #0b1f3a;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.legal-accept input {
+  margin-top: 0.2rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--balqo-brand, #0b1f3a);
+  flex-shrink: 0;
+}
+
+.legal-accept a {
+  color: var(--balqo-brand, #1a3a66);
+  font-weight: 800;
+}

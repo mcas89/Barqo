@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   BILLING_CYCLE_LABELS,
   BILLING_CYCLES,
@@ -21,6 +22,7 @@ import { startPlanCheckout } from '../services/subscription-service'
 import { writePendingCheckout } from '../pending-checkout'
 import { usePendingCheckout } from '../hooks/usePendingCheckoutWatcher'
 import { SubscriptionDetailsCard } from '../components/SubscriptionDetailsCard'
+import { FiscalNotice } from '../../legal'
 import './BillingPage.css'
 
 const CYCLES: BillingCycle[] = [
@@ -106,6 +108,7 @@ export function BillingPage() {
           voltar atrás — e paga a diferença do valor já quitado. Semestral e anual saem com
           desconto.
         </p>
+        <FiscalNotice />
       </header>
 
       <SubscriptionDetailsCard />
@@ -215,7 +218,9 @@ export function BillingPage() {
 
       <footer className="billing-page__note">
         O checkout abre em outra aba. Depois de pagar, pode clicar em Continuar ou só voltar ao
-        BALQO — o sistema fica escutando e ativa o plano sozinho.
+        BALQO — o sistema fica escutando e ativa o plano sozinho. Nenhum plano emite NF-e: o cupom
+        é comprovante interno.{' '}
+        <Link to="/termos">Termos de uso</Link> · <Link to="/privacidade">Privacidade</Link>
       </footer>
     </section>
   )

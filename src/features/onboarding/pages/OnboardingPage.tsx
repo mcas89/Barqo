@@ -23,6 +23,7 @@ import {
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { useDocumentTheme } from '../../../shared/hooks/useDocumentTheme'
 import { fileToLogoDataUrl } from '../../settings/lib/logo'
+import { FiscalNotice, LegalAccept } from '../../legal'
 import './OnboardingPage.css'
 
 const SEGMENTS = [
@@ -60,6 +61,7 @@ export function OnboardingPage() {
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const [ownerPin, setOwnerPin] = useState('')
   const [ownerPinConfirm, setOwnerPinConfirm] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
 
   useDocumentTheme(themeColor)
@@ -101,6 +103,11 @@ export function OnboardingPage() {
 
     if (!organizationName.trim()) {
       setLocalError('Informe o nome do comércio.')
+      return
+    }
+
+    if (!acceptedTerms) {
+      setLocalError('Aceite os Termos de uso e a Política de privacidade para criar a loja.')
       return
     }
 
@@ -335,6 +342,7 @@ export function OnboardingPage() {
 
         <section className="onboarding-page__block">
           <h2>Plano</h2>
+          <FiscalNotice />
           <div className="onboarding-page__plans">
             {PLAN_LIST.map((plan) => {
               const selected = planId === plan.id
@@ -411,6 +419,12 @@ export function OnboardingPage() {
             </div>
           </section>
         )}
+
+        <LegalAccept
+          checked={acceptedTerms}
+          onChange={setAcceptedTerms}
+          disabled={loading}
+        />
 
         {(localError || error) && (
           <p className="onboarding-page__error" role="alert">

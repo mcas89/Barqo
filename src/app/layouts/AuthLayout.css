@@ -39,6 +39,10 @@
   width: min(920px, 100%);
 }
 
+.auth-layout--legal .auth-layout__main {
+  width: min(800px, 100%);
+}
+
 .auth-layout--onboarding {
   padding: 0;
   align-items: stretch;

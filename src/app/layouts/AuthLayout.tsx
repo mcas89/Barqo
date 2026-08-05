@@ -6,6 +6,7 @@ export function AuthLayout() {
   const { pathname } = useLocation()
   const isLogin = pathname === '/'
   const isOnboarding = pathname === '/onboarding'
+  const isLegal = pathname === '/termos' || pathname === '/privacidade'
 
   return (
     <div
@@ -14,7 +15,9 @@ export function AuthLayout() {
           ? 'auth-layout auth-layout--login'
           : isOnboarding
             ? 'auth-layout auth-layout--onboarding'
-            : 'auth-layout'
+            : isLegal
+              ? 'auth-layout auth-layout--legal'
+              : 'auth-layout'
       }
     >
       {!isLogin && (

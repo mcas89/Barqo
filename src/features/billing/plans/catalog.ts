@@ -40,6 +40,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'PDV, produtos, caixa e estoque simples',
       'Painel do dia',
       'PWA + operação offline',
+      'Sem NF-e · cupom interno, não é documento fiscal',
     ],
     growthPain:
       'Quando a equipe entra no dia a dia, o Essencial libera mais usuários, fiado e relatórios.',
@@ -80,6 +81,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'Fiado / contas a receber',
       'Relatórios por período, produtos e operador',
       'PWA + operação offline',
+      'Sem NF-e · cupom interno, não é documento fiscal',
     ],
     growthPain:
       'Se quiser permissões finas e relatórios gerenciais, o Controle acompanha o próximo passo.',
@@ -123,6 +125,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'Relatórios gerenciais + exportação',
       'Suporte prioritário',
       'PWA + operação offline',
+      'Sem NF-e · cupom interno, não é documento fiscal',
     ],
     growthPain: 'O conjunto completo do BALQO para gerir a loja com segurança.',
   },

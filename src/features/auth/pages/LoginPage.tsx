@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { APP_NAME, APP_TAGLINE, BALQO_LOGO_SRC } from '../../../shared/constants'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { LegalAccept } from '../../legal'
 import './LoginPage.css'
 
 type AuthMode = 'login' | 'register' | 'reset'
@@ -24,6 +25,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [resetSent, setResetSent] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   function switchMode(next: AuthMode) {
     setMode(next)
@@ -31,6 +33,7 @@ export function LoginPage() {
     setLocalError(null)
     setShowPassword(false)
     setResetSent(false)
+    setAcceptedTerms(false)
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -67,6 +70,10 @@ export function LoginPage() {
       if (mode === 'register') {
         if (!displayName.trim()) {
           setLocalError('Informe seu nome.')
+          return
+        }
+        if (!acceptedTerms) {
+          setLocalError('Aceite os Termos de uso e a Política de privacidade para continuar.')
           return
         }
         await registerAccount({ displayName, email, password })
@@ -191,6 +198,14 @@ export function LoginPage() {
               </button>
             )}
 
+            {!isLogin && !isReset && (
+              <LegalAccept
+                checked={acceptedTerms}
+                onChange={setAcceptedTerms}
+                disabled={loading}
+              />
+            )}
+
             {(localError || error) && (
               <p className="login-page__error" role="alert">
                 {localError || error}
@@ -248,6 +263,11 @@ export function LoginPage() {
         <Link className="login-page__footer-link" to="/onboarding">
           Conta criada e falta cadastrar o comércio
         </Link>
+        <p className="login-page__legal">
+          <Link to="/termos">Termos</Link>
+          {' · '}
+          <Link to="/privacidade">Privacidade</Link>
+        </p>
       </div>
     </section>
   )

@@ -7,6 +7,7 @@ import { RequireOperatorUnlock } from './layouts/RequireOperatorUnlock'
 import { RequireSubscriptionAccess } from './layouts/RequireSubscriptionAccess'
 import { LoginPage, RedirectIfAuthenticated, RequireAuth } from '../features/auth'
 import { OnboardingPage } from '../features/onboarding'
+import { PrivacyPage, TermsPage } from '../features/legal'
 import { HomePage, ReportsPage } from '../features/reports'
 import { PosPage } from '../features/pos'
 import { ProductsPage } from '../features/products'
@@ -32,6 +33,8 @@ export function AppRouter() {
           }
         />
         <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/termos" element={<TermsPage />} />
+        <Route path="/privacidade" element={<PrivacyPage />} />
       </Route>
 
       <Route

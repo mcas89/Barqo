@@ -501,6 +501,15 @@ export function SettingsPage() {
           </div>
 
           <div className="settings-page__card">
+            <h2>Termos e privacidade</h2>
+            <p>O BALQO não emite NF-e. O cupom é comprovante interno da loja.</p>
+            <div className="settings-page__legal-links">
+              <Link to="/termos">Termos de uso</Link>
+              <Link to="/privacidade">Política de privacidade</Link>
+            </div>
+          </div>
+
+          <div className="settings-page__card">
             <h2>Suporte BALQO</h2>
             <p>Dúvida de uso, cobrança ou implantação? Fale no WhatsApp.</p>
             <a

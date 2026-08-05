@@ -1,0 +1,5 @@
+export { TermsPage } from './pages/TermsPage'
+export { PrivacyPage } from './pages/PrivacyPage'
+export { FiscalNotice } from './components/FiscalNotice'
+export { LegalAccept } from './components/LegalAccept'
+export { FISCAL_DISCLAIMER } from './content'

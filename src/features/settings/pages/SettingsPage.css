@@ -331,6 +331,23 @@
   font-weight: 600;
 }
 
+.settings-page__legal-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.settings-page__legal-links a {
+  color: var(--balqo-brand, #1a3a66);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.settings-page__legal-links a:hover {
+  text-decoration: underline;
+}
+
 .settings-page__whatsapp {
   display: inline-flex;
   align-items: center;

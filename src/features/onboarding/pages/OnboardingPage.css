@@ -213,7 +213,14 @@
   color: #0b1f3a;
 }
 
-.onboarding-page__form input,
+.onboarding-page__form .legal-accept {
+  flex-direction: row;
+  align-items: flex-start;
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.onboarding-page__form input:not([type='checkbox']):not([type='radio']):not([type='file']),
 .onboarding-page__form select {
   border: 1px solid rgba(11, 31, 58, 0.14);
   border-radius: 0.6rem;
@@ -223,7 +230,7 @@
   font: inherit;
 }
 
-.onboarding-page__form input:focus,
+.onboarding-page__form input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
 .onboarding-page__form select:focus {
   outline: 2px solid color-mix(in srgb, var(--balqo-brand, #0b1f3a) 22%, transparent);
   border-color: var(--balqo-brand, #1a3a66);
