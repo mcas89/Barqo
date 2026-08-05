@@ -1,4 +1,4 @@
-import { deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, deleteField, doc, getDocs, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { getFirestoreDb } from '../../../infra/firebase'
 import { createId } from '../../../shared/lib/ids'
 import { nowIso } from '../../../shared/lib/dates'
@@ -91,6 +91,23 @@ export async function startPlanCheckout(input: {
     gatewayId: gateway.id,
     slug: session.slug,
   }
+}
+
+export async function listBillingOrders(organizationId: string): Promise<BillingOrder[]> {
+  const snap = await getDocs(
+    collection(requireDb(), 'organizations', organizationId, 'billing_orders'),
+  )
+  return snap.docs
+    .map((item) => {
+      const data = item.data() as BillingOrder
+      return {
+        ...data,
+        id: data.id || item.id,
+        billingCycle: data.billingCycle ?? BILLING_CYCLES.MONTHLY,
+        gatewayId: data.gatewayId ?? getConfiguredPaymentGatewayId(),
+      }
+    })
+    .sort((left, right) => (right.paidAt ?? right.createdAt).localeCompare(left.paidAt ?? left.createdAt))
 }
 
 export async function getBillingOrder(

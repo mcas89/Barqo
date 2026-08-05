@@ -301,7 +301,7 @@ export function SettingsPage() {
               <span>{user?.email}</span>
             </p>
             <Link to="/app/team">Gerenciar equipe e PIN</Link>
-            <Link to="/app/billing">Ver planos</Link>
+            <Link to="/app/billing#assinatura">Plano, comprovante e pagamentos</Link>
           </div>
 
           {pinRequired && (

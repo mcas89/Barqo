@@ -155,10 +155,10 @@
   color: #8a9b92;
 }
 
-.billing-page__status {
-  margin: 0.75rem 0 0;
+.billing-page__catalog-title {
+  margin: 0 0 0.75rem;
   color: #0b1f3a;
-  font-size: 0.92rem;
+  font-size: 1.15rem;
 }
 
 .billing-page__error {

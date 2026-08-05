@@ -20,6 +20,7 @@ import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import { startPlanCheckout } from '../services/subscription-service'
 import { writePendingCheckout } from '../pending-checkout'
 import { usePendingCheckout } from '../hooks/usePendingCheckoutWatcher'
+import { SubscriptionDetailsCard } from '../components/SubscriptionDetailsCard'
 import './BillingPage.css'
 
 const CYCLES: BillingCycle[] = [
@@ -102,22 +103,11 @@ export function BillingPage() {
           ou cartão — o plano libera pelo período escolhido. Semestral e anual já saem com
           desconto.
         </p>
-        {subscription && (
-          <p className="billing-page__status">
-            Plano atual: <strong>{getPlan(subscription.planId).name}</strong>
-            {subscription.billingCycle
-              ? ` · ${BILLING_CYCLE_LABELS[subscription.billingCycle].toLowerCase()}`
-              : null}
-            {subscription.status === 'trial' && subscription.trialEndsAt
-              ? ` · trial até ${new Date(subscription.trialEndsAt).toLocaleDateString('pt-BR')}`
-              : null}
-            {subscription.paidThrough
-              ? ` · pago até ${new Date(subscription.paidThrough).toLocaleDateString('pt-BR')}`
-              : null}
-            {!paidUp ? ' · pagamento pendente' : ' · em dia'}
-          </p>
-        )}
       </header>
+
+      <SubscriptionDetailsCard />
+
+      <h2 className="billing-page__catalog-title">Trocar ou renovar plano</h2>
 
       <div className="billing-page__cycles" role="tablist" aria-label="Período de cobrança">
         {CYCLES.map((item) => (
