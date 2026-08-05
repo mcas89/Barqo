@@ -68,8 +68,8 @@ export function PosUnlockScreen() {
   }, [selectedId, clearError])
 
   useEffect(() => {
-    const orgId = organization?.id
-    if (!orgId) return
+    if (!organization?.id) return
+    const orgId: string = organization.id
     let cancelled = false
     async function load() {
       try {
