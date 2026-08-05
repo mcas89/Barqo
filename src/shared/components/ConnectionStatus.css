@@ -16,11 +16,18 @@
   filter: brightness(0.95);
 }
 
-.connection-status__dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: currentColor;
+.connection-status__icon {
+  flex-shrink: 0;
+}
+
+.connection-status__icon--spin {
+  animation: connection-status-spin 1s linear infinite;
+}
+
+@keyframes connection-status-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .connection-status--online {

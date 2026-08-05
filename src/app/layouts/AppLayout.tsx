@@ -1,5 +1,24 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import type { LucideIcon } from 'lucide-react'
+import {
+  Banknote,
+  BarChart3,
+  Boxes,
+  CreditCard,
+  Home,
+  LogOut,
+  MoreHorizontal,
+  Package,
+  RefreshCw,
+  Settings,
+  Store,
+  Truck,
+  UserCog,
+  UserRound,
+  Users,
+  Wallet,
+} from 'lucide-react'
 import { themeCssVars } from '../../shared/constants'
 import { BrandMark } from '../../shared/components/BrandMark'
 import { ConnectionStatus } from '../../shared/components/ConnectionStatus'
@@ -22,20 +41,21 @@ const NAV: Array<{
   label: string
   end?: boolean
   permission?: PermissionKey | null
+  icon: LucideIcon
 }> = [
-  { to: '/app', label: 'Início', end: true, permission: PERMISSIONS.BACK_OFFICE },
-  { to: '/app/pos', label: 'PDV', permission: null },
-  { to: '/app/products', label: 'Produtos', permission: PERMISSIONS.MANAGE_PRODUCTS },
-  { to: '/app/customers', label: 'Clientes', permission: PERMISSIONS.MANAGE_CUSTOMERS },
-  { to: '/app/receivables', label: 'Fiado', permission: PERMISSIONS.MANAGE_RECEIVABLES },
-  { to: '/app/cash', label: 'Caixa', permission: PERMISSIONS.MANAGE_CASH },
-  { to: '/app/team', label: 'Equipe', permission: PERMISSIONS.MANAGE_TEAM },
-  { to: '/app/inventory', label: 'Estoque', permission: PERMISSIONS.MANAGE_INVENTORY },
-  { to: '/app/suppliers', label: 'Fornecedores', permission: PERMISSIONS.MANAGE_SUPPLIERS },
-  { to: '/app/reports', label: 'Relatórios', permission: PERMISSIONS.VIEW_REPORTS },
-  { to: '/app/sync', label: 'Sync', permission: null },
-  { to: '/app/billing', label: 'Planos', permission: PERMISSIONS.MANAGE_BILLING },
-  { to: '/app/settings', label: 'Config', permission: PERMISSIONS.MANAGE_SETTINGS },
+  { to: '/app', label: 'Início', end: true, permission: PERMISSIONS.BACK_OFFICE, icon: Home },
+  { to: '/app/pos', label: 'PDV', permission: null, icon: Store },
+  { to: '/app/products', label: 'Produtos', permission: PERMISSIONS.MANAGE_PRODUCTS, icon: Package },
+  { to: '/app/customers', label: 'Clientes', permission: PERMISSIONS.MANAGE_CUSTOMERS, icon: Users },
+  { to: '/app/receivables', label: 'Fiado', permission: PERMISSIONS.MANAGE_RECEIVABLES, icon: Wallet },
+  { to: '/app/cash', label: 'Caixa', permission: PERMISSIONS.MANAGE_CASH, icon: Banknote },
+  { to: '/app/team', label: 'Equipe', permission: PERMISSIONS.MANAGE_TEAM, icon: UserCog },
+  { to: '/app/inventory', label: 'Estoque', permission: PERMISSIONS.MANAGE_INVENTORY, icon: Boxes },
+  { to: '/app/suppliers', label: 'Fornecedores', permission: PERMISSIONS.MANAGE_SUPPLIERS, icon: Truck },
+  { to: '/app/reports', label: 'Relatórios', permission: PERMISSIONS.VIEW_REPORTS, icon: BarChart3 },
+  { to: '/app/sync', label: 'Sync', permission: null, icon: RefreshCw },
+  { to: '/app/billing', label: 'Planos', permission: PERMISSIONS.MANAGE_BILLING, icon: CreditCard },
+  { to: '/app/settings', label: 'Config', permission: PERMISSIONS.MANAGE_SETTINGS, icon: Settings },
 ]
 
 const PRIMARY_NAV = [
@@ -44,6 +64,9 @@ const PRIMARY_NAV = [
   { to: '/app/products', label: 'Produtos' },
   { to: '/app/cash', label: 'Caixa' },
 ]
+
+const ICON_SIZE = 18
+const TAB_ICON_SIZE = 20
 
 function pathMatches(pathname: string, to: string, end?: boolean) {
   if (end || to === '/app') return pathname === '/app'
@@ -87,9 +110,10 @@ export function AppLayout() {
     if (!pinRequired || hasPrivilegedAccess || canAccessBackOffice) return true
     return can(item.permission)
   })
-  const primaryNav = PRIMARY_NAV.filter((item) =>
-    visibleNav.some((nav) => nav.to === item.to),
-  )
+  const primaryNav = PRIMARY_NAV.map((item) => {
+    const full = visibleNav.find((nav) => nav.to === item.to)
+    return full ? { ...item, icon: full.icon } : null
+  }).filter((item): item is (typeof PRIMARY_NAV)[number] & { icon: LucideIcon } => Boolean(item))
   const moreNav = visibleNav.filter(
     (item) => !PRIMARY_NAV.some((primary) => primary.to === item.to),
   )
@@ -116,18 +140,22 @@ export function AppLayout() {
             </div>
           )}
           <nav className="app-layout__nav" aria-label="Principal">
-            {visibleNav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  isActive ? 'app-layout__link app-layout__link--active' : 'app-layout__link'
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            {visibleNav.map((item) => {
+              const Icon = item.icon
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    isActive ? 'app-layout__link app-layout__link--active' : 'app-layout__link'
+                  }
+                >
+                  <Icon size={ICON_SIZE} strokeWidth={2} aria-hidden />
+                  <span>{item.label}</span>
+                </NavLink>
+              )
+            })}
           </nav>
           <div className="app-layout__footer">
             <span className="app-layout__user">
@@ -137,10 +165,12 @@ export function AppLayout() {
             </span>
             {pinRequired && (
               <button type="button" className="app-layout__logout" onClick={lock}>
+                <UserRound size={ICON_SIZE} strokeWidth={2} aria-hidden />
                 Trocar usuário
               </button>
             )}
             <button type="button" className="app-layout__logout" onClick={() => void logout()}>
+              <LogOut size={ICON_SIZE} strokeWidth={2} aria-hidden />
               Sair da loja
             </button>
           </div>
@@ -149,7 +179,10 @@ export function AppLayout() {
         <div className="app-layout__body">
           <header className="app-layout__header">
             {pinRequired && operator && (
-              <span className="app-layout__operator">{operator.displayName}</span>
+              <span className="app-layout__operator">
+                <UserRound size={16} strokeWidth={2} aria-hidden />
+                {operator.displayName}
+              </span>
             )}
             <ConnectionStatus />
           </header>
@@ -180,17 +213,21 @@ export function AppLayout() {
             </div>
           )}
           <nav className="app-layout__sheet-nav" aria-label="Mais opções">
-            {moreNav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  isActive ? 'app-layout__link app-layout__link--active' : 'app-layout__link'
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            {moreNav.map((item) => {
+              const Icon = item.icon
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    isActive ? 'app-layout__link app-layout__link--active' : 'app-layout__link'
+                  }
+                >
+                  <Icon size={ICON_SIZE} strokeWidth={2} aria-hidden />
+                  <span>{item.label}</span>
+                </NavLink>
+              )
+            })}
           </nav>
           <div className="app-layout__footer">
             <span className="app-layout__user">
@@ -200,28 +237,34 @@ export function AppLayout() {
             </span>
             {pinRequired && (
               <button type="button" className="app-layout__logout" onClick={lock}>
+                <UserRound size={ICON_SIZE} strokeWidth={2} aria-hidden />
                 Trocar usuário
               </button>
             )}
             <button type="button" className="app-layout__logout" onClick={() => void logout()}>
+              <LogOut size={ICON_SIZE} strokeWidth={2} aria-hidden />
               Sair da loja
             </button>
           </div>
         </section>
 
         <nav className="app-layout__bottom" aria-label="Atalhos">
-          {primaryNav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                isActive ? 'app-layout__tab app-layout__tab--active' : 'app-layout__tab'
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {primaryNav.map((item) => {
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  isActive ? 'app-layout__tab app-layout__tab--active' : 'app-layout__tab'
+                }
+              >
+                <Icon size={TAB_ICON_SIZE} strokeWidth={2} aria-hidden />
+                <span>{item.label}</span>
+              </NavLink>
+            )
+          })}
           <button
             type="button"
             className={
@@ -232,7 +275,8 @@ export function AppLayout() {
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen((open) => !open)}
           >
-            Mais
+            <MoreHorizontal size={TAB_ICON_SIZE} strokeWidth={2} aria-hidden />
+            <span>Mais</span>
           </button>
         </nav>
     </div>

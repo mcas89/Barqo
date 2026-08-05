@@ -214,13 +214,23 @@
   min-width: 0;
 }
 
+.pos-page__search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7b8aa0;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .pos-page__search-input {
   width: 100%;
   border: 1px solid color-mix(in srgb, var(--balqo-brand, #0b1f3a) 14%, transparent);
   background: #ffffff;
   color: #0b1f3a;
   border-radius: 0.95rem;
-  padding: 1rem 1.1rem;
+  padding: 1rem 1.1rem 1rem 2.65rem;
   font: inherit;
   font-size: 1.12rem;
   font-weight: 600;
@@ -333,6 +343,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.4rem;
   border-radius: 0.85rem;
   padding: 0 0.95rem;
   min-height: 3.15rem;
@@ -342,6 +353,13 @@
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.pos-page__customer-chip svg,
+.pos-page__cash-pill svg,
+.pos-page__ghost svg,
+.pos-page__ghost-link svg {
+  flex-shrink: 0;
 }
 
 .pos-page__customer-chip {

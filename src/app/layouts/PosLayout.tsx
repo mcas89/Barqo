@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Outlet, Link } from 'react-router-dom'
+import { LayoutGrid, UserRound } from 'lucide-react'
 import { themeCssVars } from '../../shared/constants'
 import { BrandMark } from '../../shared/components/BrandMark'
 import { ConnectionStatus } from '../../shared/components/ConnectionStatus'
@@ -42,10 +43,12 @@ export function PosLayout() {
       <header className="pos-layout__bar">
         <div className="pos-layout__actions">
           <Link to="/app" className="pos-layout__back">
+            <LayoutGrid size={16} strokeWidth={2} aria-hidden />
             Menu
           </Link>
           {pinRequired && operator && (
             <button type="button" className="pos-layout__back" onClick={lock}>
+              <UserRound size={16} strokeWidth={2} aria-hidden />
               Trocar operador
             </button>
           )}

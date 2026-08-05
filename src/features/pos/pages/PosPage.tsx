@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { Banknote, Receipt, Search, Tag, UserRound } from 'lucide-react'
 import { BALQO_LOGO_SRC } from '../../../shared/constants'
 import { startOfLocalDayIso } from '../../../shared/lib/dates'
 import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
@@ -384,6 +385,12 @@ export function PosPage() {
     <section className="pos-page">
       <div className="pos-page__toolbar">
         <div className="pos-page__search-wrap">
+          <Search
+            className="pos-page__search-icon"
+            size={18}
+            strokeWidth={2}
+            aria-hidden
+          />
           <input
             ref={searchRef}
             className="pos-page__search-input"
@@ -440,14 +447,17 @@ export function PosPage() {
           title="Cliente da venda"
           onClick={() => setShowCustomerPicker(true)}
         >
+          <UserRound size={16} strokeWidth={2} aria-hidden />
           {customer ? customer.name : 'Cliente'}
         </button>
 
         <div className="pos-page__cash-pill" title={cashSession?.openedByName}>
+          <Banknote size={16} strokeWidth={2} aria-hidden />
           Caixa aberto
         </div>
 
         <button type="button" className="pos-page__ghost" onClick={() => openQuick('loose')}>
+          <Tag size={16} strokeWidth={2} aria-hidden />
           Avulsa
         </button>
         <button
@@ -455,10 +465,12 @@ export function PosPage() {
           className="pos-page__ghost"
           onClick={() => void openRecentSales()}
         >
+          <Receipt size={16} strokeWidth={2} aria-hidden />
           2ª via
         </button>
         {canAccessBackOffice && (
           <Link to="/app/cash" className="pos-page__ghost pos-page__ghost-link">
+            <Banknote size={16} strokeWidth={2} aria-hidden />
             Caixa
           </Link>
         )}

@@ -104,6 +104,13 @@
   cursor: pointer;
   padding: 0.5rem 0.85rem;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pos-layout__back svg {
+  flex-shrink: 0;
 }
 
 .pos-layout__main {
@@ -175,9 +182,12 @@
   }
 
   .pos-layout__bar .connection-status {
-    font-size: 0;
-    gap: 0;
     padding: 0.35rem;
+    gap: 0;
+  }
+
+  .pos-layout__bar .connection-status__label {
+    display: none;
   }
 
   .pos-layout__clock {
