@@ -9,6 +9,8 @@ import type { OrganizationId, UserId } from '../../../shared/types'
 import { listEmployees } from '../../users/services/employee-service'
 import { hashPin, validatePinFormat, verifyPin } from '../../users/services/pin'
 import type { PosOperator, PosOperatorSession } from '../types/operator'
+import { buildOperatorSession } from '../types/operator'
+import { defaultPermissionsForRole } from '../../users/permissions'
 
 function requireDb() {
   const db = getFirestoreDb()
@@ -30,6 +32,9 @@ export function readOperatorSession(
     if (!raw) return null
     const data = JSON.parse(raw) as PosOperatorSession
     if (!data?.id || !data?.role || !data?.displayName) return null
+    if (!data.permissions) {
+      data.permissions = defaultPermissionsForRole(data.role)
+    }
     return data
   } catch {
     return null
@@ -47,14 +52,11 @@ export function clearOperatorSession(organizationId: string): void {
   sessionStorage.removeItem(sessionKey(organizationId))
 }
 
-export function toOperatorSession(operator: PosOperator): PosOperatorSession {
-  return {
-    id: operator.id,
-    kind: operator.kind,
-    displayName: operator.displayName,
-    role: operator.role,
-    unlockedAt: nowIso(),
-  }
+export function toOperatorSession(
+  operator: PosOperator,
+  planId?: import('../../billing').PlanId,
+): PosOperatorSession {
+  return buildOperatorSession(operator, planId)
 }
 
 export async function listPosOperators(input: {
@@ -104,6 +106,7 @@ export async function listPosOperators(input: {
       role: employee.role,
       hasPin: Boolean(employee.pinHash),
       pinHash: employee.pinHash || null,
+      permissionOverrides: employee.permissions,
     }))
 
   return [owner, ...employeeOps]
@@ -131,6 +134,7 @@ export async function unlockOperator(
   organizationId: string,
   operator: PosOperator,
   pin: string,
+  planId?: import('../../billing').PlanId,
 ): Promise<PosOperatorSession> {
   if (!operator.pinHash) {
     throw new Error('Este operador ainda não tem PIN. Defina o PIN antes de entrar.')
@@ -141,7 +145,7 @@ export async function unlockOperator(
     throw new Error('PIN incorreto.')
   }
 
-  return toOperatorSession(operator)
+  return toOperatorSession(operator, planId)
 }
 
 /** Autoriza ação sensível com PIN de dono ou gerente. */

@@ -18,6 +18,7 @@ export function TeamPage() {
     maxUsers,
     planId,
     hasMultiUser,
+    hasFinePermissions,
     canManage,
     canAddEmployee,
     blockReason,
@@ -184,6 +185,7 @@ export function TeamPage() {
         <EmployeeForm
           initial={editing}
           saving={saving}
+          finePermissions={hasFinePermissions}
           onSubmit={handleSubmit}
           onCancel={closeForm}
         />

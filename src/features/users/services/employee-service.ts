@@ -30,6 +30,10 @@ function employeesCollection(organizationId: OrganizationId) {
 
 function mapEmployee(id: string, data: Record<string, unknown>): Employee {
   const role = (data.role as EmployeeRole) || EMPLOYEE_ROLES.CASHIER
+  const permissions =
+    data.permissions && typeof data.permissions === 'object'
+      ? (data.permissions as Employee['permissions'])
+      : undefined
   return {
     id,
     organizationId: data.organizationId as string,
@@ -37,6 +41,7 @@ function mapEmployee(id: string, data: Record<string, unknown>): Employee {
     role,
     pinHash: data.pinHash as string,
     active: data.active !== false,
+    permissions,
     createdAt: data.createdAt as string,
     updatedAt: data.updatedAt as string,
   }
@@ -81,6 +86,7 @@ export async function createEmployee(
     role: input.role,
     pinHash,
     active: true,
+    permissions: input.permissions,
     createdAt: now,
     updatedAt: now,
   }
@@ -114,6 +120,10 @@ export async function updateEmployee(
 
   if (input.active !== undefined) {
     patch.active = input.active
+  }
+
+  if (input.permissions !== undefined) {
+    patch.permissions = input.permissions
   }
 
   if (input.pin !== undefined && input.pin.trim() !== '') {

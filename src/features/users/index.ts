@@ -15,3 +15,14 @@ export {
   EMPLOYEE_ROLE_LABELS,
   isEmployeeRole,
 } from './types'
+export {
+  PERMISSIONS,
+  PERMISSION_LABELS,
+  EDITABLE_PERMISSIONS,
+  defaultPermissionsForRole,
+  planSupportsFinePermissions,
+  resolvePermissions,
+  hasPermission,
+  permissionForPath,
+} from './permissions'
+export type { PermissionKey, PermissionMap, PermissionOverrides } from './permissions'

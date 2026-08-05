@@ -34,9 +34,14 @@ import {
 import {
   canAccessBackOffice,
   canRemoveCartItem,
+  sessionCan,
   type PosOperator,
   type PosOperatorSession,
 } from '../types/operator'
+import {
+  PERMISSIONS,
+  type PermissionKey,
+} from '../../users/permissions'
 
 interface PosOperatorContextValue {
   operators: PosOperator[]
@@ -56,6 +61,7 @@ interface PosOperatorContextValue {
   elevateForPath: (path: string, pin: string) => Promise<void>
   clearElevation: () => void
   isElevatedFor: (path: string) => boolean
+  can: (key: PermissionKey) => boolean
   canAccessBackOffice: boolean
   canRemoveCartItem: boolean
   hasPrivilegedAccess: boolean
@@ -128,7 +134,7 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
             displayName: owner.displayName,
             role: owner.role,
           })
-          const session = toOperatorSession(owner)
+          const session = toOperatorSession(owner, planId)
           writeOperatorSession(organizationId, session)
           setOperator(session)
         } else {
@@ -139,18 +145,34 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
 
       const stored = readOperatorSession(organizationId)
       if (stored && list.some((op) => op.id === stored.id && op.hasPin)) {
-        const current = list.find((op) => op.id === stored.id) ?? stored
+        const current = list.find((op) => op.id === stored.id)
         try {
           await claimOperatorPresence({
             organizationId,
             operatorId: stored.id,
-            displayName: current.displayName,
+            displayName: current?.displayName ?? stored.displayName,
             role: stored.role,
           })
-          setOperator({
-            ...stored,
-            displayName: current.displayName,
-          })
+          const session = current
+            ? toOperatorSession(current, planId)
+            : {
+                ...stored,
+                permissions:
+                  stored.permissions ??
+                  toOperatorSession(
+                    {
+                      id: stored.id,
+                      kind: stored.kind,
+                      displayName: stored.displayName,
+                      role: stored.role,
+                      hasPin: true,
+                      pinHash: null,
+                    },
+                    planId,
+                  ).permissions,
+              }
+          writeOperatorSession(organizationId, session)
+          setOperator(session)
         } catch (err) {
           clearOperatorSession(organizationId)
           setOperator(null)
@@ -213,7 +235,7 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
         const target = list.find((op) => op.id === operatorId)
         if (!target) throw new Error('Operador não encontrado.')
 
-        const session = await unlockOperator(organizationId, target, pin)
+        const session = await unlockOperator(organizationId, target, pin, planId)
         await claimOperatorPresence({
           organizationId,
           operatorId: session.id,
@@ -230,7 +252,7 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
         throw err
       }
     },
-    [organizationId, user, organization?.ownerName],
+    [organizationId, user, organization?.ownerName, planId],
   )
 
   const lock = useCallback(() => {
@@ -299,8 +321,26 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
     [authorizePrivileged],
   )
 
-  const value = useMemo<PosOperatorContextValue>(
-    () => ({
+  const value = useMemo<PosOperatorContextValue>(() => {
+    const can = (key: PermissionKey) => {
+      if (!pinRequired) return true
+      if (elevatedPath) return true
+      return sessionCan(operator, key)
+    }
+    const backOffice = !pinRequired
+      ? true
+      : operator
+        ? sessionCan(operator, PERMISSIONS.BACK_OFFICE) ||
+          canAccessBackOffice(operator.role)
+        : false
+    const removeCart = !pinRequired
+      ? true
+      : operator
+        ? sessionCan(operator, PERMISSIONS.REMOVE_CART) ||
+          canRemoveCartItem(operator.role)
+        : false
+
+    return {
       operators,
       operator,
       loading,
@@ -316,22 +356,19 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
       elevateForPath,
       clearElevation,
       isElevatedFor,
-      canAccessBackOffice: !pinRequired
-        ? true
-        : operator
-          ? canAccessBackOffice(operator.role)
-          : false,
-      canRemoveCartItem: !pinRequired
-        ? true
-        : operator
-          ? canRemoveCartItem(operator.role)
-          : false,
+      can,
+      canAccessBackOffice: backOffice,
+      canRemoveCartItem: removeCart,
       hasPrivilegedAccess: !pinRequired
         ? true
         : Boolean(elevatedPath) ||
-          Boolean(operator && canAccessBackOffice(operator.role)),
-    }),
-    [
+          Boolean(
+            operator &&
+              (sessionCan(operator, PERMISSIONS.BACK_OFFICE) ||
+                canAccessBackOffice(operator.role)),
+          ),
+    }
+  }, [
       operators,
       operator,
       elevatedPath,
@@ -346,8 +383,7 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
       elevateForPath,
       clearElevation,
       isElevatedFor,
-    ],
-  )
+    ])
 
   return (
     <PosOperatorContext.Provider value={value}>{children}</PosOperatorContext.Provider>

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import {
   EMPLOYEE_ROLES,
   EMPLOYEE_ROLE_LABELS,
@@ -6,11 +6,19 @@ import {
   type EmployeeInput,
   type EmployeeRole,
 } from '../types'
+import {
+  EDITABLE_PERMISSIONS,
+  PERMISSION_LABELS,
+  defaultPermissionsForRole,
+  type PermissionKey,
+  type PermissionOverrides,
+} from '../permissions'
 import './EmployeeForm.css'
 
 interface EmployeeFormProps {
   initial?: Employee | null
   saving: boolean
+  finePermissions?: boolean
   /** Na edição, PIN vazio = manter o atual. */
   onSubmit: (input: EmployeeInput) => Promise<void>
   onCancel: () => void
@@ -19,6 +27,7 @@ interface EmployeeFormProps {
 export function EmployeeForm({
   initial,
   saving,
+  finePermissions = false,
   onSubmit,
   onCancel,
 }: EmployeeFormProps) {
@@ -29,7 +38,29 @@ export function EmployeeForm({
   )
   const [pin, setPin] = useState('')
   const [pinConfirm, setPinConfirm] = useState('')
+  const [permissions, setPermissions] = useState<PermissionOverrides>(() => {
+    if (!finePermissions) return {}
+    return {
+      ...defaultPermissionsForRole(initial?.role ?? EMPLOYEE_ROLES.CASHIER),
+      ...initial?.permissions,
+    }
+  })
   const [localError, setLocalError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!finePermissions) return
+    setPermissions({
+      ...defaultPermissionsForRole(role),
+      ...(initial?.role === role ? initial.permissions : undefined),
+    })
+  }, [role, finePermissions, initial])
+
+  function togglePermission(key: PermissionKey) {
+    setPermissions((current) => ({
+      ...current,
+      [key]: !current[key],
+    }))
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -57,6 +88,7 @@ export function EmployeeForm({
         displayName: name,
         role,
         pin: pin.trim(),
+        permissions: finePermissions ? permissions : undefined,
       })
     } catch {
       // erro no hook
@@ -90,6 +122,26 @@ export function EmployeeForm({
           ))}
         </select>
       </label>
+
+      {finePermissions && (
+        <fieldset className="employee-form__perms">
+          <legend>Permissões finas (Controle)</legend>
+          <p>Ajuste o que este funcionário pode fazer além do padrão da função.</p>
+          <div className="employee-form__perms-grid">
+            {EDITABLE_PERMISSIONS.map((key) => (
+              <label key={key} className="employee-form__perm">
+                <input
+                  type="checkbox"
+                  checked={Boolean(permissions[key])}
+                  onChange={() => togglePermission(key)}
+                  disabled={saving}
+                />
+                <span>{PERMISSION_LABELS[key]}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <label>
         PIN {isEdit ? '(deixe em branco para manter)' : ''}

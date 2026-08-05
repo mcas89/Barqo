@@ -6,7 +6,7 @@
   border: 1px solid rgba(11, 31, 58, 0.1);
   border-radius: 0.85rem;
   padding: 1.15rem;
-  max-width: 420px;
+  max-width: 520px;
 }
 
 .employee-form label {
@@ -33,6 +33,56 @@
   color: #b91c1c;
   font-size: 0.88rem;
   font-weight: 600;
+}
+
+.employee-form__perms {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(11, 31, 58, 0.12);
+  border-radius: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.employee-form__perms legend {
+  padding: 0 0.25rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0b1f3a;
+}
+
+.employee-form__perms > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.employee-form__perms-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.employee-form__perm {
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 0.5rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 650 !important;
+  cursor: pointer;
+}
+
+.employee-form__perm input {
+  margin-top: 0.15rem;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--balqo-brand, #0b1f3a);
+  flex-shrink: 0;
 }
 
 .employee-form__actions {

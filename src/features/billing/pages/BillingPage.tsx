@@ -18,6 +18,7 @@ import {
 import { formatMoney } from '../../../shared/lib/money'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
+import { PERMISSIONS } from '../../users/permissions'
 import { startPlanCheckout } from '../services/subscription-service'
 import { writePendingCheckout } from '../pending-checkout'
 import { usePendingCheckout } from '../hooks/usePendingCheckoutWatcher'
@@ -33,7 +34,7 @@ const CYCLES: BillingCycle[] = [
 
 export function BillingPage() {
   const { organization, subscription, user, refreshSession } = useAuth()
-  const { hasPrivilegedAccess } = usePosOperator()
+  const { hasPrivilegedAccess, can } = usePosOperator()
   const [cycle, setCycle] = useState<BillingCycle>(
     subscription?.billingCycle ?? BILLING_CYCLES.MONTHLY,
   )
@@ -42,7 +43,10 @@ export function BillingPage() {
   const pending = usePendingCheckout()
 
   const coverage = getSubscriptionCoverage(subscription)
-  const canPay = hasPrivilegedAccess || coverage?.canOperate === false
+  const canPay =
+    hasPrivilegedAccess ||
+    can(PERMISSIONS.MANAGE_BILLING) ||
+    coverage?.canOperate === false
 
   useEffect(() => {
     if (subscription?.billingCycle) setCycle(subscription.billingCycle)

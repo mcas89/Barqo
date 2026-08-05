@@ -10,6 +10,7 @@ import {
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
+import { PERMISSIONS } from '../permissions'
 import {
   countSeatsUsed,
   createEmployee,
@@ -22,7 +23,7 @@ import type { Employee, EmployeeInput } from '../types'
 
 export function useTeam() {
   const { organization, subscription } = useAuth()
-  const { hasPrivilegedAccess } = usePosOperator()
+  const { can, hasPrivilegedAccess } = usePosOperator()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -34,7 +35,8 @@ export function useTeam() {
   const planId =
     subscription?.planId ?? organization?.planId ?? DEFAULT_PLAN_ID
 
-  const canManage = hasPrivilegedAccess
+  const canManage = hasPrivilegedAccess || can(PERMISSIONS.MANAGE_TEAM)
+  const hasFinePermissions = planHasFeature(planId, PLAN_FEATURES.FINE_PERMISSIONS)
 
   const hasMultiUser = planHasFeature(planId, PLAN_FEATURES.MULTI_USER)
   const maxUsers = getLimitValue(planId, 'users')
@@ -152,6 +154,7 @@ export function useTeam() {
     maxUsers,
     planId,
     hasMultiUser,
+    hasFinePermissions,
     canManage,
     canAddEmployee,
     blockReason,

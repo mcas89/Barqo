@@ -37,7 +37,6 @@ export function PrinterSettingsModal({
   onTestPrint: (value: PrinterSettingsValue) => Promise<void>
 }) {
   const [printOnSale, setPrintOnSale] = useState(initial.printOnSale)
-  const [sendReceiptOnSale, setSendReceiptOnSale] = useState(initial.sendReceiptOnSale)
   const [printerPath, setPrinterPath] = useState(initial.printerPath)
   const [paperWidth, setPaperWidth] = useState(initial.paperWidth)
   const [printers, setPrinters] = useState<SystemPrinter[]>([])
@@ -48,7 +47,7 @@ export function PrinterSettingsModal({
 
   const value: PrinterSettingsValue = {
     printOnSale,
-    sendReceiptOnSale,
+    sendReceiptOnSale: false,
     printerPath,
     paperWidth,
   }
@@ -200,17 +199,28 @@ export function PrinterSettingsModal({
             />
             <span>Imprimir cupom ao finalizar a venda</span>
           </label>
-          <label className="printer-modal__switch">
+          <label
+            className="printer-modal__switch printer-modal__switch--disabled"
+            onClick={(event) => {
+              event.preventDefault()
+              setLocalError(null)
+              setLocalOk(null)
+              setLocalError(
+                'Envio de comprovante por e-mail está indisponível para manutenção.',
+              )
+            }}
+          >
             <input
               type="checkbox"
-              checked={sendReceiptOnSale}
-              onChange={(event) => setSendReceiptOnSale(event.target.checked)}
-              disabled={!canEdit || saving}
+              checked={false}
+              disabled
+              readOnly
+              aria-disabled="true"
             />
-            <span>Enviar comprovante (e-mail) ao finalizar</span>
+            <span>Enviar comprovante (e-mail) ao finalizar — indisponível</span>
           </label>
           <p className="printer-modal__hint">
-            E-mail fica na fila deste aparelho até a API de envio estar ligada.
+            Em manutenção. O cupom impresso continua disponível.
           </p>
 
           <label>

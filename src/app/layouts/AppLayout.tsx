@@ -9,22 +9,31 @@ import { getPlan } from '../../features/billing'
 import { PendingCheckoutBanner } from '../../features/billing/components/PendingCheckoutBanner'
 import { usePosOperator } from '../../features/pos/hooks/usePosOperator'
 import { POS_ROLE_LABELS } from '../../features/pos/types/operator'
+import {
+  PERMISSIONS,
+  type PermissionKey,
+} from '../../features/users/permissions'
 import { RequireBackOffice } from './RequireBackOffice'
 import './AppLayout.css'
 
-const NAV = [
-  { to: '/app', label: 'Início', end: true },
-  { to: '/app/pos', label: 'PDV' },
-  { to: '/app/products', label: 'Produtos' },
-  { to: '/app/customers', label: 'Clientes' },
-  { to: '/app/receivables', label: 'Fiado' },
-  { to: '/app/cash', label: 'Caixa' },
-  { to: '/app/team', label: 'Equipe' },
-  { to: '/app/inventory', label: 'Estoque' },
-  { to: '/app/suppliers', label: 'Fornecedores' },
-  { to: '/app/reports', label: 'Relatórios' },
-  { to: '/app/billing', label: 'Planos' },
-  { to: '/app/settings', label: 'Config' },
+const NAV: Array<{
+  to: string
+  label: string
+  end?: boolean
+  permission?: PermissionKey | null
+}> = [
+  { to: '/app', label: 'Início', end: true, permission: PERMISSIONS.BACK_OFFICE },
+  { to: '/app/pos', label: 'PDV', permission: null },
+  { to: '/app/products', label: 'Produtos', permission: PERMISSIONS.MANAGE_PRODUCTS },
+  { to: '/app/customers', label: 'Clientes', permission: PERMISSIONS.MANAGE_CUSTOMERS },
+  { to: '/app/receivables', label: 'Fiado', permission: PERMISSIONS.MANAGE_RECEIVABLES },
+  { to: '/app/cash', label: 'Caixa', permission: PERMISSIONS.MANAGE_CASH },
+  { to: '/app/team', label: 'Equipe', permission: PERMISSIONS.MANAGE_TEAM },
+  { to: '/app/inventory', label: 'Estoque', permission: PERMISSIONS.MANAGE_INVENTORY },
+  { to: '/app/suppliers', label: 'Fornecedores', permission: PERMISSIONS.MANAGE_SUPPLIERS },
+  { to: '/app/reports', label: 'Relatórios', permission: PERMISSIONS.VIEW_REPORTS },
+  { to: '/app/billing', label: 'Planos', permission: PERMISSIONS.MANAGE_BILLING },
+  { to: '/app/settings', label: 'Config', permission: PERMISSIONS.MANAGE_SETTINGS },
 ]
 
 const PRIMARY_NAV = [
@@ -34,8 +43,6 @@ const PRIMARY_NAV = [
   { to: '/app/cash', label: 'Caixa' },
 ]
 
-const MORE_NAV = NAV.filter((item) => !PRIMARY_NAV.some((primary) => primary.to === item.to))
-
 function pathMatches(pathname: string, to: string, end?: boolean) {
   if (end || to === '/app') return pathname === '/app'
   return pathname === to || pathname.startsWith(`${to}/`)
@@ -43,7 +50,8 @@ function pathMatches(pathname: string, to: string, end?: boolean) {
 
 export function AppLayout() {
   const { user, organization, subscription, logout } = useAuth()
-  const { operator, pinRequired, lock } = usePosOperator()
+  const { operator, pinRequired, lock, can, canAccessBackOffice, hasPrivilegedAccess } =
+    usePosOperator()
   const location = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
   const planName = subscription
@@ -72,7 +80,18 @@ export function AppLayout() {
     }
   }, [moreOpen])
 
-  const moreActive = MORE_NAV.some((item) => pathMatches(location.pathname, item.to, item.end))
+  const visibleNav = NAV.filter((item) => {
+    if (item.permission == null) return true
+    if (!pinRequired || hasPrivilegedAccess || canAccessBackOffice) return true
+    return can(item.permission)
+  })
+  const primaryNav = PRIMARY_NAV.filter((item) =>
+    visibleNav.some((nav) => nav.to === item.to),
+  )
+  const moreNav = visibleNav.filter(
+    (item) => !PRIMARY_NAV.some((primary) => primary.to === item.to),
+  )
+  const moreActive = moreNav.some((item) => pathMatches(location.pathname, item.to, item.end))
 
   return (
     <div
@@ -95,7 +114,7 @@ export function AppLayout() {
             </div>
           )}
           <nav className="app-layout__nav" aria-label="Principal">
-            {NAV.map((item) => (
+            {visibleNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -158,7 +177,7 @@ export function AppLayout() {
             </div>
           )}
           <nav className="app-layout__sheet-nav" aria-label="Mais opções">
-            {MORE_NAV.map((item) => (
+            {moreNav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -188,7 +207,7 @@ export function AppLayout() {
         </section>
 
         <nav className="app-layout__bottom" aria-label="Atalhos">
-          {PRIMARY_NAV.map((item) => (
+          {primaryNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

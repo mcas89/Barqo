@@ -2,11 +2,11 @@
 
 Status recomendado hoje: **piloto com 2–5 lojas**.  
 Trava operacional de cobrança (rules, domínio, InfinitePay, termos/LGPD, aviso sem NF-e) está feita.  
-Ainda **não** está fechado para cobrar em escala — falta produto (offline real, impressora lista, etc.).
+Ainda **não** está fechado para cobrar em escala — falta **offline real** (e API de e-mail).
 
 - App: https://balqo.vercel.app
 - Repo: https://github.com/mcas89/Barqo
-- Versão: `0.1.0-dev`
+- Versão: `0.1.13`
 - Suporte: WhatsApp `5531983919015`
 - Atualizado: 5 ago 2026
 
@@ -65,13 +65,28 @@ Sem isso, não cobre cliente novo de verdade.
 
 Dá para pilotoar sem isso. **Não venda como pronto.**
 
-- [ ] Offline de verdade — a fila Dexie existe, o sync **não envia** para o Firestore
+- [ ] Offline de verdade — ver checklist abaixo
 - [x] Escolher impressora da lista do Windows (agente local + modal em Configurações)
-- [ ] API de e-mail do comprovante (`VITE_RECEIPT_API_URL`)
+- [ ] API de e-mail do comprovante (`VITE_RECEIPT_API_URL`) — UI em manutenção por enquanto
 - [x] Travar escrita de `subscriptions` nas rules (só o dono grava; republicar no Console)
 - [x] PDV: cadastro rápido, venda avulsa, alterar preço na hora
-- [ ] Plano Controle: permissões finas (está no catálogo, quase não no app)
-- [ ] Fechar versão `0.1.0` sem sufixo `-dev`
+- [x] Plano Controle: permissões finas (Equipe → checkboxes por funcionário)
+- [x] Fechar versão `0.1.13`
+
+### Offline — o que falta para ficar pronto
+
+Hoje: Dexie + fila + badge online/offline existem, mas **ninguém enfileira venda** e o sync **não grava no Firestore**.
+
+1. No PDV/caixa, se offline ou Firestore falhar → `enqueueOperation` (hoje `enqueueOperation` não é chamado)
+2. Cache local de produtos/clientes (`localDb.products` / `customers`) para buscar sem rede
+3. Espelho local de vendas/caixa aberta (UX de “venda feita” sem esperar a nuvem)
+4. Implementar `runSyncPass` em `src/infra/sync/sync-engine.ts` (hoje só tem TODO)
+5. Disparar sync ao voltar online, no boot e após enfileirar
+6. IDs estáveis + retries sem duplicar venda/estoque
+7. Política de conflito (dois aparelhos no mesmo estoque)
+8. Definir o que acontece com login/PIN sem internet
+
+Até isso, **não prometa offline de ponta a ponta**.
 
 ---
 
@@ -107,5 +122,5 @@ Não pode (ainda):
 2. ~~Pagamento E2E~~
 3. ~~Texto fiscal + termos~~
 4. ~~2–5 pilotos~~ (em teste)
-5. Offline · ~~impressora (agente + modal)~~ · ~~PDV rápido~~ · ~~rules de assinatura~~ (republicar `firestore.rules`)
-6. Tirar `-dev` e abrir cobrança em escala
+5. ~~Impressora / PDV rápido / rules / permissões Controle~~ · **offline real** (republicar `firestore.rules` se ainda não)
+6. Abrir cobrança em escala depois do offline

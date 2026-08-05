@@ -160,7 +160,7 @@ export function SettingsPage() {
         themeColor,
         logoDataUrl: logoDirty ? logoDataUrl : undefined,
         printReceiptOnSale: printOnSale,
-        sendReceiptOnSale,
+        sendReceiptOnSale: false,
         receiptPaperWidth: paperWidth,
         printerPath,
       })
@@ -231,7 +231,7 @@ export function SettingsPage() {
       themeColor,
       logoDataUrl: logoDirty ? logoDataUrl : undefined,
       printReceiptOnSale: value.printOnSale,
-      sendReceiptOnSale: value.sendReceiptOnSale,
+      sendReceiptOnSale: false,
       receiptPaperWidth: value.paperWidth,
       printerPath: value.printerPath,
     })
@@ -406,7 +406,6 @@ export function SettingsPage() {
               {printOnSale
                 ? `Cupom ao vender ligado${printerPath ? ` · ${printerPath}` : ' · janela do Windows'}`
                 : 'Cupom ao vender desligado'}
-              {sendReceiptOnSale ? ' · e-mail na fila' : ''}
               {' · '}
               {paperWidth}
             </p>

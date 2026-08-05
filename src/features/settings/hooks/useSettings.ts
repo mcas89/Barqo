@@ -2,27 +2,31 @@ import { useState } from 'react'
 import { updateOrganizationSettings } from '../../organizations'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
+import { PERMISSIONS } from '../../users/permissions'
 import { fileToLogoDataUrl } from '../lib/logo'
 import type { OrganizationSettingsInput } from '../../organizations'
 
 export function useSettings() {
   const { organization, user, refreshSession } = useAuth()
-  const { hasPrivilegedAccess } = usePosOperator()
+  const { can, hasPrivilegedAccess } = usePosOperator()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
-  const canEdit = hasPrivilegedAccess
+  const canEdit = hasPrivilegedAccess || can(PERMISSIONS.MANAGE_SETTINGS)
 
   async function save(input: OrganizationSettingsInput) {
     if (!organization) throw new Error('Nenhuma loja ativa.')
-    if (!canEdit) throw new Error('Somente proprietário ou gerente pode alterar as configurações.')
+    if (!canEdit) throw new Error('Somente quem tem permissão de configurações pode alterar.')
 
     setSaving(true)
     setError(null)
     setMessage(null)
     try {
-      await updateOrganizationSettings(organization.id, input)
+      await updateOrganizationSettings(organization.id, {
+        ...input,
+        sendReceiptOnSale: false,
+      })
       await refreshSession()
       setMessage('Configurações salvas.')
     } catch (err) {

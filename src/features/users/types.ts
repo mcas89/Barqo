@@ -1,5 +1,6 @@
 import { USER_ROLES, type UserRole } from '../../shared/constants'
 import type { OrganizationId } from '../../shared/types'
+import type { PermissionOverrides } from './permissions'
 
 /** Papéis de funcionário (dono fica no Auth, não nesta coleção). */
 export const EMPLOYEE_ROLES = {
@@ -19,6 +20,8 @@ export interface Employee {
   /** Hash do PIN — nunca expor o PIN em claro. */
   pinHash: string
   active: boolean
+  /** Só no plano Controle — sobrescreve o padrão do papel. */
+  permissions?: PermissionOverrides
   createdAt: string
   updatedAt: string
 }
@@ -28,6 +31,7 @@ export interface EmployeeInput {
   role: EmployeeRole
   /** PIN numérico 4–6 dígitos; obrigatório na criação; opcional na edição. */
   pin?: string
+  permissions?: PermissionOverrides
 }
 
 export function isEmployeeRole(role: UserRole): role is EmployeeRole {

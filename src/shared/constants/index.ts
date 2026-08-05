@@ -1,6 +1,6 @@
 export const APP_NAME = 'BALQO'
 export const APP_TAGLINE = 'Seu comércio em movimento'
-export const APP_VERSION = '0.1.0-dev'
+export const APP_VERSION = '0.1.13'
 
 /** Azul-marinho da marca (logo em /logo.png). */
 export const DEFAULT_THEME_COLOR = '#0b1f3a'
