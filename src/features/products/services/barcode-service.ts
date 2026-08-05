@@ -55,13 +55,16 @@ export function buildBarcodeMeta(input: {
   generatedByOperatorId?: string
 }): ProductBarcodeMeta {
   const value = input.value.trim()
-  return {
+  const meta: ProductBarcodeMeta = {
     value,
     type: input.type ?? inferBarcodeType(value),
     source: input.source ?? inferBarcodeSource(value),
-    generatedAt: input.generatedAt,
-    generatedByOperatorId: input.generatedByOperatorId,
   }
+  if (input.generatedAt) meta.generatedAt = input.generatedAt
+  if (input.generatedByOperatorId) {
+    meta.generatedByOperatorId = input.generatedByOperatorId
+  }
+  return meta
 }
 
 export function normalizeBarcodeKey(value: string): string {
