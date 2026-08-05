@@ -8,7 +8,14 @@ import {
   openCashSession,
 } from '../../cash-register/services/cash-service'
 import type { CashSession } from '../../cash-register/types'
-import { listProducts, type Product } from '../../products'
+import { createId } from '../../../shared/lib/ids'
+import {
+  createProduct,
+  findProductByBarcode,
+  listProducts,
+  normalizeProductText,
+  type Product,
+} from '../../products'
 import {
   cartSubtotalCents,
   cartTotalCents,
@@ -142,6 +149,7 @@ export function usePos() {
           productId: product.id,
           name: product.name,
           unitPriceCents: product.priceCents,
+          catalogPriceCents: product.priceCents,
           costCents: product.costCents,
           quantity,
           type: product.type,
@@ -152,10 +160,10 @@ export function usePos() {
     return added
   }
 
-  function addBySearchEnter() {
-    if (!ensureCashOpen()) return
+  function addBySearchEnter(): 'added' | 'not_found' | 'empty' {
+    if (!ensureCashOpen()) return 'empty'
     const term = search.trim().toLowerCase()
-    if (!term) return
+    if (!term) return 'empty'
 
     const exactBarcode = catalog.find(
       (product) => product.barcode?.toLowerCase() === term,
@@ -164,18 +172,133 @@ export function usePos() {
       const ok = addProduct(exactBarcode)
       playScanBeep(ok ? 'ok' : 'error')
       if (ok) setSearch('')
-      return
+      return ok ? 'added' : 'empty'
     }
 
     if (filteredCatalog[0]) {
       const ok = addProduct(filteredCatalog[0])
       playScanBeep(ok ? 'ok' : 'error')
       if (ok) setSearch('')
-      return
+      return ok ? 'added' : 'empty'
     }
 
     playScanBeep('error')
-    setError('Nenhum produto encontrado.')
+    setError(null)
+    return 'not_found'
+  }
+
+  function setItemPrice(productId: string, unitPriceCents: number) {
+    const nextPrice = Math.max(0, Math.round(unitPriceCents))
+    if (nextPrice <= 0) {
+      setError('Informe um preço válido.')
+      return false
+    }
+    setCart((current) =>
+      current.map((item) =>
+        item.productId === productId ? { ...item, unitPriceCents: nextPrice } : item,
+      ),
+    )
+    setError(null)
+    return true
+  }
+
+  function addLooseItem(input: { name: string; unitPriceCents: number; quantity?: number }): boolean {
+    if (!ensureCashOpen()) return false
+    const name = normalizeProductText(input.name || 'ITEM AVULSO')
+    const unitPriceCents = Math.max(0, Math.round(input.unitPriceCents))
+    const quantity = Math.max(1, Math.round(input.quantity ?? 1))
+    if (!name) {
+      setError('Informe a descrição do item.')
+      return false
+    }
+    if (unitPriceCents <= 0) {
+      setError('Informe o preço do item avulso.')
+      return false
+    }
+
+    setLastSale(null)
+    setError(null)
+    setCart((current) => [
+      ...current,
+      {
+        productId: createId('avulsa'),
+        name,
+        unitPriceCents,
+        catalogPriceCents: unitPriceCents,
+        costCents: 0,
+        quantity,
+        type: 'service',
+        loose: true,
+      },
+    ])
+    return true
+  }
+
+  async function quickCreateAndAdd(input: {
+    name: string
+    unitPriceCents: number
+    barcode?: string
+    stock?: number
+    quantity?: number
+  }): Promise<boolean> {
+    if (!organizationId) {
+      setError('Sessão inválida.')
+      return false
+    }
+    if (!ensureCashOpen()) return false
+
+    const name = normalizeProductText(input.name)
+    const unitPriceCents = Math.max(0, Math.round(input.unitPriceCents))
+    const quantity = Math.max(1, Math.round(input.quantity ?? 1))
+    const barcode = input.barcode?.trim()
+    const stock = Math.max(quantity, Math.round(input.stock ?? quantity))
+
+    if (!name) {
+      setError('Informe o nome do produto.')
+      return false
+    }
+    if (unitPriceCents <= 0) {
+      setError('Informe o preço do produto.')
+      return false
+    }
+
+    if (barcode) {
+      const existing = findProductByBarcode(catalog, barcode)
+      if (existing) {
+        const ok = addProduct(existing, quantity)
+        if (ok) setSearch('')
+        return ok
+      }
+    }
+
+    setBusy(true)
+    setError(null)
+    try {
+      const product = await createProduct(organizationId, {
+        name,
+        barcode,
+        unit: 'UN',
+        type: 'product',
+        priceCents: unitPriceCents,
+        costCents: 0,
+        stock,
+        minStock: 0,
+      })
+      setCatalog((current) =>
+        [...current.filter((item) => item.id !== product.id), product].sort((left, right) =>
+          left.name.localeCompare(right.name, 'pt-BR'),
+        ),
+      )
+      const ok = addProduct(product, quantity)
+      if (ok) setSearch('')
+      return ok
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : 'Não foi possível cadastrar o produto.')
+      return false
+    } finally {
+      setBusy(false)
+    }
   }
 
   function setItemQuantity(productId: string, quantity: number) {
@@ -343,7 +466,10 @@ export function usePos() {
     customerLabel: customer?.name.trim() || 'Caixa livre',
     addProduct,
     addBySearchEnter,
+    addLooseItem,
+    quickCreateAndAdd,
     setItemQuantity,
+    setItemPrice,
     removeItem,
     clearCart,
     setPaymentAmount,

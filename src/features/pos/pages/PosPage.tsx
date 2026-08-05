@@ -14,6 +14,7 @@ import { useDeviceSession } from '../../devices'
 import { fulfillSaleReceipt, resolveReceiptSettings } from '../../receipts'
 import { PinAuthorizeModal } from '../components/PinAuthorizeModal'
 import { PosCustomerPicker } from '../components/PosCustomerPicker'
+import { PosQuickItemPanel, type QuickItemMode } from '../components/PosQuickItemPanel'
 import { PosRecentSalesPanel } from '../components/PosRecentSalesPanel'
 import { PosUnlockScreen } from '../components/PosUnlockScreen'
 import { usePos } from '../hooks/usePos'
@@ -45,6 +46,12 @@ export function PosPage() {
   const [showRecentSales, setShowRecentSales] = useState(false)
   const [recentSales, setRecentSales] = useState<Sale[]>([])
   const [loadingRecentSales, setLoadingRecentSales] = useState(false)
+  const [quickOpen, setQuickOpen] = useState(false)
+  const [quickMode, setQuickMode] = useState<QuickItemMode>('register')
+  const [quickName, setQuickName] = useState('')
+  const [quickBarcode, setQuickBarcode] = useState('')
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
+  const [priceDraft, setPriceDraft] = useState('')
 
   const { subscription, organization: authOrg } = useAuth()
   const { devices, deviceId } = useDeviceSession()
@@ -84,7 +91,10 @@ export function PosPage() {
     setCustomer,
     addProduct,
     addBySearchEnter,
+    addLooseItem,
+    quickCreateAndAdd,
     setItemQuantity,
+    setItemPrice,
     removeItem,
     clearCart,
     payFullWith,
@@ -155,15 +165,45 @@ export function PosPage() {
     }
   }
 
+  function looksLikeBarcode(value: string) {
+    return /^\d{6,}$/.test(value.trim())
+  }
+
+  function openQuick(mode: QuickItemMode, fromSearch = false) {
+    const term = search.trim()
+    if (fromSearch && looksLikeBarcode(term)) {
+      setQuickBarcode(term)
+      setQuickName('')
+    } else {
+      setQuickBarcode('')
+      setQuickName(term.toLocaleUpperCase('pt-BR'))
+    }
+    setQuickMode(mode)
+    setQuickOpen(true)
+  }
+
   function onSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Enter') {
       event.preventDefault()
-      addBySearchEnter()
+      const result = addBySearchEnter()
+      if (result === 'not_found') {
+        openQuick(looksLikeBarcode(search) ? 'register' : 'loose', true)
+      }
       searchRef.current?.focus()
     }
     if (event.key === 'Escape') {
       setSearch('')
     }
+  }
+
+  function startPriceEdit(productId: string, unitPriceCents: number) {
+    setEditingPriceId(productId)
+    setPriceDraft((unitPriceCents / 100).toFixed(2).replace('.', ','))
+  }
+
+  function commitPriceEdit(productId: string) {
+    setItemPrice(productId, parseMoneyToCents(priceDraft))
+    setEditingPriceId(null)
   }
 
   function pickProduct(productId: string) {
@@ -361,7 +401,17 @@ export function PosPage() {
               {loadingCatalog ? (
                 <li className="pos-page__suggest-empty">Carregando…</li>
               ) : filteredCatalog.length === 0 ? (
-                <li className="pos-page__suggest-empty">Nenhum produto encontrado</li>
+                <li className="pos-page__suggest-empty">
+                  <span>Nenhum produto encontrado</span>
+                  <div className="pos-page__suggest-actions">
+                    <button type="button" onClick={() => openQuick('register', true)}>
+                      Cadastrar
+                    </button>
+                    <button type="button" onClick={() => openQuick('loose', true)}>
+                      Venda avulsa
+                    </button>
+                  </div>
+                </li>
               ) : (
                 filteredCatalog.slice(0, 8).map((product) => (
                   <li key={product.id}>
@@ -397,6 +447,9 @@ export function PosPage() {
           Caixa aberto
         </div>
 
+        <button type="button" className="pos-page__ghost" onClick={() => openQuick('loose')}>
+          Avulsa
+        </button>
         <button
           type="button"
           className="pos-page__ghost"
@@ -435,6 +488,23 @@ export function PosPage() {
           busy={authBusy}
           onConfirm={handleAuthorize}
           onCancel={() => setPendingAuth(null)}
+        />
+      )}
+
+      {quickOpen && (
+        <PosQuickItemPanel
+          mode={quickMode}
+          initialName={quickName}
+          initialBarcode={quickBarcode}
+          busy={busy}
+          error={error}
+          onModeChange={setQuickMode}
+          onRegister={quickCreateAndAdd}
+          onLoose={addLooseItem}
+          onClose={() => {
+            setQuickOpen(false)
+            searchRef.current?.focus()
+          }}
         />
       )}
 
@@ -490,15 +560,48 @@ export function PosPage() {
               <strong className="pos-page__empty-mode">
                 {customer ? customer.name : 'Caixa livre'}
               </strong>
-              <p>Passe o código ou busque pelo nome. Os itens entram aqui.</p>
+              <p>Passe o código, busque pelo nome ou use Avulsa / cadastro rápido.</p>
             </div>
           ) : (
             <ul className="pos-page__cart-list">
               {cart.map((item) => (
                 <li key={item.productId}>
                   <div className="pos-page__item-info">
-                    <strong>{item.name}</strong>
-                    <span>{formatMoney(item.unitPriceCents)} cada</span>
+                    <strong>
+                      {item.name}
+                      {item.loose ? <em> · avulsa</em> : null}
+                    </strong>
+                    {editingPriceId === item.productId ? (
+                      <input
+                        className="pos-page__price-input"
+                        value={priceDraft}
+                        onChange={(event) => setPriceDraft(event.target.value)}
+                        onBlur={() => commitPriceEdit(item.productId)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault()
+                            commitPriceEdit(item.productId)
+                          }
+                          if (event.key === 'Escape') setEditingPriceId(null)
+                        }}
+                        inputMode="decimal"
+                        aria-label={`Preço de ${item.name}`}
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="pos-page__price-btn"
+                        onClick={() => startPriceEdit(item.productId, item.unitPriceCents)}
+                        disabled={busy}
+                      >
+                        {formatMoney(item.unitPriceCents)} cada
+                        {item.catalogPriceCents != null &&
+                        item.catalogPriceCents !== item.unitPriceCents
+                          ? ' · ajustado'
+                          : ''}
+                      </button>
+                    )}
                   </div>
                   <div className="pos-page__qty">
                     <button

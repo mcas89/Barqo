@@ -21,6 +21,11 @@ service cloud.firestore {
       return isMember(orgId) || isOwner(orgId);
     }
 
+    function orgBillingFieldsUnchanged() {
+      return request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.get('planId', '') == resource.data.get('planId', '');
+    }
+
     match /users/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
     }
@@ -28,12 +33,14 @@ service cloud.firestore {
     match /organizations/{orgId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid;
-      allow read, update: if canAccessOrg(orgId);
+      allow read: if canAccessOrg(orgId);
+      allow update: if isOwner(orgId)
+        || (canAccessOrg(orgId) && orgBillingFieldsUnchanged());
       allow delete: if isOwner(orgId);
 
       match /members/{memberId} {
         allow read: if canAccessOrg(orgId);
-        allow create, update, delete: if isOwner(orgId) || isMember(orgId);
+        allow create, update, delete: if isOwner(orgId);
       }
 
       match /products/{productId} {
@@ -77,12 +84,16 @@ service cloud.firestore {
       }
 
       match /billing_orders/{orderId} {
-        allow read, write: if canAccessOrg(orgId);
+        allow read: if canAccessOrg(orgId);
+        allow create, update: if isOwner(orgId);
+        allow delete: if false;
       }
     }
 
     match /subscriptions/{orgId} {
-      allow read, write: if canAccessOrg(orgId);
+      allow read: if canAccessOrg(orgId);
+      allow create, update: if isOwner(orgId);
+      allow delete: if false;
     }
   }
 }

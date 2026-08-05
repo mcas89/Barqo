@@ -77,7 +77,7 @@ export async function completeSale(input: CompleteSaleInput): Promise<Sale> {
 
   // Valida estoque atual antes de gravar
   for (const item of input.items) {
-    if (item.type !== 'product') continue
+    if (item.loose || item.type !== 'product') continue
     const product = await getProduct(input.organizationId, item.productId)
     if (!product || !product.active) {
       throw new Error(`Produto indisponível: ${item.name}`)
@@ -121,7 +121,7 @@ export async function completeSale(input: CompleteSaleInput): Promise<Sale> {
   )
 
   for (const item of input.items) {
-    if (item.type !== 'product') continue
+    if (item.loose || item.type !== 'product') continue
 
     const productRef = doc(
       db,

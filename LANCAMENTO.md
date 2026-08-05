@@ -68,8 +68,8 @@ Dá para pilotoar sem isso. **Não venda como pronto.**
 - [ ] Offline de verdade — a fila Dexie existe, o sync **não envia** para o Firestore
 - [ ] Escolher impressora da lista do Windows (hoje: nome/caminho + janela do navegador)
 - [ ] API de e-mail do comprovante (`VITE_RECEIPT_API_URL`)
-- [ ] Travar escrita de `subscriptions` nas rules (hoje qualquer membro da loja pode gravar)
-- [ ] PDV: cadastro rápido, venda avulsa, alterar preço na hora
+- [x] Travar escrita de `subscriptions` nas rules (só o dono grava; republicar no Console)
+- [x] PDV: cadastro rápido, venda avulsa, alterar preço na hora
 - [ ] Plano Controle: permissões finas (está no catálogo, quase não no app)
 - [ ] Fechar versão `0.1.0` sem sufixo `-dev`
 
@@ -107,5 +107,5 @@ Não pode (ainda):
 2. ~~Pagamento E2E~~
 3. ~~Texto fiscal + termos~~
 4. ~~2–5 pilotos~~ (em teste)
-5. Offline / impressora / PDV rápido / rules de assinatura
+5. Offline / impressora · ~~PDV rápido~~ · ~~rules de assinatura~~ (republicar `firestore.rules`)
 6. Tirar `-dev` e abrir cobrança em escala

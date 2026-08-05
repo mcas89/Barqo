@@ -22,11 +22,15 @@ export interface CartItem {
   productId: string
   name: string
   unitPriceCents: number
+  /** Preço de tabela, se o unitário da venda foi ajustado */
+  catalogPriceCents?: number
   costCents: number
   quantity: number
   type: 'product' | 'service'
   /** Estoque disponível no momento da inclusão (produtos) */
   availableStock?: number
+  /** Item sem cadastro — não baixa estoque */
+  loose?: boolean
 }
 
 export interface SalePayment {
