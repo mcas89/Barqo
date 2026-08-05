@@ -25,6 +25,10 @@ import {
   writeLocalPrinterPath,
   type ReceiptPaperWidth,
 } from '../../receipts'
+import {
+  PrinterSettingsModal,
+  type PrinterSettingsValue,
+} from '../components/PrinterSettingsModal'
 import { useSettings } from '../hooks/useSettings'
 import './SettingsPage.css'
 
@@ -75,6 +79,7 @@ export function SettingsPage() {
   const [printerPath, setPrinterPath] = useState('')
   const [paperWidth, setPaperWidth] = useState<ReceiptPaperWidth>('58mm')
   const [testingPrint, setTestingPrint] = useState(false)
+  const [printerModalOpen, setPrinterModalOpen] = useState(false)
 
   useEffect(() => {
     const root = globalThis.document?.documentElement
@@ -170,34 +175,72 @@ export function SettingsPage() {
     }
   }
 
-  async function handleTestPrint() {
+  async function handleTestPrint(override?: PrinterSettingsValue) {
     if (!organization) return
+    const next = override ?? {
+      printOnSale,
+      sendReceiptOnSale,
+      printerPath,
+      paperWidth,
+    }
     setTestingPrint(true)
     setLocalError(null)
     try {
       const settings = resolveReceiptSettings({
         organization: {
           ...organization,
-          printReceiptOnSale: printOnSale,
-          sendReceiptOnSale,
-          receiptPaperWidth: paperWidth,
-          printerPath,
+          printReceiptOnSale: next.printOnSale,
+          sendReceiptOnSale: next.sendReceiptOnSale,
+          receiptPaperWidth: next.paperWidth,
+          printerPath: next.printerPath,
         },
-        devicePrinterPath: printerPath,
+        devicePrinterPath: next.printerPath,
       })
       const result = await printSampleReceipt({
         organizationName: name || organization.name,
-        settings: { ...settings, printOnSale: true, printerPath, paperWidth },
+        settings: {
+          ...settings,
+          printOnSale: true,
+          printerPath: next.printerPath,
+          paperWidth: next.paperWidth,
+        },
         logoDataUrl: logoDataUrl ?? undefined,
       })
       if (result.status === 'failed') {
-        setLocalError(result.message || 'Não foi possível testar a impressora.')
+        throw new Error(result.message || 'Não foi possível testar a impressora.')
       }
-    } catch (err) {
-      setLocalError(err instanceof Error ? err.message : 'Falha ao testar a impressora.')
     } finally {
       setTestingPrint(false)
     }
+  }
+
+  async function handleSavePrinter(value: PrinterSettingsValue) {
+    clearFeedback()
+    setLocalError(null)
+    setPrintOnSale(value.printOnSale)
+    setSendReceiptOnSale(value.sendReceiptOnSale)
+    setPrinterPath(value.printerPath)
+    setPaperWidth(value.paperWidth)
+    await save({
+      name,
+      document,
+      segment,
+      phone,
+      address,
+      whatsapp,
+      themeColor,
+      logoDataUrl: logoDirty ? logoDataUrl : undefined,
+      printReceiptOnSale: value.printOnSale,
+      sendReceiptOnSale: value.sendReceiptOnSale,
+      receiptPaperWidth: value.paperWidth,
+      printerPath: value.printerPath,
+    })
+    writeLocalPrinterPath(value.printerPath)
+    if (organization) {
+      await updateThisDevicePrinterPath(organization.id, value.printerPath).catch(() => undefined)
+      await refreshDevices().catch(() => undefined)
+    }
+    setLogoDirty(false)
   }
 
   const selectedTheme =
@@ -209,6 +252,22 @@ export function SettingsPage() {
 
   return (
     <section className="settings-page">
+      {printerModalOpen && (
+        <PrinterSettingsModal
+          initial={{
+            printOnSale,
+            sendReceiptOnSale,
+            printerPath,
+            paperWidth,
+          }}
+          canEdit={canEdit}
+          saving={saving}
+          testingPrint={testingPrint}
+          onClose={() => setPrinterModalOpen(false)}
+          onSave={handleSavePrinter}
+          onTestPrint={handleTestPrint}
+        />
+      )}
       <header className="settings-page__header">
         <div>
           <h1>Configurações</h1>
@@ -344,60 +403,20 @@ export function SettingsPage() {
           <section className="settings-page__card">
             <h2>Impressora e comprovante</h2>
             <p className="settings-page__hint">
-              Informe o nome ou o caminho da impressora deste caixa. Sem um agente local, o
-              Windows ainda abre a janela de impressão — o caminho fica salvo para a API.
+              {printOnSale
+                ? `Cupom ao vender ligado${printerPath ? ` · ${printerPath}` : ' · janela do Windows'}`
+                : 'Cupom ao vender desligado'}
+              {sendReceiptOnSale ? ' · e-mail na fila' : ''}
+              {' · '}
+              {paperWidth}
             </p>
-            <label className="settings-page__switch">
-              <input
-                type="checkbox"
-                checked={printOnSale}
-                onChange={(e) => setPrintOnSale(e.target.checked)}
-                disabled={saving || !canEdit}
-              />
-              <span>Imprimir cupom ao finalizar a venda</span>
-            </label>
-            <label className="settings-page__switch">
-              <input
-                type="checkbox"
-                checked={sendReceiptOnSale}
-                onChange={(e) => setSendReceiptOnSale(e.target.checked)}
-                disabled={saving || !canEdit}
-              />
-              <span>Enviar comprovante (e-mail) ao finalizar</span>
-            </label>
-            <p className="settings-page__hint">
-              O envio de comprovante já está preparado. Sem a API ligada, o comprovante fica
-              na fila deste aparelho para disparar depois.
-            </p>
-            <div className="settings-page__fields">
-              <label className="settings-page__span">
-                Caminho / nome da impressora
-                <input
-                  value={printerPath}
-                  onChange={(e) => setPrinterPath(e.target.value)}
-                  disabled={saving || !canEdit}
-                  placeholder="EPSON TM-T20 ou \\CAIXA01\ELGIN_I9"
-                />
-              </label>
-              <label>
-                Largura do cupom
-                <select
-                  value={paperWidth}
-                  onChange={(e) => setPaperWidth(normalizePaperWidth(e.target.value))}
-                  disabled={saving || !canEdit}
-                >
-                  <option value="58mm">58 mm</option>
-                  <option value="80mm">80 mm</option>
-                </select>
-              </label>
-            </div>
             <button
               type="button"
-              className="settings-page__clear-logo"
-              onClick={() => void handleTestPrint()}
-              disabled={saving || testingPrint || !canEdit}
+              className="settings-page__printer-btn"
+              onClick={() => setPrinterModalOpen(true)}
+              disabled={!canEdit}
             >
-              {testingPrint ? 'Testando…' : 'Testar impressão'}
+              Configurar impressora
             </button>
           </section>
 

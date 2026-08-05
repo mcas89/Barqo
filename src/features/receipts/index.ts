@@ -18,6 +18,14 @@ export { ReprintSaleButton } from './components/ReprintSaleButton'
 export { useReprintSale } from './hooks/useReprintSale'
 export { flushReceiptOutbox, listQueuedReceipts } from './outbox'
 export {
+  BROWSER_PRINT_VALUE,
+  DEFAULT_PRINT_AGENT_URL,
+  listSystemPrinters,
+  pingPrintAgent,
+  resolvePrintAgentUrl,
+} from './print-agent'
+export type { SystemPrinter } from './print-agent'
+export {
   normalizePaperWidth,
   readLocalPrinterPath,
   resolveReceiptSettings,

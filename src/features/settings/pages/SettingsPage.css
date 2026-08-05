@@ -227,6 +227,23 @@
   text-decoration: underline;
 }
 
+.settings-page__printer-btn {
+  align-self: flex-start;
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.75rem 0.95rem;
+  background: var(--balqo-brand, #0b1f3a);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.settings-page__printer-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .settings-page__submit {
   border: none;
   border-radius: 0.7rem;

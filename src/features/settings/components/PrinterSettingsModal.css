@@ -1,0 +1,236 @@
+.printer-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.printer-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(11, 31, 58, 0.45);
+  cursor: pointer;
+}
+
+.printer-modal__card {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  max-height: min(86dvh, 760px);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.12);
+  border-radius: 0.95rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 20px 50px rgba(11, 31, 58, 0.18);
+  color: #0b1f3a;
+}
+
+.printer-modal__card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.printer-modal__card h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.printer-modal__card header button {
+  background: transparent;
+  border: 1px solid rgba(11, 31, 58, 0.2);
+  color: #0b1f3a;
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.65rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.printer-modal__status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.7rem;
+}
+
+.printer-modal__status--ok {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.printer-modal__status--off {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.printer-modal__status strong {
+  font-size: 0.95rem;
+}
+
+.printer-modal__status span {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.printer-modal__status button {
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.printer-modal__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(11, 31, 58, 0.08);
+}
+
+.printer-modal__block h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.printer-modal__block p,
+.printer-modal__block ol {
+  margin: 0;
+  color: #475569;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.printer-modal__block ol {
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.printer-modal__downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.printer-modal__downloads a {
+  color: var(--balqo-brand, #1a3a66);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.printer-modal__switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.printer-modal__switch input {
+  margin-top: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--balqo-brand, #0b1f3a);
+  flex-shrink: 0;
+}
+
+.printer-modal__card label:not(.printer-modal__switch) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.printer-modal__card input:not([type='checkbox']),
+.printer-modal__card select {
+  border: 1px solid rgba(11, 31, 58, 0.16);
+  border-radius: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  color: #0b1f3a;
+  background: #f8fafc;
+}
+
+.printer-modal__hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.printer-modal__error,
+.printer-modal__ok {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.printer-modal__error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.printer-modal__ok {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.printer-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.printer-modal__primary,
+.printer-modal__ghost {
+  border-radius: 0.55rem;
+  padding: 0.75rem 0.95rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.printer-modal__primary {
+  border: none;
+  background: var(--balqo-brand, #0b1f3a);
+  color: #fff;
+}
+
+.printer-modal__primary:disabled,
+.printer-modal__ghost:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.printer-modal__ghost {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  background: #fff;
+  color: #0b1f3a;
+}
