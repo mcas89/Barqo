@@ -272,18 +272,6 @@
   padding: 0;
 }
 
-.login-page__footer-link {
-  display: block;
-  text-align: center;
-  color: #5b6b80;
-  font-size: 0.82rem;
-  text-decoration: none;
-}
-
-.login-page__footer-link:hover {
-  color: #0b1f3a;
-}
-
 .login-page__legal {
   margin: 0.55rem 0 0;
   text-align: center;

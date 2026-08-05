@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import {
   DEFAULT_PLAN_ID,
   ENTRADA_TRIAL_DAYS,
@@ -40,7 +40,6 @@ export function OnboardingPage() {
   const {
     isAuthenticated,
     organization,
-    registerAndCreateOrganization,
     createOrganizationForCurrentUser,
     loading,
     error,
@@ -50,9 +49,6 @@ export function OnboardingPage() {
   } = useAuth()
   const navigate = useNavigate()
 
-  const [displayName, setDisplayName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [organizationName, setOrganizationName] = useState('')
   const [document, setDocument] = useState('')
   const [segment, setSegment] = useState(SEGMENTS[0])
@@ -69,6 +65,10 @@ export function OnboardingPage() {
 
   if (isAuthenticated && organization) {
     return <Navigate to="/app" replace />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />
   }
 
   const selectedTheme =
@@ -129,32 +129,19 @@ export function OnboardingPage() {
         logoDataUrl: logoDataUrl || undefined,
       }
 
-      if (isAuthenticated && user) {
-        await createOrganizationForCurrentUser({
-          organizationName,
-          document,
-          segment,
-          planId,
-          ownerPin: needsOwnerPin ? ownerPin : undefined,
-          ...brand,
-        })
-      } else {
-        if (!displayName.trim() || !email.trim() || password.length < 6) {
-          setLocalError('Preencha nome, e-mail e senha (mín. 6 caracteres).')
-          return
-        }
-        await registerAndCreateOrganization({
-          displayName,
-          email,
-          password,
-          organizationName,
-          document,
-          segment,
-          planId,
-          ownerPin: needsOwnerPin ? ownerPin : undefined,
-          ...brand,
-        })
+      if (!user) {
+        setLocalError('Faça login antes de cadastrar o comércio.')
+        return
       }
+
+      await createOrganizationForCurrentUser({
+        organizationName,
+        document,
+        segment,
+        planId,
+        ownerPin: needsOwnerPin ? ownerPin : undefined,
+        ...brand,
+      })
       navigate(planId === PLAN_IDS.ENTRADA ? '/app' : '/app/billing')
     } catch {
       // mensagem no AuthProvider
@@ -206,49 +193,10 @@ export function OnboardingPage() {
           <p className="onboarding-page__eyebrow">Cadastro da loja</p>
           <h1>Deixe o BALQO com a cara do seu comércio</h1>
           <p>
-            {isAuthenticated
-              ? `Olá, ${user?.displayName || user?.email}. Complete os dados para começar.`
-              : `Dados da loja, visual e plano. O Entrada tem ${ENTRADA_TRIAL_DAYS} dias grátis.`}
+            Olá, {user?.displayName || user?.email}. Complete os dados do comércio para começar.
+            O Entrada tem {ENTRADA_TRIAL_DAYS} dias grátis.
           </p>
         </header>
-
-        {!isAuthenticated && (
-          <section className="onboarding-page__block">
-            <h2>Sua conta</h2>
-            <div className="onboarding-page__grid">
-              <label>
-                Seu nome
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-              </label>
-              <label>
-                E-mail
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-              </label>
-              <label className="onboarding-page__span">
-                Senha
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                  minLength={6}
-                />
-              </label>
-            </div>
-          </section>
-        )}
 
         <section className="onboarding-page__block">
           <h2>Comércio</h2>
@@ -435,11 +383,6 @@ export function OnboardingPage() {
         <button className="onboarding-page__submit" type="submit" disabled={loading}>
           {loading ? 'Criando loja…' : 'Criar loja e entrar'}
         </button>
-        {!isAuthenticated && (
-          <Link className="onboarding-page__back" to="/">
-            Já tenho conta
-          </Link>
-        )}
       </form>
     </section>
   )

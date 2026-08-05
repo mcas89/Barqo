@@ -32,7 +32,7 @@ import {
   removeHeldSale,
   type HeldSale,
 } from '../services/hold-sale-service'
-import type { PaymentMethod, Sale, SalePayment } from '../types'
+import type { CartItem, PaymentMethod, Sale, SalePayment } from '../types'
 import { PAYMENT_METHODS } from '../types'
 import { usePosOperator } from './usePosOperator'
 

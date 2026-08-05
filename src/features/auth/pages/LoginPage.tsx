@@ -91,6 +91,7 @@ export function LoginPage() {
       }
 
       await login(email, password)
+      // Sem comércio → RequireAuth/Redirect manda para o cadastro da loja
       navigate('/app')
     } catch {
       // erro já mapeado no AuthProvider
@@ -285,9 +286,6 @@ export function LoginPage() {
           )}
         </p>
 
-        <Link className="login-page__footer-link" to="/onboarding">
-          Conta criada e falta cadastrar o comércio
-        </Link>
         <p className="login-page__legal">
           <Link to="/termos">Termos</Link>
           {' · '}
