@@ -1,5 +1,5 @@
-import { nowIso } from '../../shared/lib/dates'
-import { localDb } from '../../infra/offline/db'
+import { nowIso } from '../../../shared/lib/dates'
+import { localDb } from '../../../infra/offline/db'
 import {
   CLOCK_ROLLBACK_TOLERANCE_MS,
   DEVICE_LEASE_MS,
