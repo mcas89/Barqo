@@ -10,7 +10,8 @@ import {
   SUBSCRIPTION_STATUS,
   type OrganizationSubscription,
 } from '../plans/types'
-import { addBillingMonths, getPlan, getPlanPriceCents } from '../plans/gates'
+import { addBillingMonths, getPlan } from '../plans/gates'
+import { quotePlanCheckout } from '../plans/checkout-quote'
 import { formatCycleDuration } from '../plans/messages'
 import { getConfiguredPaymentGatewayId, getPaymentGateway } from '../gateways'
 import type { CheckoutCustomer, PaymentGatewayId } from '../gateways'
@@ -36,6 +37,10 @@ export interface BillingOrder {
   checkoutUrl?: string
   captureMethod?: string
   receiptUrl?: string
+  checkoutKind?: 'subscribe' | 'renew' | 'upgrade'
+  creditCents?: number
+  fullPriceCents?: number
+  keepPaidThrough?: boolean
 }
 
 export async function startPlanCheckout(input: {
@@ -43,27 +48,45 @@ export async function startPlanCheckout(input: {
   planId: PlanId
   billingCycle?: BillingCycle
   customer?: CheckoutCustomer
+  subscription?: OrganizationSubscription | null
 }): Promise<{
-  checkoutUrl: string
+  checkoutUrl: string | null
   orderNsu: string
   gatewayId: PaymentGatewayId
   slug?: string
+  immediate?: boolean
 }> {
   const cycle = input.billingCycle ?? BILLING_CYCLES.MONTHLY
   const plan = getPlan(input.planId)
-  const amountCents = getPlanPriceCents(input.planId, cycle)
+  const quote = quotePlanCheckout({
+    subscription: input.subscription,
+    targetPlanId: input.planId,
+    cycle,
+  })
+  if (!quote.allowed) {
+    throw new Error(quote.hint || 'Esta alteração de plano não está disponível.')
+  }
+
+  const amountCents = quote.chargeCents
   const orderNsu = createId('ord').replace(/_/g, '-').slice(0, 48)
   const createdAt = nowIso()
   const gateway = getPaymentGateway()
+  const checkoutKind =
+    quote.action === 'upgrade' ? 'upgrade' : quote.action === 'renew' ? 'renew' : 'subscribe'
   const order: BillingOrder = {
     id: orderNsu,
     organizationId: input.organizationId,
     planId: input.planId,
     billingCycle: cycle,
     amountCents,
-    status: 'pending',
+    status: amountCents === 0 ? 'paid' : 'pending',
     gatewayId: gateway.id,
     createdAt,
+    checkoutKind,
+    creditCents: quote.creditCents || undefined,
+    fullPriceCents: quote.fullPriceCents,
+    keepPaidThrough: quote.keepPaidThrough || undefined,
+    paidAt: amountCents === 0 ? createdAt : undefined,
   }
 
   await setDoc(
@@ -71,11 +94,22 @@ export async function startPlanCheckout(input: {
     omitUndefined({ ...order }),
   )
 
+  if (amountCents === 0) {
+    await activatePaidSubscription({ organizationId: input.organizationId, order })
+    return {
+      checkoutUrl: null,
+      orderNsu,
+      gatewayId: gateway.id,
+      immediate: true,
+    }
+  }
+
   const redirectUrl = `${window.location.origin}/billing/retorno?balqo_order=${encodeURIComponent(orderNsu)}`
+  const upgradeLabel = quote.action === 'upgrade' ? 'Upgrade ' : ''
   const session = await gateway.createCheckoutSession({
     orderNsu,
     amountCents,
-    description: `BALQO Plano ${plan.name} — ${formatCycleDuration(cycle)}`,
+    description: `BALQO ${upgradeLabel}Plano ${plan.name} — ${formatCycleDuration(cycle)}`,
     redirectUrl,
     customer: input.customer,
   })
@@ -146,9 +180,13 @@ export async function activatePaidSubscription(input: {
 
   const now = new Date()
   const existingThrough = current?.paidThrough ? new Date(current.paidThrough) : null
+  const keepPaidThrough =
+    input.order.keepPaidThrough === true &&
+    existingThrough !== null &&
+    existingThrough.getTime() > now.getTime()
   const base =
     existingThrough && existingThrough.getTime() > now.getTime() ? existingThrough : now
-  const paidThrough = addBillingMonths(base, months)
+  const paidThrough = keepPaidThrough ? existingThrough : addBillingMonths(base, months)
   const gatewayId = input.order.gatewayId ?? getConfiguredPaymentGatewayId()
 
   const subscription: OrganizationSubscription = {

@@ -35,6 +35,8 @@ export {
   formatPlanPrice,
   formatCycleDuration,
   equivalentMonthlyCents,
+  quotePlanCheckout,
+  getPlanRank,
   upgradeMessageForFeature,
   upgradeMessageForLimit,
   planComparisonHint,
@@ -51,6 +53,8 @@ export type {
   LimitKind,
   PlanNoticeTone,
   SubscriptionCoverage,
+  PlanCheckoutAction,
+  PlanCheckoutQuote,
 } from './plans'
 
 export { getPaymentGateway, getConfiguredPaymentGatewayId } from './gateways'

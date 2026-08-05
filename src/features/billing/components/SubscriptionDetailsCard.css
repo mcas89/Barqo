@@ -1,175 +1,215 @@
-.sub-card {
-  margin: 0 0 1.25rem;
-  padding: 1.15rem 1.2rem 1.25rem;
-  border-radius: 0.95rem;
-  background: #fff;
+.sub-mini {
+  width: 100%;
+  max-width: 28rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.75rem;
   border: 1px solid rgba(11, 31, 58, 0.12);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
   scroll-margin-top: 1rem;
 }
 
-.sub-card--soon {
-  border-color: #ca8a04;
-  box-shadow: 0 0 0 1px rgba(202, 138, 4, 0.18);
-}
-
-.sub-card--due {
-  border-color: #b91c1c;
-  box-shadow: 0 0 0 1px rgba(185, 28, 28, 0.16);
-}
-
-.sub-card__head {
+.sub-mini span {
   display: flex;
-  justify-content: space-between;
-  gap: 0.85rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
 }
 
-.sub-card__eyebrow {
-  margin: 0 0 0.2rem;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #5b6b80;
-}
-
-.sub-card__head h2 {
-  margin: 0;
+.sub-mini strong {
   color: #0b1f3a;
-  font-size: 1.35rem;
+  font-size: 0.95rem;
 }
 
-.sub-card__head p {
-  margin: 0.2rem 0 0;
+.sub-mini em {
+  font-style: normal;
   color: #5b6b80;
+  font-size: 0.8rem;
 }
 
-.sub-card__status {
+.sub-mini b {
+  flex-shrink: 0;
   border-radius: 999px;
-  padding: 0.4rem 0.75rem;
+  padding: 0.28rem 0.6rem;
   background: #ecfdf5;
   color: #166534;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
+  font-weight: 800;
 }
 
-.sub-card--soon .sub-card__status {
+.sub-mini--soon {
+  border-color: #ca8a04;
+}
+
+.sub-mini--soon b {
   background: #fef9c3;
   color: #854d0e;
 }
 
-.sub-card--due .sub-card__status {
+.sub-mini--due {
+  border-color: #b91c1c;
+}
+
+.sub-mini--due b {
   background: #fef2f2;
   color: #b91c1c;
 }
 
-.sub-card__grid {
+.sub-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem 1rem;
-  margin: 1rem 0 0;
+  place-items: end center;
+  padding: 1rem;
 }
 
-.sub-card__grid dt {
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #5b6b80;
+.sub-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(11, 31, 58, 0.45);
+  cursor: pointer;
 }
 
-.sub-card__grid dd {
-  margin: 0.15rem 0 0;
-  color: #0b1f3a;
-  font-weight: 700;
-  line-height: 1.35;
-  word-break: break-word;
+.sub-modal__panel {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: min(82vh, 640px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 1rem 1rem 0.75rem 0.75rem;
+  padding: 1rem 1.05rem 1.15rem;
+  box-shadow: 0 18px 48px rgba(11, 31, 58, 0.28);
 }
 
-.sub-card__payment,
-.sub-card__history {
-  margin-top: 1.15rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(11, 31, 58, 0.08);
-}
-
-.sub-card h3 {
-  margin: 0 0 0.55rem;
-  font-size: 0.95rem;
-  color: #0b1f3a;
-}
-
-.sub-card__empty {
-  margin: 0;
-  color: #5b6b80;
-  font-size: 0.9rem;
-}
-
-.sub-card__actions {
+.sub-modal__panel header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  margin-top: 0.9rem;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
 }
 
-.sub-card__actions a,
-.sub-card__history a {
+.sub-modal__panel header p {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #5b6b80;
+}
+
+.sub-modal__panel h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.2rem;
+  color: #0b1f3a;
+}
+
+.sub-modal__panel header button {
+  border: 1px solid rgba(11, 31, 58, 0.16);
+  background: #fff;
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sub-modal__summary {
+  margin: 0.7rem 0 0;
+  color: #0b1f3a;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.sub-modal__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.85rem 0 1rem;
+}
+
+.sub-modal__actions a,
+.sub-modal__panel li a {
   display: inline-flex;
   align-items: center;
   border-radius: 0.55rem;
-  padding: 0.55rem 0.8rem;
+  padding: 0.5rem 0.75rem;
   background: #0b1f3a;
   color: #fff;
   text-decoration: none;
   font-weight: 800;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
 }
 
-.sub-card__whatsapp {
+.sub-modal__whatsapp {
   background: #128c7e !important;
 }
 
-.sub-card__history ul {
+.sub-modal__panel h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.92rem;
+  color: #0b1f3a;
+}
+
+.sub-modal__empty {
+  margin: 0;
+  color: #5b6b80;
+  font-size: 0.88rem;
+}
+
+.sub-modal__panel ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.5rem;
 }
 
-.sub-card__history li {
+.sub-modal__panel li {
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.65rem;
   align-items: center;
   flex-wrap: wrap;
-  padding: 0.7rem 0.75rem;
+  padding: 0.65rem 0.7rem;
   border-radius: 0.65rem;
   background: #f4f6fa;
 }
 
-.sub-card__history strong,
-.sub-card__history span {
+.sub-modal__panel li strong,
+.sub-modal__panel li span {
   display: block;
 }
 
-.sub-card__history span {
-  margin-top: 0.15rem;
+.sub-modal__panel li span {
+  margin-top: 0.12rem;
   color: #5b6b80;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
-.sub-card__history a {
+.sub-modal__panel li a {
   background: transparent;
   color: #0b1f3a;
-  border: 1px solid rgba(11, 31, 58, 0.18);
-  padding: 0.4rem 0.65rem;
+  border: 1px solid rgba(11, 31, 58, 0.16);
+  padding: 0.35rem 0.55rem;
 }
 
-@media (max-width: 720px) {
-  .sub-card__grid {
-    grid-template-columns: 1fr;
+@media (min-width: 720px) {
+  .sub-modal {
+    place-items: center;
+  }
+
+  .sub-modal__panel {
+    border-radius: 1rem;
   }
 }

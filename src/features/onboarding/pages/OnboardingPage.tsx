@@ -359,8 +359,8 @@ export function OnboardingPage() {
                   <b>{formatPlanPrice(plan.id)}</b>
                   <em>
                     {plan.id === PLAN_IDS.ENTRADA
-                      ? `${ENTRADA_TRIAL_DAYS} dias grátis`
-                      : 'Compra direta'}
+                      ? `${ENTRADA_TRIAL_DAYS} dias grátis · ${plan.tagline}`
+                      : plan.tagline}
                   </em>
                 </label>
               )

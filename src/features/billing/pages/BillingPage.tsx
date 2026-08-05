@@ -10,7 +10,7 @@ import {
   getPlan,
   getPlanPriceCents,
   getSubscriptionCoverage,
-  isPlanPaidUp,
+  quotePlanCheckout,
   type BillingCycle,
   type PlanId,
 } from '../plans'
@@ -39,9 +39,6 @@ export function BillingPage() {
   const [error, setError] = useState<string | null>(null)
   const pending = usePendingCheckout()
 
-  const currentPlanId = subscription?.planId ?? organization?.planId
-  const paidUp = isPlanPaidUp(subscription)
-  const currentCycle = subscription?.billingCycle ?? BILLING_CYCLES.MONTHLY
   const coverage = getSubscriptionCoverage(subscription)
   const canPay = hasPrivilegedAccess || coverage?.canOperate === false
 
@@ -64,12 +61,19 @@ export function BillingPage() {
         organizationId: organization.id,
         planId,
         billingCycle: cycle,
+        subscription,
         customer: {
           name: user?.displayName,
           email: user?.email,
           phone_number: phone,
         },
       })
+      await refreshSession()
+      if (started.immediate || !started.checkoutUrl) {
+        checkoutTab?.close()
+        setBusyPlan(null)
+        return
+      }
       writePendingCheckout({
         organizationId: organization.id,
         orderNsu: started.orderNsu,
@@ -80,7 +84,6 @@ export function BillingPage() {
         slug: started.slug,
         startedAt: new Date().toISOString(),
       })
-      await refreshSession()
       if (checkoutTab && !checkoutTab.closed) {
         checkoutTab.location.href = started.checkoutUrl
       } else {
@@ -99,15 +102,15 @@ export function BillingPage() {
       <header className="billing-page__header">
         <h1>Planos BALQO</h1>
         <p>
-          Entrada tem 10 dias grátis. Essencial e Controle são compra direta. Pague com Pix
-          ou cartão — o plano libera pelo período escolhido. Semestral e anual já saem com
+          O Entrada inclui 10 dias grátis. Depois de assinar, você só sobe de plano — sem
+          voltar atrás — e paga a diferença do valor já quitado. Semestral e anual saem com
           desconto.
         </p>
       </header>
 
       <SubscriptionDetailsCard />
 
-      <h2 className="billing-page__catalog-title">Trocar ou renovar plano</h2>
+      <h2 className="billing-page__catalog-title">Renovar ou subir de plano</h2>
 
       <div className="billing-page__cycles" role="tablist" aria-label="Período de cobrança">
         {CYCLES.map((item) => (
@@ -150,17 +153,23 @@ export function BillingPage() {
       <div className="billing-page__grid">
         {PLAN_LIST.map((plan) => {
           const isTarget = plan.id === TARGET_PLAN_ID
-          const isCurrent = plan.id === currentPlanId
           const priceCents = getPlanPriceCents(plan.id, cycle)
-          const sameCyclePaid = isCurrent && paidUp && currentCycle === cycle
+          const quote = quotePlanCheckout({
+            subscription,
+            targetPlanId: plan.id,
+            cycle,
+          })
+          const locked = !quote.allowed
           return (
             <article
               key={plan.id}
-              className={
-                plan.highlighted || isTarget
-                  ? 'billing-card billing-card--highlight'
-                  : 'billing-card'
-              }
+              className={[
+                'billing-card',
+                plan.highlighted || isTarget ? 'billing-card--highlight' : '',
+                locked ? 'billing-card--locked' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
               {(plan.highlighted || isTarget) && (
                 <span className="billing-card__badge">Mais escolhido</span>
@@ -168,14 +177,18 @@ export function BillingPage() {
               <h2>{plan.name}</h2>
               <p className="billing-card__tagline">{plan.tagline}</p>
               <p className="billing-card__price">
-                {formatMoney(priceCents)}
+                {formatMoney(quote.chargeCents < priceCents ? quote.chargeCents : priceCents)}
                 <span>/{formatCycleDuration(cycle)}</span>
               </p>
-              {cycle !== BILLING_CYCLES.MONTHLY && (
+              {quote.chargeCents < priceCents && quote.allowed ? (
+                <p className="billing-card__equiv">
+                  De {formatMoney(priceCents)} · diferença {formatMoney(quote.chargeCents)}
+                </p>
+              ) : cycle !== BILLING_CYCLES.MONTHLY ? (
                 <p className="billing-card__equiv">
                   Equivale a {formatMoney(equivalentMonthlyCents(plan.id, cycle))}/mês
                 </p>
-              )}
+              ) : null}
               <p className="billing-card__audience">{plan.audience}</p>
 
               <ul className="billing-card__list">
@@ -184,22 +197,16 @@ export function BillingPage() {
                 ))}
               </ul>
 
-              <p className="billing-card__pain">{plan.growthPain}</p>
+              <p className="billing-card__pain">{quote.hint || plan.growthPain}</p>
               <p className="billing-card__ref">{formatPlanPrice(plan.id)}</p>
 
               <button
                 type="button"
                 className="billing-card__pay"
-                disabled={!canPay || busyPlan !== null || sameCyclePaid}
+                disabled={!canPay || busyPlan !== null || locked}
                 onClick={() => void pay(plan.id)}
               >
-                {busyPlan === plan.id
-                  ? 'Abrindo pagamento…'
-                  : sameCyclePaid
-                    ? 'Plano atual · em dia'
-                    : isCurrent
-                      ? `Pagar ${BILLING_CYCLE_LABELS[cycle].toLowerCase()}`
-                      : `Assinar ${plan.name}`}
+                {busyPlan === plan.id ? 'Abrindo pagamento…' : quote.buttonLabel}
               </button>
             </article>
           )

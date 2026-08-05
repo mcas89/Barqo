@@ -62,3 +62,11 @@ export {
   upgradeMessageForLimit,
   planComparisonHint,
 } from './messages'
+
+export {
+  quotePlanCheckout,
+  getPlanRank,
+  remainingPaymentCreditCents,
+  type PlanCheckoutAction,
+  type PlanCheckoutQuote,
+} from './checkout-quote'

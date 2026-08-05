@@ -14,8 +14,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
   [PLAN_IDS.ENTRADA]: {
     id: PLAN_IDS.ENTRADA,
     name: 'Entrada',
-    tagline: 'Sai do papel e da calculadora',
-    audience: 'Proprietário operando sozinho o básico do balcão.',
+    tagline: 'PDV completo para o dia a dia no balcão',
+    audience: 'Para quem vende e quer o movimento organizado, com calma e clareza.',
     priceMonthlyCents: 1990,
     priceSemiannualCents: 9950,
     priceAnnualCents: 19900,
@@ -42,14 +42,14 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'PWA + operação offline',
     ],
     growthPain:
-      'As limitações aparecem quando surge funcionário, fiado ou necessidade de mais controle.',
+      'Quando a equipe entra no dia a dia, o Essencial libera mais usuários, fiado e relatórios.',
   },
 
   [PLAN_IDS.ESSENCIAL]: {
     id: PLAN_IDS.ESSENCIAL,
     name: 'Essencial',
-    tagline: 'O plano da loja pequena',
-    audience: 'Comércio com 1 ou 2 funcionários no dia a dia.',
+    tagline: 'Equipe no balcão, loja no ritmo',
+    audience: 'Para vender com colaboradores, acompanhar o fiado e ver o período.',
     priceMonthlyCents: 3990,
     priceSemiannualCents: 19950,
     priceAnnualCents: 39900,
@@ -82,14 +82,14 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'PWA + operação offline',
     ],
     growthPain:
-      'Upgrade natural quando precisa de várias pessoas, permissões finas ou relatórios gerenciais.',
+      'Se quiser permissões finas e relatórios gerenciais, o Controle acompanha o próximo passo.',
   },
 
   [PLAN_IDS.CONTROLE]: {
     id: PLAN_IDS.CONTROLE,
     name: 'Controle',
-    tagline: 'Mais gente, mais controle, mais visão',
-    audience: 'Quem precisa de permissões finas e visão gerencial.',
+    tagline: 'Visão da operação e acessos sob medida',
+    audience: 'Para conduzir a equipe, os acessos e os indicadores com clareza.',
     priceMonthlyCents: 5990,
     priceSemiannualCents: 29950,
     priceAnnualCents: 59900,
@@ -124,7 +124,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'Suporte prioritário',
       'PWA + operação offline',
     ],
-    growthPain: 'Plano de margem — controle operacional completo para quem já cresceu.',
+    growthPain: 'O conjunto completo do BALQO para gerir a loja com segurança.',
   },
 }
 

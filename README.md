@@ -38,9 +38,11 @@ src/
 
 | Plano | Preço | Foco |
 |---|---|---|
-| Entrada | R$ 19,90/mês | Dono sozinho — PDV, caixa, estoque simples |
-| Essencial | R$ 39,90/mês | 1–2 funcionários — multi-usuário, fiado, relatórios |
+| Entrada | R$ 19,90/mês | PDV, caixa e estoque no balcão · 10 dias grátis |
+| Essencial | R$ 39,90/mês | Equipe, fiado e relatórios do período |
 | Controle | R$ 59,90/mês | Permissões finas e visão gerencial |
+
+Depois de assinar, só é possível subir de plano, pagando a diferença.
 
 Catálogo e gates: `src/features/billing/plans/`.
 

@@ -125,7 +125,7 @@ export function getSubscriptionCoverage(
 
   if (isPendingPayment) {
     title = `Assine o plano ${plan.name} para começar`
-    detail = 'Essencial e Controle são compra direta. Pague para liberar o PDV e as demais funções.'
+    detail = 'Pague o plano escolhido para liberar o PDV e as demais funções.'
   } else if ((blockedByDate || storedBlocked) && accessUntil) {
     title = `Acesso bloqueado · plano ${plan.name}`
     detail = `Venceu em ${formatDate(accessUntil)}. Pague para reativar o PDV e o sistema.`
