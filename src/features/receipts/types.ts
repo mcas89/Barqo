@@ -53,6 +53,7 @@ export interface SaleReceiptPayload {
   paperWidth: ReceiptPaperWidth
   printerPath?: string
   note?: string
+  copy?: 'original' | 'segunda_via'
 }
 
 export interface ReceiptDeliveryResult {
@@ -74,4 +75,5 @@ export interface BuildReceiptInput {
   settings: ReceiptSettings
   customerEmail?: string
   customerPhone?: string
+  copy?: 'original' | 'segunda_via'
 }

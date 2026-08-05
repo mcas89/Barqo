@@ -45,7 +45,7 @@ export function PosLayout() {
           </Link>
           {pinRequired && operator && (
             <button type="button" className="pos-layout__back" onClick={lock}>
-              Trocar
+              Trocar operador
             </button>
           )}
           {operator && (

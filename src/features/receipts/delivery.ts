@@ -1,6 +1,8 @@
 import { buildSaleReceipt } from './build-receipt'
 import { enqueueReceiptDelivery, flushReceiptOutbox } from './outbox'
+import { resolvePrintAgentUrl } from './print-agent'
 import { renderReceiptHtml } from './render-receipt-html'
+import { renderReceiptText } from './render-receipt-text'
 import { resolveReceiptSettings } from './settings'
 import type {
   BuildReceiptInput,
@@ -44,31 +46,43 @@ function printViaBrowser(html: string) {
   }, 250)
 }
 
+async function printViaAgent(
+  payload: SaleReceiptPayload,
+  settings: ReceiptSettings,
+): Promise<boolean> {
+  const printerPath = (settings.printerPath || payload.printerPath || '').trim()
+  if (!printerPath) return false
+
+  const response = await fetch(`${resolvePrintAgentUrl()}/print`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(8000),
+    body: JSON.stringify({
+      printerPath,
+      paperWidth: settings.paperWidth,
+      receipt: payload,
+      text: renderReceiptText(payload),
+      html: renderReceiptHtml(payload),
+    }),
+  })
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '')
+    throw new Error(detail || `HTTP ${response.status}`)
+  }
+  return true
+}
+
 export async function dispatchPrint(
   payload: SaleReceiptPayload,
   settings: ReceiptSettings,
 ): Promise<ReceiptDeliveryResult> {
-  const agentUrl = import.meta.env.VITE_PRINT_AGENT_URL?.trim()
-  if (agentUrl) {
+  const printerPath = (settings.printerPath || payload.printerPath || '').trim()
+  if (printerPath) {
     try {
-      const response = await fetch(agentUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          printerPath: settings.printerPath || payload.printerPath || '',
-          paperWidth: settings.paperWidth,
-          receipt: payload,
-          html: renderReceiptHtml(payload),
-        }),
-      })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      await printViaAgent(payload, settings)
       return { channel: 'print', status: 'sent' }
     } catch (err) {
-      return {
-        channel: 'print',
-        status: 'failed',
-        message: err instanceof Error ? err.message : 'Falha no agente de impressão.',
-      }
+      console.warn('Agente de impressão indisponível, usando a janela do Windows.', err)
     }
   }
 
@@ -82,6 +96,13 @@ export async function dispatchPrint(
       message: err instanceof Error ? err.message : 'Falha ao imprimir.',
     }
   }
+}
+
+export async function reprintSaleReceipt(
+  input: BuildReceiptInput,
+): Promise<ReceiptDeliveryResult> {
+  const payload = buildSaleReceipt({ ...input, copy: 'segunda_via' })
+  return dispatchPrint(payload, input.settings)
 }
 
 export async function dispatchReceiptApi(

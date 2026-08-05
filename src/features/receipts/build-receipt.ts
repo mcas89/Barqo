@@ -26,6 +26,7 @@ export function buildSaleReceipt(input: BuildReceiptInput): SaleReceiptPayload {
     changeCents: sale.changeCents,
     createdAt: sale.createdAt,
     paperWidth: settings.paperWidth,
+    copy: input.copy ?? 'original',
   }
 
   if (organization.document) payload.organizationDocument = organization.document

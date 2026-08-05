@@ -3,6 +3,7 @@ import { formatDayLabel, formatDateTime } from '../../../shared/lib/dates'
 import { formatMoney } from '../../../shared/lib/money'
 import { HomePlanNotice } from '../../billing/components/HomePlanNotice'
 import { PAYMENT_METHOD_LABELS } from '../../pos'
+import { ReprintSaleButton } from '../../receipts'
 import { useDayDashboard } from '../hooks/useDayDashboard'
 import './HomePage.css'
 
@@ -148,7 +149,10 @@ export function HomePage() {
                         {formatDateTime(sale.createdAt)}
                         <em>{sale.soldByName || sale.customerName || 'Caixa livre'}</em>
                       </span>
-                      <strong>{formatMoney(sale.totalCents)}</strong>
+                      <strong className="home-page__sale-total">
+                        {formatMoney(sale.totalCents)}
+                        <ReprintSaleButton sale={sale} />
+                      </strong>
                     </li>
                   ))}
                 </ul>

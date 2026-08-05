@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { BALQO_LOGO_SRC } from '../../../shared/constants'
+import { startOfLocalDayIso } from '../../../shared/lib/dates'
 import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
+import { listSalesSince } from '../../cash-register'
 import {
   DEFAULT_PLAN_ID,
   PLAN_FEATURES,
@@ -12,10 +14,16 @@ import { useDeviceSession } from '../../devices'
 import { fulfillSaleReceipt, resolveReceiptSettings } from '../../receipts'
 import { PinAuthorizeModal } from '../components/PinAuthorizeModal'
 import { PosCustomerPicker } from '../components/PosCustomerPicker'
+import { PosRecentSalesPanel } from '../components/PosRecentSalesPanel'
 import { PosUnlockScreen } from '../components/PosUnlockScreen'
 import { usePos } from '../hooks/usePos'
 import { usePosOperator } from '../hooks/usePosOperator'
-import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS, type PaymentMethod } from '../types'
+import {
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_METHODS,
+  type PaymentMethod,
+  type Sale,
+} from '../types'
 import './PosPage.css'
 
 type PendingAuth =
@@ -30,9 +38,13 @@ export function PosPage() {
   const [cashReceived, setCashReceived] = useState('')
   const [openingValue, setOpeningValue] = useState('0,00')
   const [toast, setToast] = useState<string | null>(null)
+  const [completedSale, setCompletedSale] = useState<Sale | null>(null)
   const [pendingAuth, setPendingAuth] = useState<PendingAuth>(null)
   const [authBusy, setAuthBusy] = useState(false)
   const [showCustomerPicker, setShowCustomerPicker] = useState(false)
+  const [showRecentSales, setShowRecentSales] = useState(false)
+  const [recentSales, setRecentSales] = useState<Sale[]>([])
+  const [loadingRecentSales, setLoadingRecentSales] = useState(false)
 
   const { subscription, organization: authOrg } = useAuth()
   const { devices, deviceId } = useDeviceSession()
@@ -96,6 +108,7 @@ export function PosPage() {
 
   useEffect(() => {
     if (!lastSale) return
+    setCompletedSale(lastSale)
     setToast(
       lastSale.changeCents > 0
         ? `Venda concluída · Troco ${formatMoney(lastSale.changeCents)}`
@@ -109,6 +122,27 @@ export function PosPage() {
     const timer = window.setTimeout(() => setToast(null), 2800)
     return () => window.clearTimeout(timer)
   }, [toast])
+
+  async function openRecentSales() {
+    setShowRecentSales(true)
+    if (!organization) return
+    setLoadingRecentSales(true)
+    try {
+      const sales = await listSalesSince(organization.id, startOfLocalDayIso())
+      const latest = [...sales].sort((left, right) =>
+        right.createdAt.localeCompare(left.createdAt),
+      )
+      if (completedSale && !latest.some((sale) => sale.id === completedSale.id)) {
+        latest.unshift(completedSale)
+      }
+      setRecentSales(latest.slice(0, 5))
+    } catch (err) {
+      console.error(err)
+      setRecentSales(completedSale ? [completedSale] : [])
+    } finally {
+      setLoadingRecentSales(false)
+    }
+  }
 
   async function handleOpenCash(event: FormEvent) {
     event.preventDefault()
@@ -179,6 +213,8 @@ export function PosPage() {
 
     const sale = await finishSale(payment)
     if (!sale || !organization) return
+    setCompletedSale(sale)
+    setRecentSales((current) => [sale, ...current.filter((item) => item.id !== sale.id)].slice(0, 5))
     setSelectedMethod(null)
     setCashReceived('')
     setShowDiscount(false)
@@ -361,11 +397,13 @@ export function PosPage() {
           Caixa aberto
         </div>
 
-        {pinRequired && (
-          <button type="button" className="pos-page__ghost" onClick={lock}>
-            Trocar
-          </button>
-        )}
+        <button
+          type="button"
+          className="pos-page__ghost"
+          onClick={() => void openRecentSales()}
+        >
+          2ª via
+        </button>
         {canAccessBackOffice && (
           <Link to="/app/cash" className="pos-page__ghost pos-page__ghost-link">
             Caixa
@@ -378,6 +416,14 @@ export function PosPage() {
         <div className="pos-page__toast" role="status" aria-live="polite">
           {toast}
         </div>
+      )}
+
+      {showRecentSales && (
+        <PosRecentSalesPanel
+          sales={recentSales}
+          loading={loadingRecentSales}
+          onClose={() => setShowRecentSales(false)}
+        />
       )}
 
       {pendingAuth && (

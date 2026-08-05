@@ -216,6 +216,13 @@
   white-space: nowrap;
 }
 
+.home-page__sale-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
 .home-page__warn {
   color: #b45309 !important;
 }

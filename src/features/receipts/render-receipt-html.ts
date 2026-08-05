@@ -77,6 +77,7 @@ export function renderReceiptHtml(payload: SaleReceiptPayload): string {
         ${payload.organizationDocument ? `<p>${escapeHtml(payload.organizationDocument)}</p>` : ''}
         ${payload.organizationAddress ? `<p>${escapeHtml(payload.organizationAddress)}</p>` : ''}
         ${payload.organizationPhone ? `<p>${escapeHtml(payload.organizationPhone)}</p>` : ''}
+        ${payload.copy === 'segunda_via' ? '<p><strong>2ª VIA</strong></p>' : ''}
       </div>
       <hr />
       <p><strong>Venda</strong> ${escapeHtml(payload.saleId.slice(-8).toUpperCase())}</p>

@@ -1,0 +1,121 @@
+.pos-recent-sales {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.pos-recent-sales__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(11, 31, 58, 0.35);
+  cursor: pointer;
+}
+
+.pos-recent-sales__card {
+  position: relative;
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1rem 1.05rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 22px 50px rgba(11, 31, 58, 0.22);
+}
+
+.pos-recent-sales__card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pos-recent-sales__card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0b1f3a;
+}
+
+.pos-recent-sales__card header p {
+  margin: 0.15rem 0 0;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pos-recent-sales__card header button {
+  border: none;
+  background: none;
+  color: #64748b;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0.2rem 0;
+}
+
+.pos-recent-sales__empty {
+  margin: 0;
+  color: #5b6b80;
+  font-weight: 600;
+}
+
+.pos-recent-sales__card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pos-recent-sales__card li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.75rem;
+  background: var(--balqo-bg, #f8fafc);
+}
+
+.pos-recent-sales__card li div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.pos-recent-sales__card li strong {
+  color: #0b1f3a;
+  font-size: 0.95rem;
+}
+
+.pos-recent-sales__card li span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.pos-recent-sales__card li button {
+  border: none;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--balqo-brand, #0b1f3a);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pos-recent-sales__card li button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

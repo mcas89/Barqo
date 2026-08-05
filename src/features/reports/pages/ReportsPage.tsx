@@ -3,6 +3,7 @@ import { formatPlanPrice } from '../../billing'
 import { formatDateTime, formatShortDate } from '../../../shared/lib/dates'
 import { formatMoney } from '../../../shared/lib/money'
 import { PAYMENT_METHOD_LABELS } from '../../pos'
+import { ReprintSaleButton } from '../../receipts'
 import { usePeriodReport } from '../hooks/usePeriodReport'
 import { periodSummaryToCsv } from '../services/period-summary'
 import './ReportsPage.css'
@@ -231,7 +232,10 @@ export function ReportsPage() {
                           {sale.customerName ? ` · ${sale.customerName}` : ''}
                         </em>
                       </span>
-                      <strong>{formatMoney(sale.totalCents)}</strong>
+                      <strong className="reports-page__sale-total">
+                        {formatMoney(sale.totalCents)}
+                        <ReprintSaleButton sale={sale} />
+                      </strong>
                     </li>
                   ))}
                 </ul>
