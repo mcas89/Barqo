@@ -12,6 +12,8 @@ import {
   PLAN_FEATURES,
   planHasFeature,
 } from '../../billing'
+import { recordOperatorSwitch } from '../../audit'
+import { getOpenCashSession } from '../../cash-register/services/cash-service'
 import {
   claimOperatorPresence,
   heartbeatDevice,
@@ -75,7 +77,7 @@ function ownerLabel(user: { displayName: string; email: string }) {
 
 export function PosOperatorProvider({ children }: { children: ReactNode }) {
   const { organization, user, subscription } = useAuth()
-  const { blocked: deviceBlocked, loading: deviceLoading } = useDeviceSession()
+  const { blocked: deviceBlocked, loading: deviceLoading, deviceId } = useDeviceSession()
   const [operators, setOperators] = useState<PosOperator[]>([])
   const [operator, setOperator] = useState<PosOperatorSession | null>(null)
   const [elevatedPath, setElevatedPath] = useState<string | null>(null)
@@ -200,6 +202,7 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
     organization?.ownerName,
     deviceBlocked,
     deviceLoading,
+    planId,
   ])
 
   useEffect(() => {
@@ -222,6 +225,7 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
 
       setError(null)
       try {
+        const previous = operator
         const list = await listPosOperators({
           organizationId,
           owner: {
@@ -242,6 +246,29 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
           displayName: session.displayName,
           role: session.role,
         })
+
+        let cashSessionId: string | null = null
+        try {
+          const openCash = await getOpenCashSession(organizationId)
+          cashSessionId = openCash?.id ?? null
+        } catch {
+          cashSessionId = null
+        }
+
+        try {
+          await recordOperatorSwitch({
+            organizationId,
+            previousOperatorId: previous?.id ?? null,
+            previousOperatorName: previous?.displayName ?? null,
+            newOperatorId: session.id,
+            newOperatorName: session.displayName,
+            deviceId,
+            cashSessionId,
+          })
+        } catch (auditErr) {
+          console.warn('Falha ao registrar troca de operador', auditErr)
+        }
+
         writeOperatorSession(organizationId, session)
         setElevatedPath(null)
         setOperator(session)
@@ -252,7 +279,7 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
         throw err
       }
     },
-    [organizationId, user, organization?.ownerName, planId],
+    [organizationId, user, organization?.ownerName, planId, operator, deviceId],
   )
 
   const lock = useCallback(() => {
@@ -369,21 +396,21 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
           ),
     }
   }, [
-      operators,
-      operator,
-      elevatedPath,
-      loading,
-      error,
-      pinRequired,
-      refreshOperators,
-      unlock,
-      lock,
-      setupOwnerPin,
-      authorizePrivileged,
-      elevateForPath,
-      clearElevation,
-      isElevatedFor,
-    ])
+    operators,
+    operator,
+    elevatedPath,
+    loading,
+    error,
+    pinRequired,
+    refreshOperators,
+    unlock,
+    lock,
+    setupOwnerPin,
+    authorizePrivileged,
+    elevateForPath,
+    clearElevation,
+    isElevatedFor,
+  ])
 
   return (
     <PosOperatorContext.Provider value={value}>{children}</PosOperatorContext.Provider>

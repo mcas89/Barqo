@@ -7,7 +7,9 @@ import {
 } from '../../billing'
 import { resolvePersonName } from '../../../shared/lib/person-name'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
 import { listCustomers, type Customer } from '../../customers'
+import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import {
   createReceivable,
   filterReceivables,
@@ -23,6 +25,8 @@ import type {
 
 export function useReceivables() {
   const { organization, user, subscription } = useAuth()
+  const { operator } = usePosOperator()
+  const { deviceId } = useDeviceSession()
   const [items, setItems] = useState<Receivable[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,23 +77,36 @@ export function useReceivables() {
     void refresh()
   }, [refresh])
 
-  const actorName = resolvePersonName(user?.displayName, 'Proprietário')
+  function requireActor() {
+    if (!organizationId || !user) throw new Error('Sessão inválida.')
+    if (!operator) throw new Error('Desbloqueie o PDV com o PIN do operador.')
+    return {
+      organizationId,
+      user,
+      operator,
+      deviceId,
+      actorName: operator.displayName || resolvePersonName(user.displayName, 'Proprietário'),
+    }
+  }
+
   const filtered = filterReceivables(items, search)
   const openTotalCents = sumOpenCents(
     items.filter((item) => item.status === 'open' || item.status === 'partial'),
   )
 
   async function addReceivable(data: CreateReceivableInput) {
-    if (!organizationId || !user) throw new Error('Sessão inválida.')
+    const actor = requireActor()
     if (!hasReceivables) throw new Error(upgradeHint)
 
     setSaving(true)
     setError(null)
     try {
       await createReceivable({
-        organizationId,
-        userId: user.id,
-        userName: actorName,
+        organizationId: actor.organizationId,
+        userId: actor.user.id,
+        userName: actor.actorName,
+        operatorId: actor.operator.id,
+        deviceId: actor.deviceId,
         data,
       })
       await refresh()
@@ -105,16 +122,18 @@ export function useReceivables() {
   }
 
   async function payReceivable(receivableId: string, data: ReceivePaymentInput) {
-    if (!organizationId || !user) throw new Error('Sessão inválida.')
+    const actor = requireActor()
 
     setSaving(true)
     setError(null)
     try {
       await receivePayment({
-        organizationId,
+        organizationId: actor.organizationId,
         receivableId,
-        userId: user.id,
-        userName: actorName,
+        userId: actor.user.id,
+        userName: actor.actorName,
+        operatorId: actor.operator.id,
+        deviceId: actor.deviceId,
         data,
       })
       await refresh()

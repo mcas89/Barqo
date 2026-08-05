@@ -34,6 +34,7 @@ export function RequireBackOffice({ children }: { children: ReactNode }) {
   const needed = permissionForPath(location.pathname)
   const allowed =
     canAccessBackOffice ||
+    needed === null ||
     (needed ? can(needed) : false) ||
     isElevatedFor(location.pathname)
 

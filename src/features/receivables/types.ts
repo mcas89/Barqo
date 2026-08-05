@@ -25,6 +25,8 @@ export interface ReceivablePayment {
   paidAt: string
   paidByUserId?: UserId
   paidByName?: string
+  operatorId?: string
+  deviceId?: string
   note?: string
 }
 
@@ -44,6 +46,8 @@ export interface Receivable {
   payments: ReceivablePayment[]
   createdByUserId?: UserId
   createdByName?: string
+  operatorId?: string
+  deviceId?: string
 }
 
 export interface CreateReceivableInput {

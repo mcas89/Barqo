@@ -62,9 +62,11 @@ export interface Sale {
   soldByName: string
   createdAt: string
   /** Sessão de caixa aberta no momento da venda */
-  cashSessionId?: string
-  /** Operador do PDV (PIN) no momento da venda */
-  operatorId?: string
+  cashSessionId: string
+  /** Operador do PDV (PIN) que realizou a venda */
+  operatorId: string
+  /** Aparelho/terminal onde a venda foi feita */
+  deviceId: string
   operatorRole?: string
   customerId?: string
   customerName?: string
@@ -79,7 +81,8 @@ export interface CompleteSaleInput {
   soldByUserId: UserId
   soldByName: string
   cashSessionId: string
-  operatorId?: string
+  operatorId: string
+  deviceId: string
   operatorRole?: string
   customerId?: string
   customerName?: string

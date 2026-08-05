@@ -1,0 +1,118 @@
+.sync-pending {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 42rem;
+}
+
+.sync-pending__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sync-pending__header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.45rem;
+}
+
+.sync-pending__header p {
+  margin: 0;
+  color: color-mix(in srgb, var(--text, #1a1a1a) 70%, transparent);
+  font-size: 0.95rem;
+}
+
+.sync-pending__cta,
+.sync-pending__retry {
+  border: 0;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--brand, #0f766e);
+  color: #fff;
+}
+
+.sync-pending__cta:disabled,
+.sync-pending__retry:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-pending__retry {
+  background: transparent;
+  color: var(--brand, #0f766e);
+  border: 1px solid color-mix(in srgb, var(--brand, #0f766e) 45%, transparent);
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.sync-pending__error {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.sync-pending__ok {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.sync-pending__empty {
+  margin: 0;
+  color: color-mix(in srgb, var(--text, #1a1a1a) 65%, transparent);
+}
+
+.sync-pending__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.sync-pending__item {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--text, #1a1a1a) 12%, transparent);
+  background: color-mix(in srgb, var(--surface, #fff) 92%, transparent);
+}
+
+.sync-pending__item--error {
+  border-color: color-mix(in srgb, #b91c1c 35%, transparent);
+  background: #fff7f7;
+}
+
+.sync-pending__main {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.sync-pending__main strong {
+  font-size: 0.95rem;
+}
+
+.sync-pending__main span {
+  font-size: 0.88rem;
+  color: color-mix(in srgb, var(--text, #1a1a1a) 75%, transparent);
+}
+
+.sync-pending__meta {
+  font-size: 0.8rem !important;
+}
+
+.sync-pending__err-msg {
+  color: #991b1b !important;
+  font-size: 0.82rem !important;
+}

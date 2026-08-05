@@ -13,6 +13,13 @@ import { getFirestoreDb } from '../../../infra/firebase'
 import { createId } from '../../../shared/lib/ids'
 import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
+import {
+  enqueueOperation,
+  getLocalOpenCashSession,
+  isOnline,
+  saveLocalCashSession,
+  type CashOpenQueuePayload,
+} from '../../../infra/offline'
 import type { OrganizationId, UserId } from '../../../shared/types'
 import type { PaymentMethod, Sale } from '../../pos/types'
 import {
@@ -52,9 +59,13 @@ function mapSession(id: string, data: Record<string, unknown>): CashSession {
     openedAt: data.openedAt as string,
     openedByUserId: data.openedByUserId as string,
     openedByName: data.openedByName as string,
+    openedByOperatorId: data.openedByOperatorId as string | undefined,
+    openedDeviceId: data.openedDeviceId as string | undefined,
     closedAt: data.closedAt as string | undefined,
     closedByUserId: data.closedByUserId as string | undefined,
     closedByName: data.closedByName as string | undefined,
+    closedByOperatorId: data.closedByOperatorId as string | undefined,
+    closedDeviceId: data.closedDeviceId as string | undefined,
     movements: Array.isArray(data.movements) ? (data.movements as CashMovement[]) : [],
     expectedByMethod: data.expectedByMethod as PaymentTotals | undefined,
     expectedCashInDrawerCents:
@@ -75,18 +86,30 @@ function mapSession(id: string, data: Record<string, unknown>): CashSession {
 export async function getOpenCashSession(
   organizationId: OrganizationId,
 ): Promise<CashSession | null> {
-  const col = collection(requireDb(), 'organizations', organizationId, 'cash_sessions')
-  const snap = await getDocs(
-    query(col, where('status', '==', CASH_SESSION_STATUS.OPEN), limit(5)),
-  )
+  if (!isOnline()) {
+    return getLocalOpenCashSession(organizationId)
+  }
 
-  if (snap.empty) return null
+  try {
+    const col = collection(requireDb(), 'organizations', organizationId, 'cash_sessions')
+    const snap = await getDocs(
+      query(col, where('status', '==', CASH_SESSION_STATUS.OPEN), limit(5)),
+    )
 
-  const sessions = snap.docs
-    .map((item) => mapSession(item.id, item.data()))
-    .sort((a, b) => b.openedAt.localeCompare(a.openedAt))
+    if (snap.empty) {
+      return getLocalOpenCashSession(organizationId)
+    }
 
-  return sessions[0] ?? null
+    const sessions = snap.docs
+      .map((item) => mapSession(item.id, item.data()))
+      .sort((a, b) => b.openedAt.localeCompare(a.openedAt))
+
+    const open = sessions[0] ?? null
+    if (open) await saveLocalCashSession(open, true).catch(() => undefined)
+    return open
+  } catch {
+    return getLocalOpenCashSession(organizationId)
+  }
 }
 
 export async function listRecentCashSessions(
@@ -103,7 +126,16 @@ export async function openCashSession(input: {
   openingAmountCents: number
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
 }): Promise<CashSession> {
+  if (!input.operatorId?.trim()) {
+    throw new Error('Operador não identificado.')
+  }
+  if (!input.deviceId?.trim()) {
+    throw new Error('Dispositivo não identificado.')
+  }
+
   const existing = await getOpenCashSession(input.organizationId)
   if (existing) {
     throw new Error('Já existe um caixa aberto.')
@@ -118,15 +150,36 @@ export async function openCashSession(input: {
     openedAt: nowIso(),
     openedByUserId: input.userId,
     openedByName: input.userName,
+    openedByOperatorId: input.operatorId,
+    openedDeviceId: input.deviceId,
     movements: [],
   }
 
-  await setDoc(
-    doc(requireDb(), 'organizations', input.organizationId, 'cash_sessions', id),
-    omitUndefined({ ...session }),
-  )
+  if (!isOnline()) {
+    await saveLocalCashSession(session, false)
+    const payload: CashOpenQueuePayload = { session }
+    await enqueueOperation(input.organizationId, 'cash.open', payload, {
+      id: `cash_${session.id}`,
+    })
+    return session
+  }
 
-  return session
+  try {
+    await setDoc(
+      doc(requireDb(), 'organizations', input.organizationId, 'cash_sessions', id),
+      omitUndefined({ ...session }),
+    )
+    await saveLocalCashSession(session, true).catch(() => undefined)
+    return session
+  } catch (err) {
+    await saveLocalCashSession(session, false)
+    const payload: CashOpenQueuePayload = { session }
+    await enqueueOperation(input.organizationId, 'cash.open', payload, {
+      id: `cash_${session.id}`,
+    })
+    console.warn('Caixa aberto offline após falha de rede', err)
+    return session
+  }
 }
 
 export async function addCashMovement(input: {
@@ -137,7 +190,16 @@ export async function addCashMovement(input: {
   reason?: string
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
 }): Promise<CashSession> {
+  if (!input.operatorId?.trim()) {
+    throw new Error('Operador não identificado.')
+  }
+  if (!input.deviceId?.trim()) {
+    throw new Error('Dispositivo não identificado.')
+  }
+
   const ref = doc(
     requireDb(),
     'organizations',
@@ -162,6 +224,8 @@ export async function addCashMovement(input: {
     createdAt: nowIso(),
     createdByUserId: input.userId,
     createdByName: input.userName,
+    operatorId: input.operatorId,
+    deviceId: input.deviceId,
   }
   const reason = input.reason?.trim()
   if (reason) movement.reason = reason
@@ -253,9 +317,18 @@ export async function closeCashSession(input: {
   sessionId: string
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
   countedCashInDrawerCents: number
   note?: string
 }): Promise<CashSession> {
+  if (!input.operatorId?.trim()) {
+    throw new Error('Operador não identificado.')
+  }
+  if (!input.deviceId?.trim()) {
+    throw new Error('Dispositivo não identificado.')
+  }
+
   const open = await getOpenCashSession(input.organizationId)
   if (!open || open.id !== input.sessionId) {
     throw new Error('Caixa aberto não encontrado.')
@@ -289,6 +362,8 @@ export async function closeCashSession(input: {
     closedAt,
     closedByUserId: input.userId,
     closedByName: input.userName,
+    closedByOperatorId: input.operatorId,
+    closedDeviceId: input.deviceId,
     expectedByMethod,
     expectedCashInDrawerCents: summary.expectedCashInDrawerCents,
     countedByMethod,
@@ -308,6 +383,8 @@ export async function closeCashSession(input: {
     closedAt,
     closedByUserId: input.userId,
     closedByName: input.userName,
+    closedByOperatorId: input.operatorId,
+    closedDeviceId: input.deviceId,
     expectedByMethod,
     expectedCashInDrawerCents: summary.expectedCashInDrawerCents,
     countedByMethod,

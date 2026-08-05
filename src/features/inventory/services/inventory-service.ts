@@ -44,6 +44,8 @@ function mapMovement(id: string, data: Record<string, unknown>): StockMovement {
     createdAt: data.createdAt as string,
     createdByUserId: data.createdByUserId as string | undefined,
     createdByName: data.createdByName as string | undefined,
+    operatorId: data.operatorId as string | undefined,
+    deviceId: data.deviceId as string | undefined,
     note: data.note as string | undefined,
     saleId: data.saleId as string | undefined,
   }
@@ -85,9 +87,18 @@ async function applyStockChange(input: {
   type: StockMovementType
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
   note?: string
   absoluteStock?: number
 }): Promise<StockMovement> {
+  if (!input.operatorId?.trim()) {
+    throw new Error('Operador não identificado.')
+  }
+  if (!input.deviceId?.trim()) {
+    throw new Error('Dispositivo não identificado.')
+  }
+
   const product = await getProduct(input.organizationId, input.productId)
   if (!product || product.type !== 'product') {
     throw new Error('Produto de estoque não encontrado.')
@@ -123,6 +134,8 @@ async function applyStockChange(input: {
     createdAt: now,
     createdByUserId: input.userId,
     createdByName: input.userName,
+    operatorId: input.operatorId,
+    deviceId: input.deviceId,
   }
 
   const note = input.note?.trim()
@@ -147,6 +160,8 @@ export async function registerStockEntry(input: {
   organizationId: OrganizationId
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
   data: StockEntryInput
 }): Promise<StockMovement> {
   const qty = Math.round(input.data.quantity)
@@ -159,6 +174,8 @@ export async function registerStockEntry(input: {
     type: STOCK_MOVEMENT_TYPES.ENTRY,
     userId: input.userId,
     userName: input.userName,
+    operatorId: input.operatorId,
+    deviceId: input.deviceId,
     note: input.data.note,
   })
 }
@@ -167,6 +184,8 @@ export async function registerStockLoss(input: {
   organizationId: OrganizationId
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
   data: StockLossInput
 }): Promise<StockMovement> {
   const qty = Math.round(input.data.quantity)
@@ -185,6 +204,8 @@ export async function registerStockLoss(input: {
     type: STOCK_MOVEMENT_TYPES.LOSS,
     userId: input.userId,
     userName: input.userName,
+    operatorId: input.operatorId,
+    deviceId: input.deviceId,
     note: input.data.note,
   })
 }
@@ -193,6 +214,8 @@ export async function registerStockAdjustment(input: {
   organizationId: OrganizationId
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
   data: StockAdjustmentInput
 }): Promise<StockMovement> {
   const newStock = Math.round(input.data.newStock)
@@ -206,6 +229,8 @@ export async function registerStockAdjustment(input: {
     type: STOCK_MOVEMENT_TYPES.ADJUSTMENT,
     userId: input.userId,
     userName: input.userName,
+    operatorId: input.operatorId,
+    deviceId: input.deviceId,
     note: input.data.note || 'Inventário / contagem',
   })
 }

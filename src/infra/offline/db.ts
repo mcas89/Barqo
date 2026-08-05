@@ -1,4 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
+import type { ProductType, ProductUnit } from '../../features/products/types'
+import type { Sale } from '../../features/pos/types'
+import type { CashSession } from '../../features/cash-register/types'
 
 export type QueueOperation =
   | 'sale.create'
@@ -20,13 +23,21 @@ export interface SyncQueueItem {
   lastError?: string
 }
 
+/** Cache completo do produto para vender offline. */
 export interface CachedProduct {
   id: string
   organizationId: string
   name: string
   barcode?: string
+  category?: string
+  unit: ProductUnit
+  type: ProductType
   priceCents: number
-  stock?: number
+  costCents: number
+  stock: number
+  minStock: number
+  active: boolean
+  createdAt: string
   updatedAt: string
 }
 
@@ -38,10 +49,29 @@ export interface CachedCustomer {
   updatedAt: string
 }
 
+export interface LocalSaleRecord {
+  id: string
+  organizationId: string
+  createdAt: string
+  synced: boolean
+  sale: Sale
+}
+
+export interface LocalCashSessionRecord {
+  id: string
+  organizationId: string
+  status: 'open' | 'closed'
+  synced: boolean
+  session: CashSession
+  updatedAt: string
+}
+
 export class BalqoLocalDb extends Dexie {
   syncQueue!: EntityTable<SyncQueueItem, 'id'>
   products!: EntityTable<CachedProduct, 'id'>
   customers!: EntityTable<CachedCustomer, 'id'>
+  localSales!: EntityTable<LocalSaleRecord, 'id'>
+  cashSessions!: EntityTable<LocalCashSessionRecord, 'id'>
 
   constructor() {
     super('balqo_local')
@@ -50,6 +80,14 @@ export class BalqoLocalDb extends Dexie {
       syncQueue: 'id, organizationId, createdAt, operation',
       products: 'id, organizationId, barcode, name, updatedAt',
       customers: 'id, organizationId, name, updatedAt',
+    })
+
+    this.version(2).stores({
+      syncQueue: 'id, organizationId, createdAt, operation',
+      products: 'id, organizationId, barcode, name, updatedAt, active',
+      customers: 'id, organizationId, name, updatedAt',
+      localSales: 'id, organizationId, createdAt, synced',
+      cashSessions: 'id, organizationId, status, synced, updatedAt',
     })
   }
 }

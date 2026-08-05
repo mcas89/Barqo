@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { resolvePersonName } from '../../../shared/lib/person-name'
 import { playScanBeep } from '../../../shared/lib/scan-beep'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
 
 import {
   getOpenCashSession,
@@ -9,6 +10,7 @@ import {
 } from '../../cash-register/services/cash-service'
 import type { CashSession } from '../../cash-register/types'
 import { createId } from '../../../shared/lib/ids'
+import { cacheProducts, listCachedProducts } from '../../../infra/offline'
 import {
   createProduct,
   findProductByBarcode,
@@ -29,6 +31,7 @@ import { usePosOperator } from './usePosOperator'
 export function usePos() {
   const { organization, user } = useAuth()
   const { operator } = usePosOperator()
+  const { deviceId } = useDeviceSession()
   const [catalog, setCatalog] = useState<Product[]>([])
   const [loadingCatalog, setLoadingCatalog] = useState(true)
   const [cashSession, setCashSession] = useState<CashSession | null>(null)
@@ -76,9 +79,23 @@ export function usePos() {
     try {
       const products = await listProducts(organizationId)
       setCatalog(products)
+      await cacheProducts(organizationId, products).catch(() => undefined)
+      setError(null)
     } catch (err) {
       console.error(err)
-      setError('Não foi possível carregar o catálogo.')
+      try {
+        const cached = await listCachedProducts(organizationId)
+        if (cached.length > 0) {
+          setCatalog(cached)
+          setError('Catálogo offline (última sincronização).')
+        } else {
+          setCatalog([])
+          setError('Não foi possível carregar o catálogo.')
+        }
+      } catch {
+        setCatalog([])
+        setError('Não foi possível carregar o catálogo.')
+      }
     } finally {
       setLoadingCatalog(false)
     }
@@ -350,6 +367,10 @@ export function usePos() {
       setError('Sessão inválida.')
       return
     }
+    if (!operator) {
+      setError('Desbloqueie o PDV com o PIN do operador.')
+      return
+    }
 
     setBusy(true)
     setError(null)
@@ -358,7 +379,9 @@ export function usePos() {
         organizationId,
         openingAmountCents,
         userId: user.id,
-        userName: operator?.displayName || resolvePersonName(user.displayName, 'Proprietário'),
+        userName: operator.displayName || resolvePersonName(user.displayName, 'Proprietário'),
+        operatorId: operator.id,
+        deviceId,
       })
       setCashSession(session)
       return session
@@ -416,6 +439,7 @@ export function usePos() {
         soldByName: operator.displayName,
         cashSessionId: cashSession.id,
         operatorId: operator.id,
+        deviceId,
         operatorRole: operator.role,
         customerId: customer?.id,
         customerName: customer?.name,

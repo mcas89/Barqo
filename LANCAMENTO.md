@@ -2,7 +2,7 @@
 
 Status recomendado hoje: **piloto com 2–5 lojas**.  
 Trava operacional de cobrança (rules, domínio, InfinitePay, termos/LGPD, aviso sem NF-e) está feita.  
-Ainda **não** está fechado para cobrar em escala — falta **offline real** (e API de e-mail).
+Ainda **não** está fechado para cobrar em escala — falta **fechamento offline confirmado** + lease de aparelho/assinatura (e API de e-mail).
 
 - App: https://balqo.vercel.app
 - Repo: https://github.com/mcas89/Barqo
@@ -65,29 +65,34 @@ Sem isso, não cobre cliente novo de verdade.
 
 Dá para pilotoar sem isso. **Não venda como pronto.**
 
-- [ ] Offline de verdade — ver checklist abaixo
+- [x] Offline confiável (núcleo) — venda/caixa na fila, sync idempotente, tela Sync
 - [x] Escolher impressora da lista do Windows (agente local + modal em Configurações)
 - [ ] API de e-mail do comprovante (`VITE_RECEIPT_API_URL`) — UI em manutenção por enquanto
 - [x] Travar escrita de `subscriptions` nas rules (só o dono grava; republicar no Console)
 - [x] PDV: cadastro rápido, venda avulsa, alterar preço na hora
 - [x] Plano Controle: permissões finas (Equipe → checkboxes por funcionário)
+- [x] Operador + dispositivo em vendas/caixa/estoque/fiado + evento `operator.switch`
 - [x] Fechar versão `0.1.13`
 
-### Offline — o que falta para ficar pronto
+### Offline — status
 
-Hoje: Dexie + fila + badge online/offline existem, mas **ninguém enfileira venda** e o sync **não grava no Firestore**.
+**Pronto no núcleo:**
+1. [x] Venda e abertura de caixa offline → `enqueueOperation` (ids `sale_*` / `cash_*`)
+2. [x] Cache local de produtos no PDV (`cacheProducts` / `listCachedProducts`)
+3. [x] Espelho local de vendas/caixa
+4. [x] `runSyncPass` grava no Firestore (ordem: caixa → venda); movimentos/fiado com ids estáveis
+5. [x] Sync ao voltar online, no boot e após enfileirar
+6. [x] Tela `/app/sync` + badge com contagem de pendências
+7. [x] Retries com limite (8) e “Tentar de novo”
 
-1. No PDV/caixa, se offline ou Firestore falhar → `enqueueOperation` (hoje `enqueueOperation` não é chamado)
-2. Cache local de produtos/clientes (`localDb.products` / `customers`) para buscar sem rede
-3. Espelho local de vendas/caixa aberta (UX de “venda feita” sem esperar a nuvem)
-4. Implementar `runSyncPass` em `src/infra/sync/sync-engine.ts` (hoje só tem TODO)
-5. Disparar sync ao voltar online, no boot e após enfileirar
-6. IDs estáveis + retries sem duplicar venda/estoque
-7. Política de conflito (dois aparelhos no mesmo estoque)
-8. Definir o que acontece com login/PIN sem internet
+**Ainda aberto (não bloqueia o núcleo):**
+- Fechamento de caixa offline com status `local_pending` / `confirmed` / `review_required`
+- Cache de clientes / fiado picker offline
+- Política de conflito multiaparelho no estoque
+- Login/PIN sem internet (lease de dispositivo / assinatura offline — etapas 4–5)
+- Sangria/suprimento/fechamento na fila
 
-Até isso, **não prometa offline de ponta a ponta**.
-
+Até fechar fechamento offline + lease, **não prometa offline de ponta a ponta em marketing**.
 ---
 
 ## 4. Fora deste lançamento
@@ -110,7 +115,7 @@ Pode:
 Não pode (ainda):
 
 - Nota fiscal eletrônica
-- Funcionar offline de ponta a ponta sem internet
+- Fechamento de caixa offline com confirmação de sync (núcleo de venda offline já existe)
 - Receber comprovante por e-mail automático
 - Impressão silenciosa sem configurar impressora / agente local
 
@@ -122,5 +127,5 @@ Não pode (ainda):
 2. ~~Pagamento E2E~~
 3. ~~Texto fiscal + termos~~
 4. ~~2–5 pilotos~~ (em teste)
-5. ~~Impressora / PDV rápido / rules / permissões Controle~~ · **offline real** (republicar `firestore.rules` se ainda não)
-6. Abrir cobrança em escala depois do offline
+5. ~~Impressora / PDV rápido / rules / permissões Controle~~ · ~~identidade operador/dispositivo~~ · **offline núcleo** (republicar `firestore.rules` se ainda não — inclui `audit_events`)
+6. Fechamento offline + lease de aparelho/assinatura → depois abrir cobrança em escala

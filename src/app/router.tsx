@@ -19,6 +19,7 @@ import { SettingsPage } from '../features/settings'
 import { BillingPage, BillingReturnPage } from '../features/billing'
 import { SuppliersPage } from '../features/suppliers'
 import { TeamPage } from '../features/users'
+import { SyncPendingPage } from '../features/sync'
 
 export function AppRouter() {
   return (
@@ -71,6 +72,7 @@ export function AppRouter() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="billing" element={<BillingPage />} />
+        <Route path="sync" element={<SyncPendingPage />} />
       </Route>
 
       <Route

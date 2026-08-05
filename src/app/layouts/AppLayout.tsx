@@ -32,6 +32,7 @@ const NAV: Array<{
   { to: '/app/inventory', label: 'Estoque', permission: PERMISSIONS.MANAGE_INVENTORY },
   { to: '/app/suppliers', label: 'Fornecedores', permission: PERMISSIONS.MANAGE_SUPPLIERS },
   { to: '/app/reports', label: 'Relatórios', permission: PERMISSIONS.VIEW_REPORTS },
+  { to: '/app/sync', label: 'Sync', permission: null },
   { to: '/app/billing', label: 'Planos', permission: PERMISSIONS.MANAGE_BILLING },
   { to: '/app/settings', label: 'Config', permission: PERMISSIONS.MANAGE_SETTINGS },
 ]

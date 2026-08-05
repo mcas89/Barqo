@@ -30,6 +30,8 @@ export interface StockMovement {
   createdAt: string
   createdByUserId?: UserId
   createdByName?: string
+  operatorId?: string
+  deviceId?: string
   note?: string
   saleId?: string
 }

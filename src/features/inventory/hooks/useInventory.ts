@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { resolvePersonName } from '../../../shared/lib/person-name'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
+import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import type { Product } from '../../products'
 import {
   filterInventoryProducts,
@@ -19,6 +21,8 @@ import type {
 
 export function useInventory() {
   const { organization, user } = useAuth()
+  const { operator } = usePosOperator()
+  const { deviceId } = useDeviceSession()
   const [products, setProducts] = useState<Product[]>([])
   const [movements, setMovements] = useState<StockMovement[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,12 +62,22 @@ export function useInventory() {
     void refresh()
   }, [refresh])
 
+  function requireActor() {
+    if (!organizationId || !user) throw new Error('Sessão inválida.')
+    if (!operator) throw new Error('Desbloqueie o PDV com o PIN do operador.')
+    return {
+      organizationId,
+      user,
+      operator,
+      deviceId,
+      actorName: operator.displayName || resolvePersonName(user.displayName, 'Proprietário'),
+    }
+  }
+
   async function runMovement(
     action: () => Promise<StockMovement>,
   ): Promise<void> {
-    if (!organizationId || !user) {
-      throw new Error('Sessão inválida.')
-    }
+    requireActor()
     setSaving(true)
     setError(null)
     try {
@@ -79,8 +93,6 @@ export function useInventory() {
       setSaving(false)
     }
   }
-
-  const actorName = resolvePersonName(user?.displayName, 'Proprietário')
 
   return {
     organization,
@@ -99,34 +111,40 @@ export function useInventory() {
     setOnlyLowStock,
     refresh,
     async addEntry(data: StockEntryInput) {
-      if (!organizationId || !user) throw new Error('Sessão inválida.')
+      const actor = requireActor()
       await runMovement(() =>
         registerStockEntry({
-          organizationId,
-          userId: user.id,
-          userName: actorName,
+          organizationId: actor.organizationId,
+          userId: actor.user.id,
+          userName: actor.actorName,
+          operatorId: actor.operator.id,
+          deviceId: actor.deviceId,
           data,
         }),
       )
     },
     async addLoss(data: StockLossInput) {
-      if (!organizationId || !user) throw new Error('Sessão inválida.')
+      const actor = requireActor()
       await runMovement(() =>
         registerStockLoss({
-          organizationId,
-          userId: user.id,
-          userName: actorName,
+          organizationId: actor.organizationId,
+          userId: actor.user.id,
+          userName: actor.actorName,
+          operatorId: actor.operator.id,
+          deviceId: actor.deviceId,
           data,
         }),
       )
     },
     async adjustStock(data: StockAdjustmentInput) {
-      if (!organizationId || !user) throw new Error('Sessão inválida.')
+      const actor = requireActor()
       await runMovement(() =>
         registerStockAdjustment({
-          organizationId,
-          userId: user.id,
-          userName: actorName,
+          organizationId: actor.organizationId,
+          userId: actor.user.id,
+          userName: actor.actorName,
+          operatorId: actor.operator.id,
+          deviceId: actor.deviceId,
           data,
         }),
       )

@@ -83,6 +83,10 @@ service cloud.firestore {
         allow read, write: if canAccessOrg(orgId);
       }
 
+      match /audit_events/{eventId} {
+        allow read, write: if canAccessOrg(orgId);
+      }
+
       match /billing_orders/{orderId} {
         allow read: if canAccessOrg(orgId);
         allow create, update: if isOwner(orgId);

@@ -25,6 +25,10 @@ export interface CashMovement {
   createdAt: string
   createdByUserId: UserId
   createdByName: string
+  /** Operador do PDV que registrou o movimento */
+  operatorId: string
+  /** Aparelho onde o movimento foi feito */
+  deviceId: string
 }
 
 export type PaymentTotals = Record<PaymentMethod, number>
@@ -37,9 +41,14 @@ export interface CashSession {
   openedAt: string
   openedByUserId: UserId
   openedByName: string
+  /** Operador do PDV que abriu o caixa */
+  openedByOperatorId?: string
+  openedDeviceId?: string
   closedAt?: string
   closedByUserId?: UserId
   closedByName?: string
+  closedByOperatorId?: string
+  closedDeviceId?: string
   movements: CashMovement[]
   /** Totais esperados no fechamento (calculados) */
   expectedByMethod?: PaymentTotals

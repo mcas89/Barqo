@@ -8,6 +8,12 @@
   padding: 0.25rem 0.6rem;
   border-radius: 999px;
   background: color-mix(in srgb, currentColor 12%, transparent);
+  text-decoration: none;
+  color: inherit;
+}
+
+.connection-status:hover {
+  filter: brightness(0.95);
 }
 
 .connection-status__dot {

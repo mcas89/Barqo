@@ -6,9 +6,14 @@ export async function enqueueOperation(
   organizationId: string,
   operation: QueueOperation,
   payload: unknown,
+  options?: { id?: string },
 ): Promise<SyncQueueItem> {
+  const id = options?.id ?? createId('queue')
+  const existing = await localDb.syncQueue.get(id)
+  if (existing) return existing
+
   const item: SyncQueueItem = {
-    id: createId('queue'),
+    id,
     organizationId,
     operation,
     payload,
@@ -16,7 +21,12 @@ export async function enqueueOperation(
     attempts: 0,
   }
 
-  await localDb.syncQueue.add(item)
+  await localDb.syncQueue.put(item)
+
+  void import('../sync')
+    .then((mod) => mod.requestSyncPass(organizationId))
+    .catch(() => undefined)
+
   return item
 }
 
@@ -26,6 +36,11 @@ export async function listPendingOperations(organizationId?: string): Promise<Sy
   }
 
   return localDb.syncQueue.where('organizationId').equals(organizationId).sortBy('createdAt')
+}
+
+export async function countPendingOperations(organizationId?: string): Promise<number> {
+  if (!organizationId) return localDb.syncQueue.count()
+  return localDb.syncQueue.where('organizationId').equals(organizationId).count()
 }
 
 export async function removeQueueItem(id: string): Promise<void> {
@@ -39,5 +54,15 @@ export async function markQueueError(id: string, error: string): Promise<void> {
   await localDb.syncQueue.update(id, {
     attempts: item.attempts + 1,
     lastError: error,
+  })
+}
+
+/** Limpa o erro e zera tentativas para forçar nova sincronização. */
+export async function resetQueueItem(id: string): Promise<void> {
+  const item = await localDb.syncQueue.get(id)
+  if (!item) return
+  await localDb.syncQueue.update(id, {
+    attempts: 0,
+    lastError: undefined,
   })
 }

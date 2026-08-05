@@ -1,4 +1,5 @@
 import { SYNC_STATUS, type SyncStatus } from '../../shared/constants'
+import { requestSyncPass } from './sync-engine'
 
 type Listener = (status: SyncStatus) => void
 
@@ -26,6 +27,7 @@ export function setSyncStatus(status: SyncStatus) {
 
 function handleOnline() {
   emit(SYNC_STATUS.ONLINE)
+  requestSyncPass()
 }
 
 function handleOffline() {

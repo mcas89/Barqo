@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
+import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import {
   addCashMovement,
   buildCashSummary,
@@ -19,6 +21,8 @@ import {
 
 export function useCashRegister() {
   const { organization, user } = useAuth()
+  const { operator } = usePosOperator()
+  const { deviceId } = useDeviceSession()
   const [session, setSession] = useState<CashSession | null>(null)
   const [summary, setSummary] = useState<CashSummary | null>(null)
   const [recent, setRecent] = useState<CashSession[]>([])
@@ -73,16 +77,24 @@ export function useCashRegister() {
     void refresh()
   }, [refresh])
 
-  async function open(openingAmountCents: number) {
+  function requireActor() {
     if (!organizationId || !user) throw new Error('Sessão inválida.')
+    if (!operator) throw new Error('Desbloqueie o PDV com o PIN do operador.')
+    return { organizationId, user, operator, deviceId }
+  }
+
+  async function open(openingAmountCents: number) {
+    const actor = requireActor()
     setBusy(true)
     setError(null)
     try {
       await openCashSession({
-        organizationId,
+        organizationId: actor.organizationId,
         openingAmountCents,
-        userId: user.id,
-        userName: user.displayName || user.email,
+        userId: actor.user.id,
+        userName: actor.operator.displayName || actor.user.displayName || actor.user.email,
+        operatorId: actor.operator.id,
+        deviceId: actor.deviceId,
       })
       await refresh()
     } catch (err) {
@@ -95,18 +107,21 @@ export function useCashRegister() {
   }
 
   async function move(type: CashMovementType, amountCents: number, reason?: string) {
-    if (!organizationId || !user || !session) throw new Error('Caixa fechado.')
+    const actor = requireActor()
+    if (!session) throw new Error('Caixa fechado.')
     setBusy(true)
     setError(null)
     try {
       await addCashMovement({
-        organizationId,
+        organizationId: actor.organizationId,
         sessionId: session.id,
         type,
         amountCents,
         reason,
-        userId: user.id,
-        userName: user.displayName || user.email,
+        userId: actor.user.id,
+        userName: actor.operator.displayName || actor.user.displayName || actor.user.email,
+        operatorId: actor.operator.id,
+        deviceId: actor.deviceId,
       })
       await refresh()
     } catch (err) {
@@ -119,15 +134,18 @@ export function useCashRegister() {
   }
 
   async function close(countedCashInDrawerCents: number, note?: string) {
-    if (!organizationId || !user || !session) throw new Error('Caixa fechado.')
+    const actor = requireActor()
+    if (!session) throw new Error('Caixa fechado.')
     setBusy(true)
     setError(null)
     try {
       await closeCashSession({
-        organizationId,
+        organizationId: actor.organizationId,
         sessionId: session.id,
-        userId: user.id,
-        userName: user.displayName || user.email,
+        userId: actor.user.id,
+        userName: actor.operator.displayName || actor.user.displayName || actor.user.email,
+        operatorId: actor.operator.id,
+        deviceId: actor.deviceId,
         countedCashInDrawerCents,
         note,
       })

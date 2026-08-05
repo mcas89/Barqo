@@ -52,6 +52,8 @@ function mapReceivable(id: string, data: Record<string, unknown>): Receivable {
       : [],
     createdByUserId: data.createdByUserId as string | undefined,
     createdByName: data.createdByName as string | undefined,
+    operatorId: data.operatorId as string | undefined,
+    deviceId: data.deviceId as string | undefined,
   }
 }
 
@@ -86,15 +88,31 @@ export async function createReceivable(input: {
   organizationId: OrganizationId
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
+  /** Id estável (ex.: fiado de venda offline) para retries idempotentes */
+  id?: string
   data: CreateReceivableInput
 }): Promise<Receivable> {
+  if (!input.operatorId?.trim()) {
+    throw new Error('Operador não identificado.')
+  }
+  if (!input.deviceId?.trim()) {
+    throw new Error('Dispositivo não identificado.')
+  }
+
   const totalCents = Math.round(input.data.totalCents)
   if (totalCents <= 0) throw new Error('Valor do fiado inválido.')
   if (!input.data.customerId || !input.data.customerName.trim()) {
     throw new Error('Selecione o cliente do fiado.')
   }
 
-  const id = createId('rec')
+  const id = input.id?.trim() || createId('rec')
+  if (input.id) {
+    const existing = await getReceivable(input.organizationId, id)
+    if (existing) return existing
+  }
+
   const now = nowIso()
   const receivable: Receivable = {
     id,
@@ -109,6 +127,8 @@ export async function createReceivable(input: {
     payments: [],
     createdByUserId: input.userId,
     createdByName: input.userName,
+    operatorId: input.operatorId,
+    deviceId: input.deviceId,
   }
 
   const description = input.data.description?.trim()
@@ -129,8 +149,17 @@ export async function receivePayment(input: {
   receivableId: string
   userId: UserId
   userName: string
+  operatorId: string
+  deviceId: string
   data: ReceivePaymentInput
 }): Promise<Receivable> {
+  if (!input.operatorId?.trim()) {
+    throw new Error('Operador não identificado.')
+  }
+  if (!input.deviceId?.trim()) {
+    throw new Error('Dispositivo não identificado.')
+  }
+
   const existing = await getReceivable(input.organizationId, input.receivableId)
   if (!existing) throw new Error('Conta a receber não encontrada.')
   if (existing.status === RECEIVABLE_STATUS.PAID) {
@@ -155,6 +184,8 @@ export async function receivePayment(input: {
     paidAt: nowIso(),
     paidByUserId: input.userId,
     paidByName: input.userName,
+    operatorId: input.operatorId,
+    deviceId: input.deviceId,
   }
   const note = input.data.note?.trim()
   if (note) payment.note = note
