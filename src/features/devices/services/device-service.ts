@@ -84,6 +84,7 @@ function mapDevice(id: string, data: Record<string, unknown>): OrgDevice {
   if (data.authorizedByUserId) device.authorizedByUserId = data.authorizedByUserId as string
   if (data.blockedAt) device.blockedAt = data.blockedAt as string
   if (data.blockedByUserId) device.blockedByUserId = data.blockedByUserId as string
+  if (data.statusChangedAt) device.statusChangedAt = data.statusChangedAt as string
   if (data.platform) device.platform = data.platform as string
   if (data.browser) device.browser = data.browser as string
   if (data.operatorId) device.operatorId = data.operatorId as string
@@ -267,6 +268,7 @@ export async function blockOrgDevice(
     status: DEVICE_STATUS.BLOCKED,
     blockedAt: stamp,
     blockedByUserId: userId,
+    statusChangedAt: stamp,
     operatorId: null,
     operatorName: null,
   })
@@ -291,6 +293,7 @@ export async function authorizeOrgDevice(
     status: DEVICE_STATUS.AUTHORIZED,
     authorizedAt: stamp,
     authorizedByUserId: userId,
+    statusChangedAt: stamp,
     blockedAt: null,
     blockedByUserId: null,
   })
@@ -316,6 +319,7 @@ export async function removeOrgDevice(
     operatorId: null,
     operatorName: null,
     lastSeenAt: nowIso(),
+    statusChangedAt: nowIso(),
   })
 }
 

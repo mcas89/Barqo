@@ -23,13 +23,13 @@ export function RequireSubscriptionAccess({ children }: { children: ReactNode })
     )
   }
 
-  // Assinatura online bloqueada: permite consulta/export/sync/billing.
+  // Assinatura online bloqueada: vendas/escritas off; consulta/export/sync/billing on.
   if (coverage && !coverage.canOperate) {
     if (billingPath || limitedOk) return children
     return <SubscriptionLockedScreen coverage={coverage} />
   }
 
-  // Dispositivo/lease limitado: bloqueia rotas operacionais de escrita.
+  // Dispositivo/lease limitado: consulta+sync liberados; banner + gate de ação no PDV.
   if (
     operationLimited &&
     (accessState === 'blocked' ||
@@ -38,8 +38,6 @@ export function RequireSubscriptionAccess({ children }: { children: ReactNode })
       accessState === 'clock_invalid')
   ) {
     if (limitedOk || billingPath) return children
-    // PDV e escritas: ainda renderiza com banner; o gate de ação impede a venda.
-    // Mantém navegação; AccessNoticeBanner orienta.
   }
 
   return children

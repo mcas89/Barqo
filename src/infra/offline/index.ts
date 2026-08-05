@@ -5,6 +5,7 @@ export {
   countPendingOperations,
   removeQueueItem,
   markQueueError,
+  markQueuePermanentError,
   resetQueueItem,
 } from './queue'
 export {

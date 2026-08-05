@@ -3,6 +3,7 @@ import {
   countPendingOperations,
   listPendingOperations,
   markQueueError,
+  markQueuePermanentError,
   removeQueueItem,
   type CashCloseQueuePayload,
   type CashOpenQueuePayload,
@@ -16,6 +17,10 @@ import { SYNC_STATUS } from '../../shared/constants'
 import { doc, setDoc } from 'firebase/firestore'
 import { getFirestoreDb } from '../firebase'
 import { omitUndefined } from '../../shared/lib/firestore'
+import {
+  assertQueueItemAllowedAgainstDevice,
+  DeviceSyncRejectedError,
+} from './device-guard'
 
 const MAX_ATTEMPTS = 8
 const PROCESSABLE = new Set(['sale.create', 'cash.open', 'cash.close'])
@@ -85,6 +90,8 @@ export async function runSyncPass(organizationId?: string): Promise<{ pending: n
       }
 
       try {
+        await assertQueueItemAllowedAgainstDevice(item)
+
         if (item.operation === 'sale.create') {
           const { applyQueuedSaleCreate } = await import(
             '../../features/pos/services/sale-service'
@@ -119,7 +126,11 @@ export async function runSyncPass(organizationId?: string): Promise<{ pending: n
         synced += 1
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Falha ao sincronizar'
-        await markQueueError(item.id, message)
+        if (err instanceof DeviceSyncRejectedError) {
+          await markQueuePermanentError(item.id, message, MAX_ATTEMPTS)
+        } else {
+          await markQueueError(item.id, message)
+        }
         console.error('Sync item failed', item.id, err)
       }
     }

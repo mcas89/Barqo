@@ -21,8 +21,22 @@ export function SubscriptionLockedScreen({ coverage }: { coverage: SubscriptionC
         <p className="subscription-lock__eyebrow">Acesso restrito</p>
         <h1>{coverage.title}</h1>
         <p>{coverage.detail}</p>
+        <p className="subscription-lock__hint">
+          Vendas e alterações operacionais estão bloqueadas. Você ainda pode consultar
+          produtos e clientes, exportar relatórios, sincronizar pendências e regularizar
+          o plano.
+        </p>
         <div className="subscription-lock__actions">
           <Link to="/app/billing">Ir para planos</Link>
+          <Link to="/app/reports" className="subscription-lock__actions--secondary">
+            Relatórios / exportar
+          </Link>
+          <Link to="/app/sync" className="subscription-lock__actions--secondary">
+            Sincronizar
+          </Link>
+          <Link to="/app" className="subscription-lock__actions--secondary">
+            Consultar início
+          </Link>
           <a
             href={whatsappUrl(BALQO_SUPPORT_WHATSAPP, supportText)}
             target="_blank"

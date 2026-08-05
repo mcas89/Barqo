@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../../shared/hooks/useAuth'
+import { getSubscriptionCoverage } from '../../billing/plans/coverage'
 import { useDeviceSession } from '../hooks/useDeviceSession'
 import './AccessNoticeBanner.css'
 
 export function AccessNoticeBanner() {
+  const { subscription } = useAuth()
+  const coverage = getSubscriptionCoverage(subscription)
   const { accessState, warning, error, operationLimited } = useDeviceSession()
+  const subscriptionBlocked = Boolean(coverage && !coverage.canOperate)
 
   if (accessState === 'blocked') {
     return (
@@ -46,15 +51,18 @@ export function AccessNoticeBanner() {
     )
   }
 
-  if (operationLimited) {
+  if (subscriptionBlocked || operationLimited) {
     return (
       <aside className="access-notice access-notice--block" role="alert">
-        <strong>Operação restrita</strong>
+        <strong>{subscriptionBlocked ? 'Assinatura bloqueada' : 'Operação restrita'}</strong>
         <p>
-          Não é possível iniciar novas vendas neste momento. Consulta, exportação e
-          sincronização continuam disponíveis.
+          {subscriptionBlocked
+            ? 'Vendas estão pausadas até regularizar o plano. Consulta, exportação e sincronização continuam disponíveis.'
+            : 'Não é possível iniciar novas vendas neste momento. Consulta, exportação e sincronização continuam disponíveis.'}
         </p>
         <Link to="/app/billing">Ver planos</Link>
+        {' · '}
+        <Link to="/app/reports">Relatórios</Link>
         {' · '}
         <Link to="/app/sync">Sync</Link>
       </aside>

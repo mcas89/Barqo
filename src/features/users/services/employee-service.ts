@@ -130,6 +130,9 @@ export async function updateEmployee(
     const pinError = validatePinFormat(input.pin)
     if (pinError) throw new Error(pinError)
     patch.pinHash = await hashPin(organizationId, input.pin)
+    // Redefinição por dono/gerente libera bloqueio local de tentativas
+    const { resetPinLock } = await import('./pin-lock')
+    resetPinLock(organizationId, employeeId)
   }
 
   await updateDoc(

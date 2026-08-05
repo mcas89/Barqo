@@ -73,6 +73,9 @@ Dá para pilotoar sem isso. **Não venda como pronto.**
 - [x] PDV: cadastro rápido, venda avulsa, alterar preço na hora
 - [x] Plano Controle: permissões finas (Equipe → checkboxes por funcionário)
 - [x] Operador + dispositivo em vendas/caixa/estoque/fiado + evento `operator.switch`
+- [x] PIN: 5 falhas → lock 5 min + log `pin_attempts` + reset ao redefinir PIN
+- [x] Sync: recusa ops criadas após bloqueio/remoção do aparelho
+- [x] Assinatura bloqueada online: vendas off; consulta/export/sync/billing on
 - [x] Fechar versão `0.1.13`
 
 ### Offline — status

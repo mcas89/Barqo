@@ -8,6 +8,13 @@ import { USER_ROLES } from '../../../shared/constants'
 import type { OrganizationId, UserId } from '../../../shared/types'
 import { listEmployees } from '../../users/services/employee-service'
 import { hashPin, validatePinFormat, verifyPin } from '../../users/services/pin'
+import {
+  assertPinNotLocked,
+  clearPinFailures,
+  getPinLockRemainingMs,
+  recordPinFailure,
+  resetPinLock,
+} from '../../users/services/pin-lock'
 import type { PosOperator, PosOperatorSession } from '../types/operator'
 import { buildOperatorSession } from '../types/operator'
 import { defaultPermissionsForRole } from '../../users/permissions'
@@ -128,6 +135,7 @@ export async function setOwnerPosPin(
       pinUpdatedAt: nowIso(),
     }),
   )
+  resetPinLock(organizationId, ownerUserId)
 }
 
 export async function unlockOperator(
@@ -140,10 +148,33 @@ export async function unlockOperator(
     throw new Error('Este operador ainda não tem PIN. Defina o PIN antes de entrar.')
   }
 
+  assertPinNotLocked(organizationId, operator.id)
+
   const ok = await verifyPin(organizationId, pin, operator.pinHash)
   if (!ok) {
-    throw new Error('PIN incorreto.')
+    const result = await recordPinFailure({
+      organizationId,
+      operatorId: operator.id,
+      operatorName: operator.displayName,
+    })
+    if (result.locked) {
+      throw new Error(
+        'PIN bloqueado por 5 minutos após 5 tentativas incorretas. Peça ao dono ou gerente para redefinir se necessário.',
+      )
+    }
+    const left = Math.max(0, 5 - result.failures)
+    throw new Error(
+      left > 0
+        ? `PIN incorreto. ${left} tentativa(s) restante(s) antes do bloqueio.`
+        : 'PIN incorreto.',
+    )
   }
+
+  await clearPinFailures({
+    organizationId,
+    operatorId: operator.id,
+    operatorName: operator.displayName,
+  })
 
   return toOperatorSession(operator, planId)
 }
@@ -165,12 +196,46 @@ export async function authorizePrivilegedPin(
     throw new Error('Nenhum proprietário/gerente com PIN cadastrado.')
   }
 
+  // Lock por operador privilegiado tentado em sequência; usa o primeiro da lista como chave agregada
+  // mas valida cada um — falha conta no operador que “corresponde” ao fluxo (todos privilegiados).
   for (const op of privileged) {
     if (!op.pinHash) continue
+    try {
+      assertPinNotLocked(organizationId, op.id)
+    } catch (err) {
+      // se este está bloqueado, tenta o próximo privilegiado
+      if (privileged.length === 1) throw err
+      continue
+    }
     if (await verifyPin(organizationId, pin, op.pinHash)) {
+      await clearPinFailures({
+        organizationId,
+        operatorId: op.id,
+        operatorName: op.displayName,
+      })
       return op
     }
   }
 
+  // Conta falha no primeiro privilegiado desbloqueado (evita enumerar todos)
+  const target =
+    privileged.find((op) => getPinLockRemainingMs(organizationId, op.id) <= 0) ??
+    privileged[0]
+  if (target) {
+    const result = await recordPinFailure({
+      organizationId,
+      operatorId: target.id,
+      operatorName: target.displayName,
+    })
+    if (result.locked) {
+      throw new Error('PIN de proprietário/gerente bloqueado por 5 minutos.')
+    }
+  }
+
   throw new Error('PIN de proprietário/gerente inválido.')
+}
+
+/** Após redefinir PIN (dono/gerente), libera bloqueio local do operador. */
+export function clearOperatorPinLock(organizationId: string, operatorId: string): void {
+  resetPinLock(organizationId, operatorId)
 }

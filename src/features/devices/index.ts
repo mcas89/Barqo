@@ -22,6 +22,7 @@ export {
   canStartOperationalAction,
   deviceStateAllowsOperate,
   isLimitedAccessPath,
+  isOperationalWritePath,
 } from './services/operation-access'
 export type {
   OrgDevice,

@@ -9,6 +9,7 @@ import {
   POS_ROLE_LABELS,
   type PosOperator,
 } from '../types/operator'
+import { getPinLockRemainingMs } from '../../users/services/pin-lock'
 import './PosUnlockScreen.css'
 
 function notifyBusy(message: string) {
@@ -41,6 +42,7 @@ export function PosUnlockScreen() {
   const [busy, setBusy] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [busyNotice, setBusyNotice] = useState<string | null>(null)
+  const [lockTick, setLockTick] = useState(0)
   const [presences, setPresences] = useState<
     Array<{ operatorId: string; displayName: string; deviceLabel: string }>
   >([])
@@ -49,6 +51,22 @@ export function PosUnlockScreen() {
   const selected: PosOperator | null =
     operators.find((op) => op.id === selectedId) ?? null
   const needsSetup = Boolean(selected && selected.kind === 'owner' && !selected.hasPin)
+  const pinLockMs =
+    organization?.id && selected
+      ? getPinLockRemainingMs(organization.id, selected.id) + lockTick * 0
+      : 0
+  const pinLocked = pinLockMs > 0
+  const pinLockLabel =
+    pinLockMs >= 60_000
+      ? `${Math.ceil(pinLockMs / 60_000)} min`
+      : `${Math.ceil(pinLockMs / 1000)}s`
+
+  useEffect(() => {
+    if (!pinLocked) return
+    const timer = window.setInterval(() => setLockTick((n) => n + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [pinLocked, selectedId])
+
 
   useEffect(() => {
     if (operators.length === 1 && !selectedId) {
@@ -124,6 +142,7 @@ export function PosUnlockScreen() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Não foi possível entrar com este PIN.'
+      setLocalError(message)
       if (err instanceof OperatorInUseError || message.toLowerCase().includes('já está')) {
         setBusyNotice(message)
         notifyBusy(message)
@@ -201,6 +220,13 @@ export function PosUnlockScreen() {
               : `PIN — ${selected.displayName}`}
           </h2>
 
+          {pinLocked && (
+            <p className="pos-unlock__error" role="alert">
+              PIN bloqueado. Aguarde {pinLockLabel} ou peça ao dono/gerente para
+              redefinir o PIN na Equipe.
+            </p>
+          )}
+
           {needsSetup && (
             <p className="pos-unlock__hint">
               Crie um PIN de 4 a 6 dígitos para o proprietário. Ele será pedido ao
@@ -217,7 +243,7 @@ export function PosUnlockScreen() {
               autoComplete="off"
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              disabled={busy}
+              disabled={busy || pinLocked}
               required
               placeholder="••••"
             />
@@ -234,7 +260,7 @@ export function PosUnlockScreen() {
                 onChange={(e) =>
                   setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 6))
                 }
-                disabled={busy}
+                disabled={busy || pinLocked}
                 required
                 placeholder="••••"
               />
@@ -247,7 +273,7 @@ export function PosUnlockScreen() {
             </p>
           )}
 
-          <button type="submit" disabled={busy || pin.length < 4}>
+          <button type="submit" disabled={busy || pinLocked || pin.length < 4}>
             {busy ? 'Entrando…' : needsSetup ? 'Salvar PIN e entrar' : 'Entrar'}
           </button>
         </form>

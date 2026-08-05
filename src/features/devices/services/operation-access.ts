@@ -181,15 +181,9 @@ export function canStartOperationalAction(input: {
 }
 
 export function isLimitedAccessPath(pathname: string): boolean {
-  if (pathname.startsWith('/app/billing')) return true
-  if (pathname.startsWith('/app/sync')) return true
-  if (pathname.startsWith('/app/reports')) return true
-  if (pathname === '/app' || pathname === '/app/') return true
-  if (pathname.startsWith('/app/settings')) return true
-  if (pathname.startsWith('/app/products')) return true
-  if (pathname.startsWith('/app/customers')) return true
-  if (pathname.startsWith('/app/cash')) return true
-  return false
+  if (!pathname.startsWith('/app')) return false
+  // Assinatura/dispositivo limitado: consulta e sync liberados; escritas operacionais não.
+  return !isOperationalWritePath(pathname)
 }
 
 export function isOperationalWritePath(pathname: string): boolean {

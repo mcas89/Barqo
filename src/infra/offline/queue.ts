@@ -57,6 +57,17 @@ export async function markQueueError(id: string, error: string): Promise<void> {
   })
 }
 
+/** Marca erro e esgota tentativas (falha permanente, ex.: pós-bloqueio do aparelho). */
+export async function markQueuePermanentError(id: string, error: string, maxAttempts = 8): Promise<void> {
+  const item = await localDb.syncQueue.get(id)
+  if (!item) return
+
+  await localDb.syncQueue.update(id, {
+    attempts: Math.max(item.attempts + 1, maxAttempts),
+    lastError: error,
+  })
+}
+
 /** Limpa o erro e zera tentativas para forçar nova sincronização. */
 export async function resetQueueItem(id: string): Promise<void> {
   const item = await localDb.syncQueue.get(id)

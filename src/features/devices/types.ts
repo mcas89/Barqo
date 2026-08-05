@@ -30,6 +30,8 @@ export interface OrgDevice {
   authorizedByUserId?: string
   blockedAt?: string
   blockedByUserId?: string
+  /** Quando status mudou (bloqueio/remoção/reautorização). */
+  statusChangedAt?: string
   platform?: string
   browser?: string
   operatorId?: string | null

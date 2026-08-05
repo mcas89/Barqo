@@ -41,6 +41,14 @@
   line-height: 1.45;
 }
 
+.subscription-lock__hint {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.55rem;
+  background: rgba(185, 28, 28, 0.06);
+  border: 1px solid rgba(185, 28, 28, 0.12);
+  font-size: 0.88rem !important;
+}
+
 .subscription-lock__actions {
   display: flex;
   flex-wrap: wrap;
@@ -62,6 +70,12 @@
   background: #b91c1c;
   color: #fff;
   border: none;
+}
+
+.subscription-lock__actions a.subscription-lock__actions--secondary {
+  background: #fff;
+  color: #7f1d1d;
+  border: 1px solid rgba(185, 28, 28, 0.25);
 }
 
 .subscription-lock__actions a[href*='wa.me'] {
