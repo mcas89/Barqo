@@ -36,10 +36,6 @@ export function PosPage() {
   const planId =
     subscription?.planId ?? authOrg?.planId ?? DEFAULT_PLAN_ID
   const canUseFiado = planHasFeature(planId, PLAN_FEATURES.RECEIVABLES)
-  const paymentMethods = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).filter(
-    (method) =>
-      method !== PAYMENT_METHODS.ON_ACCOUNT || (canUseFiado && Boolean(customer)),
-  )
 
   const {
     operator,
@@ -82,6 +78,11 @@ export function PosPage() {
     openCash,
     payments,
   } = usePos()
+
+  const paymentMethods = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).filter(
+    (method) =>
+      method !== PAYMENT_METHODS.ON_ACCOUNT || (canUseFiado && Boolean(customer)),
+  )
 
   const showSuggestions = cashOpen && search.trim().length > 0 && !busy
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)

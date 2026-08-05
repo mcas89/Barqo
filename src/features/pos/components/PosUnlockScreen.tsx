@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BALQO_LOGO_SRC } from '../../../shared/constants'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { listLiveOperatorPresences, OperatorInUseError } from '../../devices'
 import { usePosOperator } from '../hooks/usePosOperator'
 import {
   canAccessBackOffice,
@@ -9,6 +10,17 @@ import {
   type PosOperator,
 } from '../types/operator'
 import './PosUnlockScreen.css'
+
+function notifyBusy(message: string) {
+  try {
+    if (!('Notification' in window)) return
+    if (Notification.permission === 'granted') {
+      new Notification('BALQO — PIN em uso', { body: message })
+    }
+  } catch {
+    // ignore
+  }
+}
 
 export function PosUnlockScreen() {
   const { organization } = useAuth()
@@ -28,6 +40,10 @@ export function PosUnlockScreen() {
   const [pinConfirm, setPinConfirm] = useState('')
   const [busy, setBusy] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+  const [busyNotice, setBusyNotice] = useState<string | null>(null)
+  const [presences, setPresences] = useState<
+    Array<{ operatorId: string; displayName: string; deviceLabel: string }>
+  >([])
   const pinRef = useRef<HTMLInputElement>(null)
 
   const selected: PosOperator | null =
@@ -45,16 +61,45 @@ export function PosUnlockScreen() {
       setPin('')
       setPinConfirm('')
       setLocalError(null)
+      setBusyNotice(null)
       clearError()
       window.setTimeout(() => pinRef.current?.focus(), 50)
     }
   }, [selectedId, clearError])
+
+  useEffect(() => {
+    const orgId = organization?.id
+    if (!orgId) return
+    let cancelled = false
+    async function load() {
+      try {
+        const live = await listLiveOperatorPresences(orgId)
+        if (!cancelled) setPresences(live)
+      } catch {
+        if (!cancelled) setPresences([])
+      }
+    }
+    void load()
+    const timer = window.setInterval(() => void load(), 12_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [organization?.id])
+
+  useEffect(() => {
+    if (!('Notification' in window)) return
+    if (Notification.permission === 'default') {
+      void Notification.requestPermission().catch(() => undefined)
+    }
+  }, [])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!selected) return
 
     setLocalError(null)
+    setBusyNotice(null)
     clearError()
     setBusy(true)
 
@@ -76,8 +121,13 @@ export function PosUnlockScreen() {
       if (!canAccessBackOffice(session.role)) {
         navigate('/app/pos', { replace: true })
       }
-    } catch {
-      // erro no contexto / local
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Não foi possível entrar com este PIN.'
+      if (err instanceof OperatorInUseError || message.toLowerCase().includes('já está')) {
+        setBusyNotice(message)
+        notifyBusy(message)
+      }
     } finally {
       setBusy(false)
       setPin('')
@@ -107,26 +157,37 @@ export function PosUnlockScreen() {
         <p>Selecione o usuário e digite o PIN. O sistema libera as telas do seu papel.</p>
       </header>
 
+      {busyNotice && (
+        <p className="pos-unlock__notice" role="alert">
+          {busyNotice}
+        </p>
+      )}
+
       <div className="pos-unlock__grid">
         {operators.map((op) => {
           const active = op.id === selectedId
+          const presence = presences.find((item) => item.operatorId === op.id)
           return (
             <button
               key={op.id}
               type="button"
-              className={
-                active
-                  ? 'pos-unlock__op pos-unlock__op--active'
-                  : 'pos-unlock__op'
-              }
+              className={[
+                'pos-unlock__op',
+                active ? 'pos-unlock__op--active' : '',
+                presence ? 'pos-unlock__op--busy' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               onClick={() => setSelectedId(op.id)}
               disabled={busy}
             >
               <strong>{op.displayName}</strong>
               <span>{POS_ROLE_LABELS[op.role]}</span>
-              {!op.hasPin && op.kind === 'owner' && (
+              {presence ? (
+                <em>Em uso em {presence.deviceLabel}</em>
+              ) : !op.hasPin && op.kind === 'owner' ? (
                 <em>Definir PIN</em>
-              )}
+              ) : null}
             </button>
           )
         })}

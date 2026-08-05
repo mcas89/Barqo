@@ -93,6 +93,25 @@
   color: #1a3a66;
 }
 
+.pos-unlock__op--busy {
+  border-color: #b45309;
+}
+
+.pos-unlock__op--busy em {
+  color: #b45309;
+}
+
+.pos-unlock__notice {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.7rem;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .pos-unlock__op--active {
   border-color: var(--balqo-brand, #0b1f3a);
   background: color-mix(in srgb, var(--balqo-brand, #0b1f3a) 8%, #fff);

@@ -2,10 +2,11 @@ export { DeviceSessionProvider, useDeviceSession } from './hooks/useDeviceSessio
 export { getLocalDeviceId } from './lib/device-id'
 export {
   claimOperatorPresence,
+  listLiveOperatorPresences,
   releaseOperatorPresence,
   releaseLocalDevice,
   heartbeatDevice,
   OperatorInUseError,
   DeviceLimitError,
 } from './services/device-service'
-export type { OrgDevice } from './types'
+export type { OrgDevice, OperatorPresence } from './types'

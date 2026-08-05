@@ -151,7 +151,21 @@ export async function claimOperatorPresence(input: {
   if (snap.exists()) {
     const current = snap.data() as OperatorPresence
     if (current.deviceId !== deviceId && !isTimestampStale(current.lastSeenAt)) {
-      throw new OperatorInUseError('Este usuário já está em outro aparelho.')
+      let deviceLabel = 'outro aparelho'
+      try {
+        const deviceSnap = await getDoc(
+          doc(db, 'organizations', input.organizationId, 'devices', current.deviceId),
+        )
+        const label = deviceSnap.exists()
+          ? ((deviceSnap.data() as OrgDevice).label || '').trim()
+          : ''
+        if (label) deviceLabel = label
+      } catch {
+        // usa o texto padrão
+      }
+      throw new OperatorInUseError(
+        `${current.displayName} já está com este PIN em ${deviceLabel}. Peça para sair lá ou use outro usuário.`,
+      )
     }
   }
 
@@ -173,6 +187,28 @@ export async function claimOperatorPresence(input: {
     operatorId: input.operatorId,
     operatorName: input.displayName,
   }).catch(() => undefined)
+}
+
+export async function listLiveOperatorPresences(
+  organizationId: string,
+): Promise<Array<OperatorPresence & { deviceLabel: string }>> {
+  const db = requireDb()
+  const [sessionsSnap, devicesSnap] = await Promise.all([
+    getDocs(collection(db, 'organizations', organizationId, 'operator_sessions')),
+    getDocs(collection(db, 'organizations', organizationId, 'devices')),
+  ])
+  const devices = new Map(
+    devicesSnap.docs.map((item) => [item.id, mapDevice(item.id, item.data() as Record<string, unknown>)]),
+  )
+  const localId = getLocalDeviceId()
+
+  return sessionsSnap.docs
+    .map((item) => item.data() as OperatorPresence)
+    .filter((presence) => !isTimestampStale(presence.lastSeenAt) && presence.deviceId !== localId)
+    .map((presence) => ({
+      ...presence,
+      deviceLabel: devices.get(presence.deviceId)?.label?.trim() || 'outro aparelho',
+    }))
 }
 
 export async function releaseOperatorPresence(
