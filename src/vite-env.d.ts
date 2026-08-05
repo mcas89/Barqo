@@ -1,4 +1,9 @@
 /// <reference types="vite/client" />
+/// <reference types="vite-plugin-pwa/client" />
+
+interface Navigator {
+  standalone?: boolean
+}
 
 interface ImportMetaEnv {
   readonly VITE_FIREBASE_API_KEY: string

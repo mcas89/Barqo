@@ -60,3 +60,11 @@ No Vercel, importe o repo e defina:
 - `VITE_PAYMENT_GATEWAY=infinitepay`
 
 No Firebase Auth, autorize o domínio `*.vercel.app` e o domínio final.
+
+## PWA e atualizações
+
+O BALQO instala no celular ou no caixa (`standalone`). Com o app aberto, o service worker
+verifica atualização a cada minuto, ao focar a janela e ao voltar online.
+
+Quando há versão nova, aparece o aviso **Atualizar agora** com barra de progresso.
+Não é preciso desinstalar e instalar de novo. Finalize a venda no PDV antes de aplicar.

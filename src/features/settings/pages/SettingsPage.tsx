@@ -10,6 +10,7 @@ import {
   themeCssVars,
   THEME_PRESETS,
 } from '../../../shared/constants'
+import { requestPwaUpdateCheck } from '../../../shared/lib/pwa-updates'
 import { formatWhatsappDisplay, whatsappUrl } from '../../../shared/lib/whatsapp'
 import { getPlan } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
@@ -357,6 +358,21 @@ export function SettingsPage() {
               onClick={() => void refreshDevices()}
             >
               Atualizar lista
+            </button>
+          </div>
+
+          <div className="settings-page__card">
+            <h2>Aplicativo</h2>
+            <p>
+              Versão {APP_VERSION}. As atualizações chegam neste aparelho sem desinstalar.
+              Finalize a venda no PDV antes de aplicar.
+            </p>
+            <button
+              type="button"
+              className="settings-page__clear-logo"
+              onClick={() => requestPwaUpdateCheck()}
+            >
+              Procurar atualização
             </button>
           </div>
 

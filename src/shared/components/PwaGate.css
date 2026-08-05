@@ -1,0 +1,98 @@
+.pwa-gate {
+  position: fixed;
+  z-index: 12000;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: calc(0.85rem + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  padding: 0.9rem 1rem;
+  border-radius: 0.85rem;
+  background: #0b1f3a;
+  color: #f8fafc;
+  box-shadow: 0 16px 40px rgba(11, 31, 58, 0.28);
+}
+
+.pwa-gate--update {
+  background: #0b1f3a;
+}
+
+.pwa-gate--install {
+  background: #123056;
+}
+
+.pwa-gate--ready {
+  background: #14532d;
+}
+
+.pwa-gate--progress {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+}
+
+.pwa-gate strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.pwa-gate p {
+  margin: 0.2rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: rgba(248, 250, 252, 0.82);
+}
+
+.pwa-gate__actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.pwa-gate button {
+  border: none;
+  border-radius: 0.55rem;
+  padding: 0.65rem 0.85rem;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.86rem;
+  cursor: pointer;
+  background: #fff;
+  color: #0b1f3a;
+}
+
+.pwa-gate__ghost {
+  background: transparent !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+}
+
+.pwa-gate__track {
+  height: 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.pwa-gate__track span {
+  display: block;
+  height: 100%;
+  background: #93c5fd;
+  transition: width 0.18s linear;
+}
+
+.pwa-gate em {
+  font-style: normal;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #bfdbfe;
+}
+
+@media (max-width: 720px) {
+  .pwa-gate {
+    bottom: calc(4.4rem + env(safe-area-inset-bottom));
+  }
+}
