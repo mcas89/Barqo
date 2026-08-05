@@ -66,12 +66,32 @@ export interface LocalCashSessionRecord {
   updatedAt: string
 }
 
+export interface DeviceMetaRow {
+  key: string
+  value: string
+}
+
+export interface DeviceLeaseRow {
+  organizationId: string
+  lease: import('../../features/devices/types').DeviceLease
+  updatedAt: string
+}
+
+export interface SubscriptionLeaseRow {
+  organizationId: string
+  lease: import('../../features/devices/types').LocalSubscriptionLease
+  updatedAt: string
+}
+
 export class BalqoLocalDb extends Dexie {
   syncQueue!: EntityTable<SyncQueueItem, 'id'>
   products!: EntityTable<CachedProduct, 'id'>
   customers!: EntityTable<CachedCustomer, 'id'>
   localSales!: EntityTable<LocalSaleRecord, 'id'>
   cashSessions!: EntityTable<LocalCashSessionRecord, 'id'>
+  deviceMeta!: EntityTable<DeviceMetaRow, 'key'>
+  deviceLeases!: EntityTable<DeviceLeaseRow, 'organizationId'>
+  subscriptionLeases!: EntityTable<SubscriptionLeaseRow, 'organizationId'>
 
   constructor() {
     super('balqo_local')
@@ -88,6 +108,17 @@ export class BalqoLocalDb extends Dexie {
       customers: 'id, organizationId, name, updatedAt',
       localSales: 'id, organizationId, createdAt, synced',
       cashSessions: 'id, organizationId, status, synced, updatedAt',
+    })
+
+    this.version(3).stores({
+      syncQueue: 'id, organizationId, createdAt, operation',
+      products: 'id, organizationId, barcode, name, updatedAt, active',
+      customers: 'id, organizationId, name, updatedAt',
+      localSales: 'id, organizationId, createdAt, synced',
+      cashSessions: 'id, organizationId, status, synced, updatedAt',
+      deviceMeta: 'key',
+      deviceLeases: 'organizationId, updatedAt',
+      subscriptionLeases: 'organizationId, updatedAt',
     })
   }
 }

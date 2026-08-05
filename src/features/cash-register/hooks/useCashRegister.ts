@@ -22,10 +22,11 @@ import {
 export function useCashRegister() {
   const { organization, user } = useAuth()
   const { operator } = usePosOperator()
-  const { deviceId } = useDeviceSession()
+  const { deviceId, getOperationAccess } = useDeviceSession()
   const [session, setSession] = useState<CashSession | null>(null)
   const [summary, setSummary] = useState<CashSummary | null>(null)
   const [recent, setRecent] = useState<CashSession[]>([])
+  const [lastClosedSession, setLastClosedSession] = useState<CashSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -80,6 +81,14 @@ export function useCashRegister() {
   function requireActor() {
     if (!organizationId || !user) throw new Error('Sessão inválida.')
     if (!operator) throw new Error('Desbloqueie o PDV com o PIN do operador.')
+    const access = getOperationAccess({
+      hasOperator: true,
+      requireOperator: true,
+      requireCash: false,
+    })
+    if (!access.allowed) {
+      throw new Error(access.message ?? 'Operação não permitida neste aparelho.')
+    }
     return { organizationId, user, operator, deviceId }
   }
 
@@ -88,6 +97,7 @@ export function useCashRegister() {
     setBusy(true)
     setError(null)
     try {
+      setLastClosedSession(null)
       await openCashSession({
         organizationId: actor.organizationId,
         openingAmountCents,
@@ -139,7 +149,7 @@ export function useCashRegister() {
     setBusy(true)
     setError(null)
     try {
-      await closeCashSession({
+      const closed = await closeCashSession({
         organizationId: actor.organizationId,
         sessionId: session.id,
         userId: actor.user.id,
@@ -149,7 +159,9 @@ export function useCashRegister() {
         countedCashInDrawerCents,
         note,
       })
+      setLastClosedSession(closed)
       await refresh()
+      return closed
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'Falha ao fechar o caixa.')
@@ -165,6 +177,7 @@ export function useCashRegister() {
     session,
     summary,
     recent,
+    lastClosedSession,
     loading,
     busy,
     error,

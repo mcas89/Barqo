@@ -2,7 +2,7 @@
 
 Status recomendado hoje: **piloto com 2–5 lojas**.  
 Trava operacional de cobrança (rules, domínio, InfinitePay, termos/LGPD, aviso sem NF-e) está feita.  
-Ainda **não** está fechado para cobrar em escala — falta **fechamento offline confirmado** + lease de aparelho/assinatura (e API de e-mail).
+Ainda **não** está fechado para cobrar em escala — falta **API de e-mail** do comprovante.
 
 - App: https://balqo.vercel.app
 - Repo: https://github.com/mcas89/Barqo
@@ -66,6 +66,7 @@ Sem isso, não cobre cliente novo de verdade.
 Dá para pilotoar sem isso. **Não venda como pronto.**
 
 - [x] Offline confiável (núcleo) — venda/caixa na fila, sync idempotente, tela Sync
+- [x] Passo 3: lease dispositivo 24h/72h + assinatura offline 7d + admin aparelhos
 - [x] Escolher impressora da lista do Windows (agente local + modal em Configurações)
 - [ ] API de e-mail do comprovante (`VITE_RECEIPT_API_URL`) — UI em manutenção por enquanto
 - [x] Travar escrita de `subscriptions` nas rules (só o dono grava; republicar no Console)
@@ -77,22 +78,21 @@ Dá para pilotoar sem isso. **Não venda como pronto.**
 ### Offline — status
 
 **Pronto no núcleo:**
-1. [x] Venda e abertura de caixa offline → `enqueueOperation` (ids `sale_*` / `cash_*`)
+1. [x] Venda, abertura e fechamento de caixa offline → `enqueueOperation` (ids `sale_*` / `cash_*` / `cashclose_*`)
 2. [x] Cache local de produtos no PDV (`cacheProducts` / `listCachedProducts`)
 3. [x] Espelho local de vendas/caixa
-4. [x] `runSyncPass` grava no Firestore (ordem: caixa → venda); movimentos/fiado com ids estáveis
+4. [x] `runSyncPass` grava no Firestore (ordem: `cash.open` → `sale.create` → `cash.close`); movimentos/fiado com ids estáveis
 5. [x] Sync ao voltar online, no boot e após enfileirar
 6. [x] Tela `/app/sync` + badge com contagem de pendências
 7. [x] Retries com limite (8) e “Tentar de novo”
+8. [x] Fechamento de caixa offline — snapshot congelado, fila `cash.close`, status `local_pending` / `confirmed` / `review_required`
 
 **Ainda aberto (não bloqueia o núcleo):**
-- Fechamento de caixa offline com status `local_pending` / `confirmed` / `review_required`
 - Cache de clientes / fiado picker offline
 - Política de conflito multiaparelho no estoque
-- Login/PIN sem internet (lease de dispositivo / assinatura offline — etapas 4–5)
-- Sangria/suprimento/fechamento na fila
+- Sangria/suprimento na fila
 
-Até fechar fechamento offline + lease, **não prometa offline de ponta a ponta em marketing**.
+Offline de venda + abertura/fechamento de caixa está coberto; **não prometa** ainda fiado/estoque multiaparelho offline em marketing.
 ---
 
 ## 4. Fora deste lançamento
@@ -115,7 +115,6 @@ Pode:
 Não pode (ainda):
 
 - Nota fiscal eletrônica
-- Fechamento de caixa offline com confirmação de sync (núcleo de venda offline já existe)
 - Receber comprovante por e-mail automático
 - Impressão silenciosa sem configurar impressora / agente local
 
@@ -127,5 +126,5 @@ Não pode (ainda):
 2. ~~Pagamento E2E~~
 3. ~~Texto fiscal + termos~~
 4. ~~2–5 pilotos~~ (em teste)
-5. ~~Impressora / PDV rápido / rules / permissões Controle~~ · ~~identidade operador/dispositivo~~ · **offline núcleo** (republicar `firestore.rules` se ainda não — inclui `audit_events`)
-6. Fechamento offline + lease de aparelho/assinatura → depois abrir cobrança em escala
+5. ~~Impressora / PDV rápido / rules / permissões~~ · ~~identidade operador~~ · ~~offline núcleo~~ · ~~lease aparelho/assinatura~~ · ~~fechamento offline~~
+6. API de e-mail do comprovante → depois abrir cobrança em escala

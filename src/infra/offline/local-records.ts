@@ -73,3 +73,55 @@ export async function getLocalOpenCashSession(
 export async function markLocalCashSynced(sessionId: string): Promise<void> {
   await localDb.cashSessions.update(sessionId, { synced: true, updatedAt: nowIso() })
 }
+
+export async function listLocalCashSessions(
+  organizationId: string,
+  options?: { status?: 'open' | 'closed'; max?: number },
+): Promise<CashSession[]> {
+  let rows = await localDb.cashSessions
+    .where('organizationId')
+    .equals(organizationId)
+    .toArray()
+  if (options?.status) {
+    rows = rows.filter((row) => row.status === options.status)
+  }
+  rows.sort((a, b) => b.session.openedAt.localeCompare(a.session.openedAt))
+  const max = options?.max ?? 20
+  return rows.slice(0, max).map((row) => row.session)
+}
+
+export async function updateLocalCashSessionFields(
+  sessionId: string,
+  patch: Partial<CashSession>,
+  synced?: boolean,
+): Promise<void> {
+  const row = await localDb.cashSessions.get(sessionId)
+  if (!row) return
+  const session = { ...row.session, ...patch }
+  await localDb.cashSessions.put({
+    ...row,
+    status: session.status === 'open' ? 'open' : 'closed',
+    synced: synced ?? row.synced,
+    session,
+    updatedAt: nowIso(),
+  })
+}
+
+/** Vendas locais (espelho) ligadas a um caixa, opcionalmente só pendentes. */
+export async function listLocalSalesForCashSession(
+  organizationId: string,
+  cashSessionId: string,
+  options?: { pendingOnly?: boolean },
+): Promise<Sale[]> {
+  const rows = await localDb.localSales
+    .where('organizationId')
+    .equals(organizationId)
+    .toArray()
+  return rows
+    .filter((row) => {
+      if (row.sale.cashSessionId !== cashSessionId) return false
+      if (options?.pendingOnly && row.synced) return false
+      return true
+    })
+    .map((row) => row.sale)
+}

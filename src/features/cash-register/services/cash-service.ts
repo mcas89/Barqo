@@ -17,12 +17,17 @@ import {
   enqueueOperation,
   getLocalOpenCashSession,
   isOnline,
+  listLocalCashSessions,
+  listLocalSalesForCashSession,
+  listPendingOperations,
   saveLocalCashSession,
+  type CashCloseQueuePayload,
   type CashOpenQueuePayload,
 } from '../../../infra/offline'
 import type { OrganizationId, UserId } from '../../../shared/types'
 import type { PaymentMethod, Sale } from '../../pos/types'
 import {
+  CASH_CLOSING_SYNC_STATUS,
   CASH_MOVEMENT_TYPES,
   CASH_SESSION_STATUS,
   type CashMovement,
@@ -80,6 +85,16 @@ function mapSession(id: string, data: Record<string, unknown>): CashSession {
     differenceCents:
       data.differenceCents != null ? Number(data.differenceCents) : undefined,
     note: data.note as string | undefined,
+    closingSyncStatus: data.closingSyncStatus as CashSession['closingSyncStatus'],
+    pendingSalesCountAtClose:
+      data.pendingSalesCountAtClose != null
+        ? Number(data.pendingSalesCountAtClose)
+        : undefined,
+    pendingSalesTotalCentsAtClose:
+      data.pendingSalesTotalCentsAtClose != null
+        ? Number(data.pendingSalesTotalCentsAtClose)
+        : undefined,
+    closingSyncError: data.closingSyncError as string | undefined,
   }
 }
 
@@ -110,15 +125,6 @@ export async function getOpenCashSession(
   } catch {
     return getLocalOpenCashSession(organizationId)
   }
-}
-
-export async function listRecentCashSessions(
-  organizationId: OrganizationId,
-  max = 8,
-): Promise<CashSession[]> {
-  const col = collection(requireDb(), 'organizations', organizationId, 'cash_sessions')
-  const snap = await getDocs(query(col, orderBy('openedAt', 'desc'), limit(max)))
-  return snap.docs.map((item) => mapSession(item.id, item.data()))
 }
 
 export async function openCashSession(input: {
@@ -312,6 +318,104 @@ export function buildCashSummary(
   }
 }
 
+export async function listRecentCashSessions(
+  organizationId: OrganizationId,
+  max = 8,
+): Promise<CashSession[]> {
+  const local = await listLocalCashSessions(organizationId, { max: max * 2 }).catch(
+    () => [] as CashSession[],
+  )
+
+  if (!isOnline()) {
+    return local
+      .sort((a, b) => b.openedAt.localeCompare(a.openedAt))
+      .slice(0, max)
+  }
+
+  try {
+    const col = collection(requireDb(), 'organizations', organizationId, 'cash_sessions')
+    const snap = await getDocs(query(col, orderBy('openedAt', 'desc'), limit(max)))
+    const remote = snap.docs.map((item) => mapSession(item.id, item.data()))
+    const merged = new Map<string, CashSession>()
+    for (const session of [...remote, ...local]) {
+      const prev = merged.get(session.id)
+      if (!prev) {
+        merged.set(session.id, session)
+        continue
+      }
+      if (
+        session.closingSyncStatus &&
+        session.closingSyncStatus !== CASH_CLOSING_SYNC_STATUS.CONFIRMED
+      ) {
+        merged.set(session.id, { ...prev, ...session })
+      } else {
+        merged.set(session.id, { ...prev, ...session })
+      }
+    }
+    return Array.from(merged.values())
+      .sort((a, b) => b.openedAt.localeCompare(a.openedAt))
+      .slice(0, max)
+  } catch {
+    return local.slice(0, max)
+  }
+}
+
+async function collectSessionSales(
+  organizationId: OrganizationId,
+  session: CashSession,
+  closedAt: string,
+): Promise<Sale[]> {
+  const merged = new Map<string, Sale>()
+
+  const localSales = await listLocalSalesForCashSession(organizationId, session.id).catch(
+    () => [] as Sale[],
+  )
+  for (const sale of localSales) merged.set(sale.id, sale)
+
+  if (isOnline()) {
+    try {
+      const [bySession, sinceOpen] = await Promise.all([
+        listSalesByCashSession(organizationId, session.id),
+        listSalesSince(organizationId, session.openedAt, closedAt),
+      ])
+      for (const sale of [...sinceOpen, ...bySession]) {
+        if (!sale.cashSessionId || sale.cashSessionId === session.id) {
+          merged.set(sale.id, sale)
+        }
+      }
+    } catch {
+      // mantém só locais
+    }
+  }
+
+  return Array.from(merged.values())
+}
+
+async function countPendingForSession(
+  organizationId: OrganizationId,
+  sessionId: string,
+): Promise<{ count: number; totalCents: number }> {
+  const pendingSales = await listLocalSalesForCashSession(organizationId, sessionId, {
+    pendingOnly: true,
+  }).catch(() => [] as Sale[])
+
+  const byId = new Map<string, Sale>()
+  for (const sale of pendingSales) byId.set(sale.id, sale)
+
+  const queue = await listPendingOperations(organizationId).catch(() => [])
+  for (const item of queue) {
+    if (item.operation !== 'sale.create') continue
+    const payload = item.payload as { sale?: Sale }
+    if (payload?.sale?.cashSessionId === sessionId && payload.sale.id) {
+      byId.set(payload.sale.id, payload.sale)
+    }
+  }
+
+  const list = Array.from(byId.values())
+  const totalCents = list.reduce((sum, s) => sum + (s.totalCents ?? 0), 0)
+  return { count: list.length, totalCents }
+}
+
 export async function closeCashSession(input: {
   organizationId: OrganizationId
   sessionId: string
@@ -335,15 +439,9 @@ export async function closeCashSession(input: {
   }
 
   const closedAt = nowIso()
-  const [bySession, sinceOpen] = await Promise.all([
-    listSalesByCashSession(input.organizationId, open.id),
-    listSalesSince(input.organizationId, open.openedAt, closedAt),
-  ])
-  const merged = new Map<string, Sale>()
-  for (const sale of [...sinceOpen, ...bySession]) {
-    merged.set(sale.id, sale)
-  }
-  const summary = buildCashSummary(open, Array.from(merged.values()))
+  const sales = await collectSessionSales(input.organizationId, open, closedAt)
+  const summary = buildCashSummary(open, sales)
+  const pending = await countPendingForSession(input.organizationId, open.id)
 
   const countedCash = Math.max(0, Math.round(input.countedCashInDrawerCents))
   const differenceCents = countedCash - summary.expectedCashInDrawerCents
@@ -355,29 +453,15 @@ export async function closeCashSession(input: {
     pix: summary.paymentsByMethod.pix,
     debit: summary.paymentsByMethod.debit,
     credit: summary.paymentsByMethod.credit,
+    on_account: summary.paymentsByMethod.on_account,
   }
 
-  const patch = omitUndefined({
-    status: CASH_SESSION_STATUS.CLOSED,
-    closedAt,
-    closedByUserId: input.userId,
-    closedByName: input.userName,
-    closedByOperatorId: input.operatorId,
-    closedDeviceId: input.deviceId,
-    expectedByMethod,
-    expectedCashInDrawerCents: summary.expectedCashInDrawerCents,
-    countedByMethod,
-    countedCashInDrawerCents: countedCash,
-    differenceCents,
-    note: input.note?.trim() || undefined,
-  })
+  const hasPending = pending.count > 0
+  const closingSyncStatus = hasPending
+    ? CASH_CLOSING_SYNC_STATUS.LOCAL_PENDING
+    : CASH_CLOSING_SYNC_STATUS.CONFIRMED
 
-  await updateDoc(
-    doc(requireDb(), 'organizations', input.organizationId, 'cash_sessions', input.sessionId),
-    patch,
-  )
-
-  return {
+  const closed: CashSession = {
     ...open,
     status: CASH_SESSION_STATUS.CLOSED,
     closedAt,
@@ -391,7 +475,95 @@ export async function closeCashSession(input: {
     countedCashInDrawerCents: countedCash,
     differenceCents,
     note: input.note?.trim() || undefined,
+    closingSyncStatus,
+    pendingSalesCountAtClose: pending.count,
+    pendingSalesTotalCentsAtClose: pending.totalCents,
   }
+
+  const persistLocalAndQueue = async (session: CashSession) => {
+    await saveLocalCashSession(session, false)
+    const payload: CashCloseQueuePayload = { session }
+    await enqueueOperation(input.organizationId, 'cash.close', payload, {
+      id: `cashclose_${session.id}`,
+    })
+  }
+
+  if (!isOnline()) {
+    const pendingClose: CashSession = {
+      ...closed,
+      closingSyncStatus: CASH_CLOSING_SYNC_STATUS.LOCAL_PENDING,
+    }
+    await persistLocalAndQueue(pendingClose)
+    return pendingClose
+  }
+
+  try {
+    await setDoc(
+      doc(requireDb(), 'organizations', input.organizationId, 'cash_sessions', closed.id),
+      omitUndefined({ ...closed }),
+      { merge: true },
+    )
+    await saveLocalCashSession(closed, !hasPending)
+    if (hasPending) {
+      const payload: CashCloseQueuePayload = { session: closed }
+      await enqueueOperation(input.organizationId, 'cash.close', payload, {
+        id: `cashclose_${closed.id}`,
+      })
+    }
+    return closed
+  } catch (err) {
+    console.warn('Fechamento enfileirado após falha de rede', err)
+    const pendingClose: CashSession = {
+      ...closed,
+      closingSyncStatus: CASH_CLOSING_SYNC_STATUS.LOCAL_PENDING,
+    }
+    await persistLocalAndQueue(pendingClose)
+    return pendingClose
+  }
+}
+
+/** Aplica fechamento enfileirado — grava snapshot congelado, sem recalcular. */
+export async function applyQueuedCashClose(
+  organizationId: string,
+  payload: CashCloseQueuePayload,
+): Promise<void> {
+  const session = payload.session
+  const confirmed: CashSession = {
+    ...session,
+    status: CASH_SESSION_STATUS.CLOSED,
+    closingSyncStatus: CASH_CLOSING_SYNC_STATUS.CONFIRMED,
+  }
+  delete (confirmed as { closingSyncError?: string }).closingSyncError
+
+  await setDoc(
+    doc(requireDb(), 'organizations', organizationId, 'cash_sessions', session.id),
+    omitUndefined({ ...confirmed }),
+    { merge: true },
+  )
+  await saveLocalCashSession(confirmed, true)
+}
+
+export async function markCashCloseReviewRequired(
+  organizationId: string,
+  sessionId: string,
+  errorMessage: string,
+): Promise<void> {
+  const { updateLocalCashSessionFields } = await import('../../../infra/offline')
+  const patch = {
+    closingSyncStatus: CASH_CLOSING_SYNC_STATUS.REVIEW_REQUIRED,
+    closingSyncError: errorMessage,
+  }
+  try {
+    if (isOnline()) {
+      await updateDoc(
+        doc(requireDb(), 'organizations', organizationId, 'cash_sessions', sessionId),
+        patch,
+      )
+    }
+  } catch {
+    // local only
+  }
+  await updateLocalCashSessionFields(sessionId, patch, false).catch(() => undefined)
 }
 
 export { emptyTotals }

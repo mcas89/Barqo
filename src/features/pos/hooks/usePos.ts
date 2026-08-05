@@ -31,7 +31,7 @@ import { usePosOperator } from './usePosOperator'
 export function usePos() {
   const { organization, user } = useAuth()
   const { operator } = usePosOperator()
-  const { deviceId } = useDeviceSession()
+  const { deviceId, getOperationAccess } = useDeviceSession()
   const [catalog, setCatalog] = useState<Product[]>([])
   const [loadingCatalog, setLoadingCatalog] = useState(true)
   const [cashSession, setCashSession] = useState<CashSession | null>(null)
@@ -126,7 +126,21 @@ export function usePos() {
   const changeCents = Math.max(0, paidCents - totalCents)
   const remainingCents = Math.max(0, totalCents - paidCents)
 
+  function ensureCanOperate(): boolean {
+    const access = getOperationAccess({
+      hasOperator: Boolean(operator),
+      requireOperator: true,
+      requireCash: false,
+    })
+    if (!access.allowed) {
+      setError(access.message ?? 'Operação não permitida neste aparelho.')
+      return false
+    }
+    return true
+  }
+
   function ensureCashOpen(): boolean {
+    if (!ensureCanOperate()) return false
     if (cashSession) return true
     setError('Abra o caixa para começar a vender.')
     return false
@@ -372,6 +386,16 @@ export function usePos() {
       return
     }
 
+    const access = getOperationAccess({
+      hasOperator: true,
+      requireOperator: true,
+      requireCash: false,
+    })
+    if (!access.allowed) {
+      setError(access.message ?? 'Operação não permitida neste aparelho.')
+      return
+    }
+
     setBusy(true)
     setError(null)
     try {
@@ -405,6 +429,17 @@ export function usePos() {
     }
     if (!cashSession) {
       setError('Abra o caixa antes de vender.')
+      return
+    }
+
+    const access = getOperationAccess({
+      hasOperator: true,
+      hasOpenCash: true,
+      requireOperator: true,
+      requireCash: true,
+    })
+    if (!access.allowed) {
+      setError(access.message ?? 'Operação não permitida neste aparelho.')
       return
     }
     if (cart.length === 0) {

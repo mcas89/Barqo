@@ -22,7 +22,7 @@ import type {
 export function useInventory() {
   const { organization, user } = useAuth()
   const { operator } = usePosOperator()
-  const { deviceId } = useDeviceSession()
+  const { deviceId, getOperationAccess } = useDeviceSession()
   const [products, setProducts] = useState<Product[]>([])
   const [movements, setMovements] = useState<StockMovement[]>([])
   const [loading, setLoading] = useState(true)
@@ -65,6 +65,13 @@ export function useInventory() {
   function requireActor() {
     if (!organizationId || !user) throw new Error('Sessão inválida.')
     if (!operator) throw new Error('Desbloqueie o PDV com o PIN do operador.')
+    const access = getOperationAccess({
+      hasOperator: true,
+      requireOperator: true,
+    })
+    if (!access.allowed) {
+      throw new Error(access.message ?? 'Operação não permitida neste aparelho.')
+    }
     return {
       organizationId,
       user,

@@ -1,8 +1,10 @@
 import { createId } from '../../../shared/lib/ids'
+import { localDb } from '../../../infra/offline/db'
 
 const STORAGE_KEY = 'balqo.device.id'
+const META_KEY = 'deviceId'
 
-export function getLocalDeviceId(): string {
+export function getLocalDeviceIdSync(): string {
   try {
     const existing = localStorage.getItem(STORAGE_KEY)
     if (existing) return existing
@@ -12,6 +14,36 @@ export function getLocalDeviceId(): string {
   } catch {
     return createId('dev')
   }
+}
+
+/** Compat síncrona — preferir resolveLocalDeviceId no boot. */
+export function getLocalDeviceId(): string {
+  return getLocalDeviceIdSync()
+}
+
+/** Garante deviceId permanente: IndexedDB + espelho localStorage. */
+export async function resolveLocalDeviceId(): Promise<string> {
+  try {
+    const row = await localDb.deviceMeta.get(META_KEY)
+    if (row?.value) {
+      try {
+        localStorage.setItem(STORAGE_KEY, row.value)
+      } catch {
+        // ignore
+      }
+      return row.value
+    }
+  } catch {
+    // Dexie indisponível — cai no localStorage
+  }
+
+  const fromStorage = getLocalDeviceIdSync()
+  try {
+    await localDb.deviceMeta.put({ key: META_KEY, value: fromStorage })
+  } catch {
+    // ignore
+  }
+  return fromStorage
 }
 
 export function describeThisDevice(): string {
@@ -35,4 +67,10 @@ export function describeThisDevice(): string {
           ? 'iOS'
           : 'Outro'
   return `${browser} · ${os}`
+}
+
+export function parseDevicePlatform(): { platform: string; browser: string } {
+  const label = describeThisDevice()
+  const [browser, platform] = label.split(' · ')
+  return { browser: browser || 'Navegador', platform: platform || 'Outro' }
 }

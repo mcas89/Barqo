@@ -4,6 +4,7 @@ import {
   listPendingOperations,
   markQueueError,
   removeQueueItem,
+  type CashCloseQueuePayload,
   type CashOpenQueuePayload,
   type SaleCreateQueuePayload,
   markLocalCashSynced,
@@ -17,7 +18,7 @@ import { getFirestoreDb } from '../firebase'
 import { omitUndefined } from '../../shared/lib/firestore'
 
 const MAX_ATTEMPTS = 8
-const PROCESSABLE = new Set(['sale.create', 'cash.open'])
+const PROCESSABLE = new Set(['sale.create', 'cash.open', 'cash.close'])
 
 let syncRunning = false
 let syncTimer: number | null = null
@@ -25,12 +26,13 @@ let syncTimer: number | null = null
 function operationPriority(operation: string): number {
   if (operation === 'cash.open') return 0
   if (operation === 'sale.create') return 1
+  if (operation === 'cash.close') return 2
   return 9
 }
 
 /**
  * Processa a fila local → Firestore.
- * Ordem: cash.open antes de sale.create (vendas podem referenciar o caixa).
+ * Ordem: cash.open → sale.create → cash.close.
  */
 export async function runSyncPass(organizationId?: string): Promise<{ pending: number; synced: number }> {
   const pending = await listPendingOperations(organizationId)
@@ -67,7 +69,20 @@ export async function runSyncPass(organizationId?: string): Promise<{ pending: n
   try {
     for (const item of ordered) {
       if (!PROCESSABLE.has(item.operation)) continue
-      if (item.attempts >= MAX_ATTEMPTS) continue
+      if (item.attempts >= MAX_ATTEMPTS) {
+        if (item.operation === 'cash.close') {
+          const payload = item.payload as CashCloseQueuePayload
+          const { markCashCloseReviewRequired } = await import(
+            '../../features/cash-register/services/cash-service'
+          )
+          await markCashCloseReviewRequired(
+            item.organizationId,
+            payload.session.id,
+            item.lastError || 'Falha após várias tentativas de sincronização',
+          ).catch(() => undefined)
+        }
+        continue
+      }
 
       try {
         if (item.operation === 'sale.create') {
@@ -90,6 +105,14 @@ export async function runSyncPass(organizationId?: string): Promise<{ pending: n
           )
           await markLocalCashSynced(payload.session.id)
           await saveLocalCashSession(payload.session, true)
+        } else if (item.operation === 'cash.close') {
+          const { applyQueuedCashClose } = await import(
+            '../../features/cash-register/services/cash-service'
+          )
+          await applyQueuedCashClose(
+            item.organizationId,
+            item.payload as CashCloseQueuePayload,
+          )
         }
 
         await removeQueueItem(item.id)

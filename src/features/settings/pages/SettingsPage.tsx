@@ -14,7 +14,7 @@ import { requestPwaUpdateCheck } from '../../../shared/lib/pwa-updates'
 import { formatWhatsappDisplay, whatsappUrl } from '../../../shared/lib/whatsapp'
 import { getPlan } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
-import { updateThisDevicePrinterPath, useDeviceSession } from '../../devices'
+import { updateThisDevicePrinterPath, useDeviceSession, DEVICE_STATUS_LABELS } from '../../devices'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import { POS_ROLE_LABELS } from '../../pos/types/operator'
 import {
@@ -44,12 +44,15 @@ const SEGMENTS = [
 
 export function SettingsPage() {
   const { subscription } = useAuth()
-  const { operators, pinRequired } = usePosOperator()
+  const { operators, pinRequired, hasPrivilegedAccess } = usePosOperator()
   const {
     devices,
     deviceId,
     maxDevices,
     removeDevice,
+    blockDevice,
+    authorizeDevice,
+    renameDevice,
     refreshDevices,
   } = useDeviceSession()
   const {
@@ -466,33 +469,97 @@ export function SettingsPage() {
           )}
 
           <div className="settings-page__card">
-            <h2>Aparelhos</h2>
+            <h2>Dispositivos autorizados</h2>
             <p>
-              {devices.length}/{maxDevices} em uso. O mesmo usuário/PIN não entra em dois
-              equipamentos.
+              {devices.filter((d) => d.status !== 'removed').length}/{maxDevices} em uso. Lease
+              de 24h · limite offline 72h. Bloquear nunca apaga a fila de sync.
             </p>
             <ul className="settings-page__pins">
-              {devices.map((device) => (
-                <li key={device.id}>
-                  <strong>
-                    {device.label}
-                    {device.id === deviceId ? ' · este aparelho' : ''}
-                  </strong>
-                  <span>
-                    {device.operatorName ? `${device.operatorName} · ` : ''}
-                    visto {new Date(device.lastSeenAt).toLocaleString('pt-BR')}
-                  </span>
-                  {canEdit && device.id !== deviceId && (
-                    <button
-                      type="button"
-                      className="settings-page__clear-logo"
-                      onClick={() => void removeDevice(device.id)}
-                    >
-                      Remover aparelho
-                    </button>
-                  )}
-                </li>
-              ))}
+              {devices.map((device) => {
+                const isThis = device.id === deviceId
+                const statusLabel =
+                  DEVICE_STATUS_LABELS[device.status] ?? device.status
+                return (
+                  <li key={device.id}>
+                    <strong>
+                      {device.label}
+                      {isThis ? ' · este aparelho' : ''}
+                    </strong>
+                    <span>
+                      {statusLabel}
+                      {device.operatorName ? ` · ${device.operatorName}` : ''}
+                      {' · '}
+                      visto {new Date(device.lastSeenAt).toLocaleString('pt-BR')}
+                    </span>
+                    {hasPrivilegedAccess && (
+                      <div className="settings-page__device-actions">
+                        {canEdit || hasPrivilegedAccess ? (
+                          <button
+                            type="button"
+                            className="settings-page__clear-logo"
+                            onClick={() => {
+                              const next = window.prompt('Nome do aparelho', device.label)
+                              if (next == null) return
+                              void renameDevice(device.id, next).catch((err) =>
+                                window.alert(
+                                  err instanceof Error ? err.message : 'Falha ao renomear.',
+                                ),
+                              )
+                            }}
+                          >
+                            Renomear
+                          </button>
+                        ) : null}
+                        {device.status === 'authorized' && !isThis ? (
+                          <button
+                            type="button"
+                            className="settings-page__clear-logo"
+                            onClick={() => {
+                              if (
+                                !window.confirm(
+                                  'Bloquear este aparelho? Ele não poderá vender ao reconectar. A fila local é preservada.',
+                                )
+                              ) {
+                                return
+                              }
+                              void blockDevice(device.id)
+                            }}
+                          >
+                            Bloquear
+                          </button>
+                        ) : null}
+                        {(device.status === 'blocked' || device.status === 'removed') && (
+                          <button
+                            type="button"
+                            className="settings-page__clear-logo"
+                            onClick={() => void authorizeDevice(device.id)}
+                          >
+                            Reautorizar
+                          </button>
+                        )}
+                        {device.status !== 'removed' && !isThis ? (
+                          <button
+                            type="button"
+                            className="settings-page__clear-logo"
+                            onClick={() => {
+                              if (
+                                !window.confirm(
+                                  'Remover autorização deste aparelho? A fila de sync local não será apagada.',
+                                )
+                              ) {
+                                return
+                              }
+                              void removeDevice(device.id)
+                            }}
+                          >
+                            Remover
+                          </button>
+                        ) : null}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
             <button
               type="button"
@@ -501,6 +568,11 @@ export function SettingsPage() {
             >
               Atualizar lista
             </button>
+            {!hasPrivilegedAccess && (
+              <p className="settings-page__hint">
+                Somente dono ou gerente pode bloquear ou reautorizar aparelhos.
+              </p>
+            )}
           </div>
 
           <div className="settings-page__card">

@@ -77,7 +77,7 @@ function ownerLabel(user: { displayName: string; email: string }) {
 
 export function PosOperatorProvider({ children }: { children: ReactNode }) {
   const { organization, user, subscription } = useAuth()
-  const { blocked: deviceBlocked, loading: deviceLoading, deviceId } = useDeviceSession()
+  const { slotBlocked: deviceBlocked, loading: deviceLoading, deviceId } = useDeviceSession()
   const [operators, setOperators] = useState<PosOperator[]>([])
   const [operator, setOperator] = useState<PosOperatorSession | null>(null)
   const [elevatedPath, setElevatedPath] = useState<string | null>(null)

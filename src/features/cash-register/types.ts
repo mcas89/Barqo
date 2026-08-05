@@ -17,6 +17,24 @@ export const CASH_SESSION_STATUS = {
 export type CashSessionStatus =
   (typeof CASH_SESSION_STATUS)[keyof typeof CASH_SESSION_STATUS]
 
+/** Sync do fechamento (valores locais congelados). */
+export const CASH_CLOSING_SYNC_STATUS = {
+  LOCAL_PENDING: 'local_pending',
+  SYNCING: 'syncing',
+  CONFIRMED: 'confirmed',
+  REVIEW_REQUIRED: 'review_required',
+} as const
+
+export type CashClosingSyncStatus =
+  (typeof CASH_CLOSING_SYNC_STATUS)[keyof typeof CASH_CLOSING_SYNC_STATUS]
+
+export const CASH_CLOSING_SYNC_LABELS: Record<CashClosingSyncStatus, string> = {
+  local_pending: 'Pendente de sincronização',
+  syncing: 'Sincronizando',
+  confirmed: 'Sincronizado e confirmado',
+  review_required: 'Revisão necessária',
+}
+
 export interface CashMovement {
   id: string
   type: CashMovementType
@@ -58,6 +76,12 @@ export interface CashSession {
   countedCashInDrawerCents?: number
   differenceCents?: number
   note?: string
+  /** Estado de sync do fechamento (offline). */
+  closingSyncStatus?: CashClosingSyncStatus
+  /** Congelado no fechamento local — não recalcular no servidor. */
+  pendingSalesCountAtClose?: number
+  pendingSalesTotalCentsAtClose?: number
+  closingSyncError?: string
 }
 
 export interface CashSummary {

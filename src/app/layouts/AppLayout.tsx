@@ -7,6 +7,7 @@ import { useAuth } from '../../shared/hooks/useAuth'
 import { useDocumentTheme } from '../../shared/hooks/useDocumentTheme'
 import { getPlan } from '../../features/billing'
 import { PendingCheckoutBanner } from '../../features/billing/components/PendingCheckoutBanner'
+import { AccessNoticeBanner } from '../../features/devices'
 import { usePosOperator } from '../../features/pos/hooks/usePosOperator'
 import { POS_ROLE_LABELS } from '../../features/pos/types/operator'
 import {
@@ -154,6 +155,7 @@ export function AppLayout() {
           </header>
           <main className="app-layout__main">
             <PendingCheckoutBanner />
+            <AccessNoticeBanner />
             <RequireBackOffice>
               <Outlet />
             </RequireBackOffice>

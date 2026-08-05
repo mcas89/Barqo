@@ -33,10 +33,14 @@ function describeItem(item: SyncQueueItem): string {
     ].filter(Boolean)
     return parts.join(' · ')
   }
-  if (item.operation === 'cash.open') {
-    const session = (item.payload as { session?: { id?: string; openedByName?: string } })
+  if (item.operation === 'cash.open' || item.operation === 'cash.close') {
+    const session = (item.payload as { session?: { id?: string; openedByName?: string; closedByName?: string } })
       ?.session
-    return `Caixa ${session?.id ?? ''} · ${session?.openedByName ?? ''}`.trim()
+    const who =
+      item.operation === 'cash.close'
+        ? session?.closedByName
+        : session?.openedByName
+    return `Caixa ${session?.id ?? ''} · ${who ?? ''}`.trim()
   }
   return OP_LABELS[item.operation] ?? item.operation
 }

@@ -214,6 +214,13 @@
   cursor: pointer;
 }
 
+.settings-page__device-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
 .settings-page__clear-logo {
   align-self: flex-start;
   border: none;

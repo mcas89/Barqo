@@ -22,6 +22,14 @@ export {
   saveLocalCashSession,
   getLocalOpenCashSession,
   markLocalCashSynced,
+  listLocalCashSessions,
+  updateLocalCashSessionFields,
+  listLocalSalesForCashSession,
 } from './local-records'
-export { isOnline, type SaleCreateQueuePayload, type CashOpenQueuePayload } from './types'
+export {
+  isOnline,
+  type SaleCreateQueuePayload,
+  type CashOpenQueuePayload,
+  type CashCloseQueuePayload,
+} from './types'
 export { LOCAL_DB_VERSION, describeLocalMigrations } from './migrations'

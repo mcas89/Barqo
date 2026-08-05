@@ -46,6 +46,68 @@
   font-weight: 600;
 }
 
+.cash-page__sync-banner {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.7rem;
+  background: rgba(180, 130, 20, 0.12);
+  border: 1px solid rgba(146, 104, 12, 0.28);
+  color: #0b1f3a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cash-page__sync-banner--review {
+  background: rgba(185, 28, 28, 0.1);
+  border-color: rgba(185, 28, 28, 0.28);
+}
+
+.cash-page__sync-banner strong {
+  font-size: 0.95rem;
+}
+
+.cash-page__sync-banner p {
+  margin: 0;
+  color: #5b6b80;
+  line-height: 1.4;
+  font-size: 0.92rem;
+}
+
+.cash-page__sync-banner a {
+  color: #0b1f3a;
+  font-weight: 700;
+  font-size: 0.9rem;
+  width: fit-content;
+}
+
+.cash-page__sync-badge {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.35rem;
+  background: rgba(11, 31, 58, 0.08);
+  color: #5b6b80;
+  width: fit-content;
+}
+
+.cash-page__sync-badge--pending {
+  background: rgba(180, 130, 20, 0.16);
+  color: #7a5a0a;
+}
+
+.cash-page__sync-badge--ok {
+  background: rgba(31, 122, 77, 0.14);
+  color: #1f7a4d;
+}
+
+.cash-page__sync-badge--review {
+  background: rgba(185, 28, 28, 0.12);
+  color: #b91c1c;
+}
+
 .cash-page__card {
   background: #fff;
   border: 1px solid rgba(11, 31, 58, 0.1);

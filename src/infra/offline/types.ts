@@ -19,6 +19,11 @@ export interface CashOpenQueuePayload {
   session: import('../../features/cash-register/types').CashSession
 }
 
+/** Snapshot congelado do fechamento — servidor grava sem recalcular totais. */
+export interface CashCloseQueuePayload {
+  session: import('../../features/cash-register/types').CashSession
+}
+
 export function isOnline(): boolean {
   return typeof navigator === 'undefined' ? true : navigator.onLine
 }

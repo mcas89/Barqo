@@ -1,12 +1,58 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
 import { formatDateTime } from '../../../shared/lib/dates'
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '../../pos/types'
 import { useCashRegister } from '../hooks/useCashRegister'
-import { CASH_MOVEMENT_TYPES, CASH_SESSION_STATUS } from '../types'
+import {
+  CASH_CLOSING_SYNC_LABELS,
+  CASH_CLOSING_SYNC_STATUS,
+  CASH_MOVEMENT_TYPES,
+  CASH_SESSION_STATUS,
+  type CashClosingSyncStatus,
+  type CashSession,
+} from '../types'
 import './CashRegisterPage.css'
 
 type Panel = 'home' | 'sangria' | 'suprimento' | 'close'
+
+function closingSyncMessage(session: CashSession): string | null {
+  const status = session.closingSyncStatus
+  if (!status || status === CASH_CLOSING_SYNC_STATUS.CONFIRMED) return null
+  if (status === CASH_CLOSING_SYNC_STATUS.LOCAL_PENDING) {
+    const pendingNote =
+      (session.pendingSalesCountAtClose ?? 0) > 0
+        ? ` Há ${session.pendingSalesCountAtClose} venda(s) ainda pendente(s) de sync.`
+        : ''
+    return `Fechamento salvo neste aparelho. Pendente de sincronização.${pendingNote}`
+  }
+  if (status === CASH_CLOSING_SYNC_STATUS.SYNCING) {
+    return 'Sincronizando fechamento…'
+  }
+  if (status === CASH_CLOSING_SYNC_STATUS.REVIEW_REQUIRED) {
+    return (
+      session.closingSyncError ||
+      'Fechamento precisa de revisão — a sincronização falhou várias vezes.'
+    )
+  }
+  return CASH_CLOSING_SYNC_LABELS[status as CashClosingSyncStatus] ?? null
+}
+
+function syncStatusClass(status?: CashClosingSyncStatus): string {
+  if (status === CASH_CLOSING_SYNC_STATUS.REVIEW_REQUIRED) {
+    return 'cash-page__sync-badge cash-page__sync-badge--review'
+  }
+  if (
+    status === CASH_CLOSING_SYNC_STATUS.LOCAL_PENDING ||
+    status === CASH_CLOSING_SYNC_STATUS.SYNCING
+  ) {
+    return 'cash-page__sync-badge cash-page__sync-badge--pending'
+  }
+  if (status === CASH_CLOSING_SYNC_STATUS.CONFIRMED) {
+    return 'cash-page__sync-badge cash-page__sync-badge--ok'
+  }
+  return 'cash-page__sync-badge'
+}
 
 export function CashRegisterPage() {
   const {
@@ -14,6 +60,7 @@ export function CashRegisterPage() {
     session,
     summary,
     recent,
+    lastClosedSession,
     loading,
     busy,
     error,
@@ -34,6 +81,10 @@ export function CashRegisterPage() {
     () => recent.filter((item) => item.status === CASH_SESSION_STATUS.CLOSED).slice(0, 5),
     [recent],
   )
+
+  const closeBannerMessage = lastClosedSession
+    ? closingSyncMessage(lastClosedSession)
+    : null
 
   async function handleOpen(event: FormEvent) {
     event.preventDefault()
@@ -116,6 +167,27 @@ export function CashRegisterPage() {
         <p className="cash-page__error" role="alert">
           {localError || error}
         </p>
+      )}
+
+      {closeBannerMessage && lastClosedSession && (
+        <aside
+          className={
+            lastClosedSession.closingSyncStatus === CASH_CLOSING_SYNC_STATUS.REVIEW_REQUIRED
+              ? 'cash-page__sync-banner cash-page__sync-banner--review'
+              : 'cash-page__sync-banner'
+          }
+          role="status"
+        >
+          <strong>
+            {lastClosedSession.closingSyncStatus
+              ? CASH_CLOSING_SYNC_LABELS[lastClosedSession.closingSyncStatus]
+              : 'Fechamento'}
+          </strong>
+          <p>{closeBannerMessage}</p>
+          {lastClosedSession.closingSyncStatus !== CASH_CLOSING_SYNC_STATUS.CONFIRMED && (
+            <Link to="/app/sync">Ver sincronização</Link>
+          )}
+        </aside>
       )}
 
       {!session && panel === 'home' && (
@@ -316,6 +388,11 @@ export function CashRegisterPage() {
                 <div>
                   <strong>{item.closedAt ? formatDateTime(item.closedAt) : '—'}</strong>
                   <span>{item.closedByName}</span>
+                  {item.closingSyncStatus && (
+                    <span className={syncStatusClass(item.closingSyncStatus)}>
+                      {CASH_CLOSING_SYNC_LABELS[item.closingSyncStatus]}
+                    </span>
+                  )}
                 </div>
                 <div className="cash-page__recent-right">
                   <span>

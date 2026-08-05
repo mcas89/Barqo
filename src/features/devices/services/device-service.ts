@@ -11,12 +11,15 @@ import { getFirestoreDb } from '../../../infra/firebase'
 import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
 import { upgradeMessageForLimit, type PlanId } from '../../billing'
-import { describeThisDevice, getLocalDeviceId } from '../lib/device-id'
+import { describeThisDevice, getLocalDeviceId, parseDevicePlatform } from '../lib/device-id'
 import {
+  DEVICE_STATUS,
   DEVICE_STALE_MS,
+  type DeviceStatus,
   type OperatorPresence,
   type OrgDevice,
 } from '../types'
+import { buildDeviceLease, saveDeviceLease } from './lease-store'
 
 function requireDb() {
   const db = getFirestoreDb()
@@ -40,6 +43,20 @@ export class OperatorInUseError extends Error {
   }
 }
 
+export class DeviceBlockedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'DeviceBlockedError'
+  }
+}
+
+export class DeviceRemovedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'DeviceRemovedError'
+  }
+}
+
 export function isTimestampStale(value: string | undefined, now = Date.now()): boolean {
   if (!value) return true
   const time = Date.parse(value)
@@ -48,18 +65,37 @@ export function isTimestampStale(value: string | undefined, now = Date.now()): b
 }
 
 function mapDevice(id: string, data: Record<string, unknown>): OrgDevice {
+  const rawStatus = data.status as string | undefined
+  const status: DeviceStatus =
+    rawStatus === DEVICE_STATUS.BLOCKED ||
+    rawStatus === DEVICE_STATUS.REMOVED ||
+    rawStatus === DEVICE_STATUS.AUTHORIZED
+      ? rawStatus
+      : DEVICE_STATUS.AUTHORIZED
+
   const device: OrgDevice = {
     id,
     label: (data.label as string) || 'Aparelho',
+    status,
     createdAt: (data.createdAt as string) || nowIso(),
     lastSeenAt: (data.lastSeenAt as string) || nowIso(),
   }
+  if (data.authorizedAt) device.authorizedAt = data.authorizedAt as string
+  if (data.authorizedByUserId) device.authorizedByUserId = data.authorizedByUserId as string
+  if (data.blockedAt) device.blockedAt = data.blockedAt as string
+  if (data.blockedByUserId) device.blockedByUserId = data.blockedByUserId as string
+  if (data.platform) device.platform = data.platform as string
+  if (data.browser) device.browser = data.browser as string
   if (data.operatorId) device.operatorId = data.operatorId as string
   if (data.operatorName) device.operatorName = data.operatorName as string
   if (typeof data.printerPath === 'string' && data.printerPath.trim()) {
     device.printerPath = data.printerPath.trim()
   }
   return device
+}
+
+function countsTowardSlot(device: OrgDevice): boolean {
+  return device.status !== DEVICE_STATUS.REMOVED
 }
 
 export async function updateThisDevicePrinterPath(
@@ -81,57 +117,114 @@ export async function listOrgDevices(organizationId: string): Promise<OrgDevice[
     .sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))
 }
 
+async function persistLocalLease(
+  organizationId: string,
+  deviceId: string,
+  status: DeviceStatus,
+): Promise<void> {
+  await saveDeviceLease(
+    buildDeviceLease({
+      deviceId,
+      organizationId,
+      deviceStatus: status,
+    }),
+  )
+}
+
 export async function claimDeviceSlot(input: {
   organizationId: string
   planId: PlanId
   maxDevices: number
+  userId?: string
 }): Promise<OrgDevice> {
   const deviceId = getLocalDeviceId()
   const db = requireDb()
   const col = collection(db, 'organizations', input.organizationId, 'devices')
   const snap = await getDocs(col)
-  const now = Date.now()
-  const live: OrgDevice[] = []
-
-  await Promise.all(
-    snap.docs.map(async (item) => {
-      const device = mapDevice(item.id, item.data())
-      if (item.id !== deviceId && isTimestampStale(device.lastSeenAt, now)) {
-        await deleteDoc(item.ref).catch(() => undefined)
-        return
-      }
-      live.push(device)
-    }),
-  )
-
-  const existing = live.find((device) => device.id === deviceId)
+  const all = snap.docs.map((item) => mapDevice(item.id, item.data()))
+  const active = all.filter(countsTowardSlot)
+  const existing = all.find((device) => device.id === deviceId)
   const stamp = nowIso()
-  const label = describeThisDevice()
+  const { platform, browser } = parseDevicePlatform()
+  const defaultLabel = describeThisDevice()
 
   if (existing) {
+    if (existing.status === DEVICE_STATUS.BLOCKED) {
+      await persistLocalLease(input.organizationId, deviceId, DEVICE_STATUS.BLOCKED)
+      throw new DeviceBlockedError(
+        'Este dispositivo foi bloqueado pelo administrador. Você pode consultar e sincronizar, mas não realizar novas vendas.',
+      )
+    }
+    if (existing.status === DEVICE_STATUS.REMOVED) {
+      await persistLocalLease(input.organizationId, deviceId, DEVICE_STATUS.REMOVED)
+      throw new DeviceRemovedError(
+        'Este dispositivo não está mais autorizado. As operações pendentes foram preservadas.',
+      )
+    }
+
     await updateDoc(doc(db, 'organizations', input.organizationId, 'devices', deviceId), {
-      label,
       lastSeenAt: stamp,
+      platform,
+      browser,
+      status: DEVICE_STATUS.AUTHORIZED,
     })
-    return { ...existing, label, lastSeenAt: stamp }
+    await persistLocalLease(input.organizationId, deviceId, DEVICE_STATUS.AUTHORIZED)
+    return {
+      ...existing,
+      lastSeenAt: stamp,
+      platform,
+      browser,
+      status: DEVICE_STATUS.AUTHORIZED,
+    }
   }
 
-  if (live.length >= input.maxDevices) {
+  if (active.length >= input.maxDevices) {
     throw new DeviceLimitError(upgradeMessageForLimit('devices', input.planId))
   }
 
   const device: OrgDevice = {
     id: deviceId,
-    label,
+    label: defaultLabel,
+    status: DEVICE_STATUS.AUTHORIZED,
     createdAt: stamp,
     lastSeenAt: stamp,
+    authorizedAt: stamp,
+    authorizedByUserId: input.userId,
+    platform,
+    browser,
   }
 
   await setDoc(
     doc(db, 'organizations', input.organizationId, 'devices', deviceId),
     omitUndefined({ ...device }),
   )
+  await persistLocalLease(input.organizationId, deviceId, DEVICE_STATUS.AUTHORIZED)
   return device
+}
+
+/** Renova lease + lastSeen. Retorna status remoto do dispositivo. */
+export async function renewDeviceLease(organizationId: string): Promise<OrgDevice> {
+  const deviceId = getLocalDeviceId()
+  const db = requireDb()
+  const ref = doc(db, 'organizations', organizationId, 'devices', deviceId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) {
+    throw new DeviceRemovedError('Este dispositivo não está mais autorizado.')
+  }
+  const device = mapDevice(snap.id, snap.data())
+  if (device.status === DEVICE_STATUS.BLOCKED) {
+    await persistLocalLease(organizationId, deviceId, DEVICE_STATUS.BLOCKED)
+    throw new DeviceBlockedError('Este dispositivo foi bloqueado pelo administrador.')
+  }
+  if (device.status === DEVICE_STATUS.REMOVED) {
+    await persistLocalLease(organizationId, deviceId, DEVICE_STATUS.REMOVED)
+    throw new DeviceRemovedError('Este dispositivo não está mais autorizado.')
+  }
+
+  const stamp = nowIso()
+  await updateDoc(ref, { lastSeenAt: stamp })
+  await persistLocalLease(organizationId, deviceId, DEVICE_STATUS.AUTHORIZED)
+  return { ...device, lastSeenAt: stamp }
 }
 
 export async function heartbeatDevice(
@@ -150,6 +243,80 @@ export async function heartbeatDevice(
     doc(db, 'organizations', organizationId, 'operator_sessions', operatorId),
     { lastSeenAt: stamp },
   ).catch(() => undefined)
+}
+
+export async function renameOrgDevice(
+  organizationId: string,
+  deviceId: string,
+  label: string,
+): Promise<void> {
+  const trimmed = label.trim()
+  if (!trimmed) throw new Error('Informe um nome para o aparelho.')
+  await updateDoc(doc(requireDb(), 'organizations', organizationId, 'devices', deviceId), {
+    label: trimmed,
+  })
+}
+
+export async function blockOrgDevice(
+  organizationId: string,
+  deviceId: string,
+  userId: string,
+): Promise<void> {
+  const stamp = nowIso()
+  await updateDoc(doc(requireDb(), 'organizations', organizationId, 'devices', deviceId), {
+    status: DEVICE_STATUS.BLOCKED,
+    blockedAt: stamp,
+    blockedByUserId: userId,
+    operatorId: null,
+    operatorName: null,
+  })
+  const sessions = await getDocs(
+    collection(requireDb(), 'organizations', organizationId, 'operator_sessions'),
+  )
+  await Promise.all(
+    sessions.docs.map(async (item) => {
+      const data = item.data() as OperatorPresence
+      if (data.deviceId === deviceId) await deleteDoc(item.ref).catch(() => undefined)
+    }),
+  )
+}
+
+export async function authorizeOrgDevice(
+  organizationId: string,
+  deviceId: string,
+  userId: string,
+): Promise<void> {
+  const stamp = nowIso()
+  await updateDoc(doc(requireDb(), 'organizations', organizationId, 'devices', deviceId), {
+    status: DEVICE_STATUS.AUTHORIZED,
+    authorizedAt: stamp,
+    authorizedByUserId: userId,
+    blockedAt: null,
+    blockedByUserId: null,
+  })
+}
+
+/** Soft-remove: libera slot sem apagar histórico; nunca apaga fila local. */
+export async function removeOrgDevice(
+  organizationId: string,
+  deviceId: string,
+): Promise<void> {
+  const db = requireDb()
+  const sessions = await getDocs(
+    collection(db, 'organizations', organizationId, 'operator_sessions'),
+  )
+  await Promise.all(
+    sessions.docs.map(async (item) => {
+      const data = item.data() as OperatorPresence
+      if (data.deviceId === deviceId) await deleteDoc(item.ref).catch(() => undefined)
+    }),
+  )
+  await updateDoc(doc(db, 'organizations', organizationId, 'devices', deviceId), {
+    status: DEVICE_STATUS.REMOVED,
+    operatorId: null,
+    operatorName: null,
+    lastSeenAt: nowIso(),
+  })
 }
 
 export async function claimOperatorPresence(input: {
@@ -257,24 +424,10 @@ export async function releaseLocalDevice(organizationId: string): Promise<void> 
       if (data.deviceId === deviceId) await deleteDoc(item.ref).catch(() => undefined)
     }),
   )
-  await deleteDoc(doc(db, 'organizations', organizationId, 'devices', deviceId)).catch(
-    () => undefined,
-  )
-}
-
-export async function removeOrgDevice(
-  organizationId: string,
-  deviceId: string,
-): Promise<void> {
-  const db = requireDb()
-  const sessions = await getDocs(
-    collection(db, 'organizations', organizationId, 'operator_sessions'),
-  )
-  await Promise.all(
-    sessions.docs.map(async (item) => {
-      const data = item.data() as OperatorPresence
-      if (data.deviceId === deviceId) await deleteDoc(item.ref).catch(() => undefined)
-    }),
-  )
-  await deleteDoc(doc(db, 'organizations', organizationId, 'devices', deviceId))
+  // Soft-remove este aparelho (não apaga fila IndexedDB)
+  await updateDoc(doc(db, 'organizations', organizationId, 'devices', deviceId), {
+    status: DEVICE_STATUS.REMOVED,
+    operatorId: null,
+    operatorName: null,
+  }).catch(() => undefined)
 }

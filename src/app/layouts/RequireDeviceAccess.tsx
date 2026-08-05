@@ -5,7 +5,7 @@ import './RequireOperatorUnlock.css'
 
 export function RequireDeviceAccess({ children }: { children: ReactNode }) {
   const { logout, organization, subscription } = useAuth()
-  const { loading, blocked, error, maxDevices, retry } = useDeviceSession()
+  const { loading, slotBlocked, error, maxDevices, retry } = useDeviceSession()
 
   if (!organization) return children
 
@@ -17,7 +17,9 @@ export function RequireDeviceAccess({ children }: { children: ReactNode }) {
     )
   }
 
-  if (blocked) {
+  // Só o limite de aparelhos do plano impede entrar no app.
+  // Bloqueado/removido/limitado entram em modo consulta + sync.
+  if (slotBlocked) {
     return (
       <div className="operator-unlock-boot">
         <section className="device-gate">
