@@ -97,10 +97,27 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
   const [deviceId, setDeviceId] = useState(() => getLocalDeviceId())
 
   const organizationId = organization?.id
+  const userId = user?.id
   const planId =
     subscription?.planId ?? organization?.planId ?? DEFAULT_PLAN_ID
   const maxDevices = getLimitValue(planId, 'devices')
-  const coverage = getSubscriptionCoverage(subscription)
+  const coverage = useMemo(
+    () => getSubscriptionCoverage(subscription),
+    [
+      subscription?.organizationId,
+      subscription?.planId,
+      subscription?.status,
+      subscription?.trialEndsAt,
+      subscription?.paidThrough,
+      subscription?.graceUntil,
+      subscription?.billingCycle,
+      subscription?.updatedAt,
+    ],
+  )
+  const canOperateOnline = coverage?.canOperate === true
+  const coverageStatus = coverage?.effectiveStatus ?? ''
+  const coveragePlanId = coverage?.planId ?? planId
+  const hasCoverage = coverage !== null
 
   const refreshLocalLeases = useCallback(async () => {
     if (!organizationId) {
@@ -132,20 +149,20 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
   }, [organizationId])
 
   const syncSubscriptionLeaseOnline = useCallback(async () => {
-    if (!organizationId || !coverage) return
+    if (!organizationId || !hasCoverage) return
     if (!isOnline()) return
     const lease = buildSubscriptionLease({
       organizationId,
-      planId: coverage.planId,
-      subscriptionStatus: coverage.effectiveStatus,
-      canOperateOnline: coverage.canOperate,
+      planId: coveragePlanId,
+      subscriptionStatus: coverageStatus,
+      canOperateOnline,
     })
     await saveSubscriptionLease(lease)
     setSubscriptionLease(lease)
-  }, [organizationId, coverage, planId])
+  }, [organizationId, hasCoverage, coveragePlanId, coverageStatus, canOperateOnline])
 
   const claim = useCallback(async () => {
-    if (!organizationId || !user) {
+    if (!organizationId || !userId) {
       setSlotBlocked(false)
       setError(null)
       setLoading(false)
@@ -172,7 +189,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
           organizationId,
           planId,
           maxDevices,
-          userId: user.id,
+          userId,
         })
         setSlotBlocked(false)
         await syncSubscriptionLeaseOnline()
@@ -205,7 +222,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     }
   }, [
     organizationId,
-    user,
+    userId,
     planId,
     maxDevices,
     refreshDevices,
@@ -219,7 +236,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
 
   // Presença (curto)
   useEffect(() => {
-    if (!organizationId || !user || slotBlocked) return undefined
+    if (!organizationId || !userId || slotBlocked) return undefined
     if (accessState === 'blocked' || accessState === 'removed') return undefined
 
     const tick = () => {
@@ -228,11 +245,11 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     tick()
     const timer = window.setInterval(tick, DEVICE_PRESENCE_HEARTBEAT_MS)
     return () => window.clearInterval(timer)
-  }, [organizationId, user, slotBlocked, accessState])
+  }, [organizationId, userId, slotBlocked, accessState])
 
   // Lease renew (15 min) + focus + online
   useEffect(() => {
-    if (!organizationId || !user || slotBlocked) return undefined
+    if (!organizationId || !userId || slotBlocked) return undefined
 
     const renew = () => {
       if (!isOnline()) {
@@ -272,7 +289,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     }
   }, [
     organizationId,
-    user,
+    userId,
     slotBlocked,
     refreshLocalLeases,
     syncSubscriptionLeaseOnline,
@@ -293,22 +310,22 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
 
   const blockDevice = useCallback(
     async (id: string) => {
-      if (!organizationId || !user) return
-      await blockOrgDevice(organizationId, id, user.id)
+      if (!organizationId || !userId) return
+      await blockOrgDevice(organizationId, id, userId)
       await refreshDevices()
       if (id === deviceId) await claim()
     },
-    [organizationId, user, refreshDevices, deviceId, claim],
+    [organizationId, userId, refreshDevices, deviceId, claim],
   )
 
   const authorizeDevice = useCallback(
     async (id: string) => {
-      if (!organizationId || !user) return
-      await authorizeOrgDevice(organizationId, id, user.id)
+      if (!organizationId || !userId) return
+      await authorizeOrgDevice(organizationId, id, userId)
       await refreshDevices()
       if (id === deviceId) await claim()
     },
-    [organizationId, user, refreshDevices, deviceId, claim],
+    [organizationId, userId, refreshDevices, deviceId, claim],
   )
 
   const renameDevice = useCallback(
@@ -330,7 +347,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
       return canStartOperationalAction({
         deviceLease,
         subscriptionLease,
-        subscriptionOnlineOk: isOnline() ? Boolean(coverage?.canOperate) : undefined,
+        subscriptionOnlineOk: isOnline() ? canOperateOnline : undefined,
         online: isOnline(),
         hasOperator: opts?.hasOperator,
         hasOpenCash: opts?.hasOpenCash,
@@ -338,7 +355,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
         requireCash: opts?.requireCash,
       })
     },
-    [deviceLease, subscriptionLease, coverage?.canOperate],
+    [deviceLease, subscriptionLease, canOperateOnline],
   )
 
   const operationLimited = !deviceStateAllowsOperate(accessState) ||
