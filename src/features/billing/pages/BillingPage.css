@@ -1,0 +1,229 @@
+.billing-page {
+  max-width: 1100px;
+}
+
+.billing-page__header h1 {
+  margin: 0 0 0.4rem;
+  color: #0b1f3a;
+  font-size: 1.6rem;
+}
+
+.billing-page__header p {
+  margin: 0 0 1.25rem;
+  color: #5b6b80;
+  max-width: 52rem;
+  line-height: 1.5;
+}
+
+.billing-page__cycles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0 0 1.15rem;
+}
+
+.billing-page__cycle {
+  border: 1px solid rgba(11, 31, 58, 0.16);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 0.7rem;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  min-width: 7.5rem;
+}
+
+.billing-page__cycle small {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1f6b52;
+}
+
+.billing-page__cycle--active {
+  background: #0b1f3a;
+  border-color: #0b1f3a;
+  color: #f8fafc;
+}
+
+.billing-page__cycle--active small {
+  color: #bbf7d0;
+}
+
+.billing-card__equiv {
+  margin: -0.25rem 0 0;
+  color: #1f6b52;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.billing-page__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.billing-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.85rem;
+  padding: 1.15rem 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.billing-card--highlight {
+  border-color: #0b1f3a;
+  box-shadow: 0 14px 36px rgba(11, 31, 58, 0.12);
+}
+
+.billing-card__badge {
+  position: absolute;
+  top: -0.55rem;
+  right: 0.85rem;
+  background: #0b1f3a;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+}
+
+.billing-card h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.25rem;
+  color: #0b1f3a;
+}
+
+.billing-card__tagline {
+  margin: 0;
+  color: #1a3a66;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.billing-card__price {
+  margin: 0.15rem 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0b1f3a;
+}
+
+.billing-card__price span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #5b6b80;
+  margin-left: 0.15rem;
+}
+
+.billing-card__audience {
+  margin: 0;
+  color: #5b6b80;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.billing-card__list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  color: #0b1f3a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.billing-card__pain {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: #6b7f74;
+  line-height: 1.4;
+}
+
+.billing-card__ref {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8a9b92;
+}
+
+.billing-page__status {
+  margin: 0.75rem 0 0;
+  color: #0b1f3a;
+  font-size: 0.92rem;
+}
+
+.billing-page__error {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.6rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.billing-page__hint {
+  margin: 0 0 1rem;
+  color: #b45309;
+  font-weight: 700;
+}
+
+.billing-page__waiting {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.65rem;
+  background: #ecfdf5;
+  color: #064e3b;
+  font-weight: 600;
+}
+
+.billing-card__pay {
+  margin-top: 0.55rem;
+  border: none;
+  border-radius: 0.55rem;
+  padding: 0.8rem 0.9rem;
+  background: var(--balqo-brand, #0b1f3a);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.billing-card__pay:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.billing-page__note {
+  margin-top: 1.25rem;
+  color: #5b6b80;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.billing-page__note code {
+  font-size: 0.8em;
+  background: rgba(11, 31, 58, 0.08);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 1100px) {
+  .billing-page__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .billing-page__grid {
+    grid-template-columns: 1fr;
+  }
+}

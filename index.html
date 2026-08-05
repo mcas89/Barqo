@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content="BALQO — PDV multissegmento para o comércio de bairro" />
+    <title>BALQO</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      #balqo-boot {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        place-items: center;
+        background: #ffffff;
+      }
+      #balqo-boot img {
+        width: min(220px, 58vw);
+        height: auto;
+        animation: balqo-boot-in 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      #balqo-boot.balqo-boot--exit {
+        animation: balqo-boot-out 0.48s ease-in forwards;
+      }
+      #balqo-boot.balqo-boot--exit img {
+        animation: balqo-boot-zoom-out 0.48s ease-in forwards;
+      }
+      @keyframes balqo-boot-in {
+        from {
+          opacity: 0;
+          transform: scale(0.72);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes balqo-boot-out {
+        to {
+          opacity: 0;
+        }
+      }
+      @keyframes balqo-boot-zoom-out {
+        to {
+          opacity: 0;
+          transform: scale(1.12);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="balqo-boot" aria-hidden="true">
+      <img src="/logo.png" alt="" />
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

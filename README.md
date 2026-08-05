@@ -1,0 +1,62 @@
+# BALQO
+
+PDV SaaS multissegmento para pequenos e médios comerciantes.
+
+## Stack inicial
+
+- React + TypeScript (Vite)
+- Firebase (Auth, Firestore, Storage) — chaves depois
+- Dexie (IndexedDB) para offline
+- PWA (`vite-plugin-pwa`)
+- Deploy previsto: GitHub + Vercel
+
+## Firebase
+
+1. Copie `.env.example` → `.env` (já configurado localmente no projeto)
+2. No Firebase Console, ative **Authentication → E-mail/senha**
+3. Publique `firestore.rules` no Console antes de produção
+4. No Vercel, cadastre as mesmas variáveis do `.env.example` (prefixo `VITE_`)
+
+```bash
+npm install
+npm run dev
+```
+
+## Estrutura
+
+```text
+src/
+  app/          # shell, rotas, layouts, providers
+  features/     # domínios (pos, caixa, estoque, ...)
+  shared/       # UI e utilitários compartilhados
+  infra/        # firebase, offline, sync
+  styles/
+```
+
+## Planos (V0.1)
+
+| Plano | Preço | Foco |
+|---|---|---|
+| Entrada | R$ 19,90/mês | Dono sozinho — PDV, caixa, estoque simples |
+| Essencial | R$ 39,90/mês | 1–2 funcionários — multi-usuário, fiado, relatórios |
+| Controle | R$ 59,90/mês | Permissões finas e visão gerencial |
+
+Catálogo e gates: `src/features/billing/plans/`.
+
+## Deploy (GitHub + Vercel)
+
+Repositório: https://github.com/mcas89/Barqo
+
+No Vercel, importe o repo e defina:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_APP_ENV=production`
+- `VITE_INFINITEPAY_HANDLE`
+- `VITE_PAYMENT_GATEWAY=infinitepay`
+
+No Firebase Auth, autorize o domínio `*.vercel.app` e o domínio final.

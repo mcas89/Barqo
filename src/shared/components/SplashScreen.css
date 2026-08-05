@@ -1,0 +1,71 @@
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  pointer-events: none;
+}
+
+.splash-screen__logo {
+  width: min(220px, 58vw);
+  height: auto;
+  object-fit: contain;
+  animation: splash-zoom-fade 1.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-screen--exit {
+  animation: splash-fade-out 0.48s ease-in forwards;
+}
+
+.splash-screen--exit .splash-screen__logo {
+  animation: splash-zoom-out 0.48s ease-in forwards;
+}
+
+@keyframes splash-zoom-fade {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splash-zoom-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes splash-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-screen__logo,
+  .splash-screen--exit,
+  .splash-screen--exit .splash-screen__logo {
+    animation: none;
+  }
+
+  .splash-screen--exit {
+    opacity: 0;
+  }
+}

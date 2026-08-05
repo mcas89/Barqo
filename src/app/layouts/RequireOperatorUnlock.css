@@ -1,0 +1,68 @@
+.operator-unlock-boot {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: var(--balqo-bg, #f4f6fa);
+  color: #5b6b80;
+}
+
+.device-gate {
+  width: min(440px, 100%);
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 1rem;
+  padding: 1.35rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  color: #0b1f3a;
+}
+
+.device-gate__eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b45309;
+}
+
+.device-gate h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.device-gate p {
+  margin: 0;
+  color: #5b6b80;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.device-gate__actions {
+  display: flex;
+  gap: 0.55rem;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.device-gate__actions button {
+  border-radius: 0.55rem;
+  padding: 0.7rem 0.95rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.device-gate__actions button:first-child {
+  background: transparent;
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  color: #0b1f3a;
+}
+
+.device-gate__actions button:last-child {
+  border: none;
+  background: var(--balqo-brand, #0b1f3a);
+  color: #fff;
+}

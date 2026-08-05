@@ -1,0 +1,242 @@
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 1100px;
+}
+
+.home-page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.home-page__header h1 {
+  margin: 0;
+  color: #0b1f3a;
+  font-size: 1.5rem;
+}
+
+.home-page__header p {
+  margin: 0.25rem 0 0;
+  color: #5b6b80;
+  font-size: 0.92rem;
+  text-transform: capitalize;
+}
+
+.home-page__refresh {
+  border: 1px solid rgba(11, 31, 58, 0.2);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.95rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.home-page__refresh:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.home-page__error {
+  margin: 0;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.home-page__empty {
+  margin: 0;
+  color: #5b6b80;
+}
+
+.home-page__shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.home-page__shortcut {
+  text-decoration: none;
+  color: #0b1f3a;
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.14);
+  border-radius: 0.55rem;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.home-page__shortcut--primary {
+  background: #0b1f3a;
+  color: #f8fafc;
+  border-color: #0b1f3a;
+}
+
+.home-page__cash {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  border-radius: 0.7rem;
+  font-size: 0.92rem;
+}
+
+.home-page__cash--open {
+  background: rgba(31, 107, 82, 0.1);
+  border: 1px solid rgba(31, 107, 82, 0.25);
+  color: #0b1f3a;
+}
+
+.home-page__cash--closed {
+  background: rgba(185, 28, 28, 0.06);
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  color: #9f1239;
+}
+
+.home-page__cash a {
+  color: inherit;
+  font-weight: 700;
+}
+
+.home-page__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.home-page__kpi {
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.home-page__kpi span {
+  color: #5b6b80;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.home-page__kpi strong {
+  color: #0b1f3a;
+  font-size: 1.25rem;
+}
+
+.home-page__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.home-page__panel {
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.95rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 180px;
+}
+
+.home-page__panel h2 {
+  margin: 0;
+  color: #0b1f3a;
+  font-size: 1rem;
+}
+
+.home-page__panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.home-page__panel-head a {
+  color: #1a3a66;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-page__muted {
+  margin: 0;
+  color: #5b6b80;
+  font-size: 0.9rem;
+}
+
+.home-page__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.home-page__rows li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(11, 31, 58, 0.06);
+}
+
+.home-page__rows li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.home-page__rows span {
+  color: #0b1f3a;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.home-page__rows em {
+  font-style: normal;
+  color: #5b6b80;
+  font-size: 0.78rem;
+}
+
+.home-page__rows strong {
+  color: #0b1f3a;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.home-page__warn {
+  color: #b45309 !important;
+}
+
+@media (max-width: 900px) {
+  .home-page__kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-page__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .home-page__kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .home-page__shortcut {
+    flex: 1 1 calc(50% - 0.55rem);
+    text-align: center;
+  }
+}

@@ -1,0 +1,54 @@
+.pending-checkout-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #ecfdf5;
+  border: 1px solid #059669;
+  color: #064e3b;
+}
+
+.pending-checkout-banner strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.pending-checkout-banner p {
+  margin: 0.2rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.pending-checkout-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.pending-checkout-banner__actions a,
+.pending-checkout-banner__actions button {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pending-checkout-banner__actions a:first-child {
+  background: #059669;
+  color: #fff;
+}
+
+.pending-checkout-banner__actions a:nth-child(2),
+.pending-checkout-banner__actions button {
+  background: #fff;
+  color: #064e3b;
+  border: 1px solid rgba(6, 78, 59, 0.2);
+}

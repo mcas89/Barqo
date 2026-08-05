@@ -1,0 +1,137 @@
+.product-list {
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.85rem;
+  overflow: auto;
+}
+
+.product-list--empty {
+  padding: 1.5rem;
+  color: #5b6b80;
+}
+
+.product-list table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.product-list th,
+.product-list td {
+  text-align: left;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid rgba(11, 31, 58, 0.08);
+  font-size: 0.9rem;
+  vertical-align: top;
+}
+
+.product-list th {
+  color: #5b6b80;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f8fafc;
+}
+
+.product-list strong {
+  display: block;
+  color: #0b1f3a;
+}
+
+.product-list__code {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0b1f3a;
+}
+
+.product-list__meta {
+  display: block;
+  margin-top: 0.15rem;
+  color: #6b7f74;
+  font-size: 0.78rem;
+}
+
+.product-list__inactive {
+  opacity: 0.65;
+}
+
+.product-list__warn {
+  color: #b45309;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.product-list__actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.product-list__actions button {
+  border: 1px solid rgba(11, 31, 58, 0.2);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.product-list__actions button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (max-width: 760px) {
+  .product-list table {
+    min-width: 0;
+  }
+
+  .product-list thead {
+    display: none;
+  }
+
+  .product-list tbody,
+  .product-list tr,
+  .product-list td {
+    display: block;
+    width: 100%;
+  }
+
+  .product-list tr {
+    padding: 0.85rem 0.9rem;
+    border-bottom: 1px solid rgba(11, 31, 58, 0.08);
+  }
+
+  .product-list td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.28rem 0;
+    border: none;
+    text-align: right;
+  }
+
+  .product-list td::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .product-list__actions {
+    justify-content: flex-end;
+    padding-top: 0.55rem;
+  }
+
+  .product-list__actions::before {
+    display: none;
+  }
+}

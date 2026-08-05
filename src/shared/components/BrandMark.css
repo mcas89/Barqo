@@ -1,0 +1,20 @@
+.brand-mark {
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.35rem;
+}
+
+.brand-mark img {
+  max-height: 52px;
+  max-width: 168px;
+  object-fit: contain;
+  background: transparent;
+  border-radius: 0.55rem;
+  padding: 0.15rem 0.2rem;
+}
+
+.brand-mark--compact img {
+  max-height: 40px;
+  max-width: 128px;
+}

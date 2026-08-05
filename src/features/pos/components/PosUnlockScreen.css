@@ -1,0 +1,189 @@
+.pos-unlock {
+  margin: auto;
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.pos-unlock__brand {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 0.85rem;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.08);
+  border-radius: 1rem;
+  padding: 0.5rem;
+  box-shadow: 0 10px 24px rgba(11, 31, 58, 0.06);
+}
+
+.pos-unlock__brand img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.pos-unlock__shop {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.pos-unlock__header {
+  text-align: center;
+}
+
+.pos-unlock__header h1 {
+  margin: 0;
+  font-size: 1.55rem;
+  color: #0b1f3a;
+}
+
+.pos-unlock__header p {
+  margin: 0.35rem 0 0;
+  color: #5b6b80;
+  line-height: 1.4;
+}
+
+.pos-unlock__loading {
+  margin: 2rem auto;
+  color: #5b6b80;
+}
+
+.pos-unlock__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
+  gap: 0.65rem;
+}
+
+.pos-unlock__op {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.9rem 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(11, 31, 58, 0.12);
+  background: #ffffff;
+  color: #0b1f3a;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pos-unlock__op strong {
+  font-size: 1rem;
+}
+
+.pos-unlock__op span {
+  font-size: 0.8rem;
+  color: #5b6b80;
+}
+
+.pos-unlock__op em {
+  margin-top: 0.25rem;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1a3a66;
+}
+
+.pos-unlock__op--active {
+  border-color: var(--balqo-brand, #0b1f3a);
+  background: color-mix(in srgb, var(--balqo-brand, #0b1f3a) 8%, #fff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--balqo-brand, #0b1f3a) 20%, transparent);
+}
+
+.pos-unlock__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.1rem;
+  border-radius: 0.9rem;
+  background: #ffffff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+}
+
+.pos-unlock__form h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.pos-unlock__hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #5b6b80;
+  line-height: 1.4;
+}
+
+.pos-unlock__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.pos-unlock__form input {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  background: #ffffff;
+  color: #0b1f3a;
+  border-radius: 0.55rem;
+  padding: 0.85rem 0.95rem;
+  font: inherit;
+  font-size: 1.35rem;
+  letter-spacing: 0.25em;
+  font-weight: 700;
+}
+
+.pos-unlock__form button[type='submit'] {
+  margin-top: 0.25rem;
+  background: var(--balqo-brand, #0b1f3a);
+  color: #f8fafc;
+  border: none;
+  border-radius: 0.55rem;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pos-unlock__form button[type='submit']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pos-unlock__error {
+  margin: 0;
+  color: #991b1b;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.pos-unlock__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pos-unlock__footer a {
+  color: #1a3a66;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pos-unlock__refresh {
+  background: transparent;
+  border: none;
+  color: #5b6b80;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}

@@ -1,0 +1,67 @@
+.customer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.85rem;
+  padding: 1.15rem;
+  max-width: 420px;
+}
+
+.customer-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0b1f3a;
+}
+
+.customer-form input {
+  border: 1px solid rgba(11, 31, 58, 0.2);
+  border-radius: 0.45rem;
+  padding: 0.65rem 0.7rem;
+  font: inherit;
+  background: #fff;
+  color: #0b1f3a;
+}
+
+.customer-form__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.customer-form__actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.customer-form__actions button {
+  border-radius: 0.5rem;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.customer-form__actions button[type='button'] {
+  background: transparent;
+  border: 1px solid rgba(11, 31, 58, 0.25);
+  color: #0b1f3a;
+}
+
+.customer-form__actions button[type='submit'] {
+  background: #0b1f3a;
+  border: none;
+  color: #f8fafc;
+}
+
+.customer-form__actions button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}

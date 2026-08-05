@@ -1,0 +1,34 @@
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.connection-status__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.connection-status--online {
+  color: #1f7a4d;
+}
+
+.connection-status--offline {
+  color: #9a3412;
+}
+
+.connection-status--syncing {
+  color: #1d4ed8;
+}
+
+.connection-status--error {
+  color: #b91c1c;
+}

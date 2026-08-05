@@ -1,0 +1,207 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { BALQO_LOGO_SRC } from '../../../shared/constants'
+import { useAuth } from '../../../shared/hooks/useAuth'
+import { usePosOperator } from '../hooks/usePosOperator'
+import {
+  canAccessBackOffice,
+  POS_ROLE_LABELS,
+  type PosOperator,
+} from '../types/operator'
+import './PosUnlockScreen.css'
+
+export function PosUnlockScreen() {
+  const { organization } = useAuth()
+  const navigate = useNavigate()
+  const {
+    operators,
+    loading,
+    error,
+    clearError,
+    unlock,
+    setupOwnerPin,
+    refreshOperators,
+  } = usePosOperator()
+
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [pin, setPin] = useState('')
+  const [pinConfirm, setPinConfirm] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [localError, setLocalError] = useState<string | null>(null)
+  const pinRef = useRef<HTMLInputElement>(null)
+
+  const selected: PosOperator | null =
+    operators.find((op) => op.id === selectedId) ?? null
+  const needsSetup = Boolean(selected && selected.kind === 'owner' && !selected.hasPin)
+
+  useEffect(() => {
+    if (operators.length === 1 && !selectedId) {
+      setSelectedId(operators[0].id)
+    }
+  }, [operators, selectedId])
+
+  useEffect(() => {
+    if (selectedId) {
+      setPin('')
+      setPinConfirm('')
+      setLocalError(null)
+      clearError()
+      window.setTimeout(() => pinRef.current?.focus(), 50)
+    }
+  }, [selectedId, clearError])
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    if (!selected) return
+
+    setLocalError(null)
+    clearError()
+    setBusy(true)
+
+    try {
+      if (needsSetup) {
+        if (pin !== pinConfirm) {
+          setLocalError('Os PINs não conferem.')
+          return
+        }
+        await setupOwnerPin(pin)
+        const session = await unlock(selected.id, pin)
+        if (!canAccessBackOffice(session.role)) {
+          navigate('/app/pos', { replace: true })
+        }
+        return
+      }
+
+      const session = await unlock(selected.id, pin)
+      if (!canAccessBackOffice(session.role)) {
+        navigate('/app/pos', { replace: true })
+      }
+    } catch {
+      // erro no contexto / local
+    } finally {
+      setBusy(false)
+      setPin('')
+      setPinConfirm('')
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="pos-unlock">
+        <p className="pos-unlock__loading">Carregando operadores…</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="pos-unlock">
+      <header className="pos-unlock__header">
+        <div className="pos-unlock__brand">
+          <img
+            src={organization?.logoDataUrl || BALQO_LOGO_SRC}
+            alt={organization?.name || 'BALQO'}
+          />
+        </div>
+        <p className="pos-unlock__shop">{organization?.name || 'PDV'}</p>
+        <h1>Quem está usando?</h1>
+        <p>Selecione o usuário e digite o PIN. O sistema libera as telas do seu papel.</p>
+      </header>
+
+      <div className="pos-unlock__grid">
+        {operators.map((op) => {
+          const active = op.id === selectedId
+          return (
+            <button
+              key={op.id}
+              type="button"
+              className={
+                active
+                  ? 'pos-unlock__op pos-unlock__op--active'
+                  : 'pos-unlock__op'
+              }
+              onClick={() => setSelectedId(op.id)}
+              disabled={busy}
+            >
+              <strong>{op.displayName}</strong>
+              <span>{POS_ROLE_LABELS[op.role]}</span>
+              {!op.hasPin && op.kind === 'owner' && (
+                <em>Definir PIN</em>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {selected && (
+        <form className="pos-unlock__form" onSubmit={(e) => void handleSubmit(e)}>
+          <h2>
+            {needsSetup
+              ? `Criar PIN — ${selected.displayName}`
+              : `PIN — ${selected.displayName}`}
+          </h2>
+
+          {needsSetup && (
+            <p className="pos-unlock__hint">
+              Crie um PIN de 4 a 6 dígitos para o proprietário. Ele será pedido ao
+              abrir o sistema.
+            </p>
+          )}
+
+          <label>
+            PIN
+            <input
+              ref={pinRef}
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              disabled={busy}
+              required
+              placeholder="••••"
+            />
+          </label>
+
+          {needsSetup && (
+            <label>
+              Confirmar PIN
+              <input
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                value={pinConfirm}
+                onChange={(e) =>
+                  setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 6))
+                }
+                disabled={busy}
+                required
+                placeholder="••••"
+              />
+            </label>
+          )}
+
+          {(localError || error) && (
+            <p className="pos-unlock__error" role="alert">
+              {localError || error}
+            </p>
+          )}
+
+          <button type="submit" disabled={busy || pin.length < 4}>
+            {busy ? 'Entrando…' : needsSetup ? 'Salvar PIN e entrar' : 'Entrar'}
+          </button>
+        </form>
+      )}
+
+      <div className="pos-unlock__footer">
+        <button
+          type="button"
+          className="pos-unlock__refresh"
+          onClick={() => void refreshOperators()}
+          disabled={busy}
+        >
+          Atualizar lista
+        </button>
+      </div>
+    </section>
+  )
+}

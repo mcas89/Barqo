@@ -1,0 +1,157 @@
+:root {
+  color-scheme: light;
+  font-family: 'Segoe UI', 'Trebuchet MS', sans-serif;
+  line-height: 1.45;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --balqo-brand: #0b1f3a;
+  --balqo-brand-soft: #dbe4f0;
+  --balqo-bg: #f4f6fa;
+  --balqo-surface: #ffffff;
+  --balqo-text: #0b1f3a;
+  --balqo-muted: #5b6b80;
+  --balqo-border: rgba(11, 31, 58, 0.12);
+  --balqo-on-brand: #f8fafc;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  background: var(--balqo-bg);
+  color: var(--balqo-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+  max-width: 100%;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+@media (max-width: 720px) {
+  .home-page__header,
+  .products-page__header,
+  .customers-page__header,
+  .team-page__header,
+  .suppliers-page__header,
+  .receivables-page__header,
+  .inventory-page__header,
+  .reports-page__header,
+  .cash-page__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-page__refresh,
+  .products-page__cta,
+  .customers-page__cta,
+  .team-page__cta,
+  .suppliers-page__cta,
+  .receivables-page__cta,
+  .reports-page__export {
+    width: 100%;
+    text-align: center;
+  }
+
+  .products-page__toolbar input[type='search'],
+  .customers-page__toolbar input[type='search'],
+  .suppliers-page__toolbar input[type='search'],
+  .receivables-page__toolbar input[type='search'],
+  .inventory-page__toolbar input[type='search'],
+  .team-page__toolbar input[type='search'] {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .customer-list__item,
+  .employee-list__item,
+  .supplier-list__item,
+  .receivable-list li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .customer-list__actions,
+  .employee-list__actions,
+  .supplier-list__actions,
+  .receivable-list__side {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .customer-list__actions button,
+  .employee-list__actions button,
+  .supplier-list__actions button,
+  .receivable-list__side button {
+    flex: 1;
+  }
+
+  .receivable-list__side {
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .customer-form,
+  .employee-form,
+  .supplier-form,
+  .receivable-form,
+  .stock-move-form {
+    max-width: none;
+  }
+
+  .customer-form__actions,
+  .employee-form__actions,
+  .supplier-form__actions,
+  .receivable-form__actions,
+  .product-form__actions,
+  .cash-page__form-actions,
+  .pin-auth__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .customer-form__actions button,
+  .employee-form__actions button,
+  .supplier-form__actions button,
+  .receivable-form__actions button,
+  .product-form__primary,
+  .product-form__secondary,
+  .cash-page__form-actions button,
+  .pin-auth__actions button {
+    width: 100%;
+  }
+}
+
+a {
+  color: inherit;
+}

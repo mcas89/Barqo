@@ -1,0 +1,141 @@
+.inventory-list {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.75rem;
+}
+
+.inventory-list table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.inventory-list th,
+.inventory-list td {
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(11, 31, 58, 0.06);
+  vertical-align: middle;
+}
+
+.inventory-list th {
+  color: #5b6b80;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.inventory-list td strong {
+  display: block;
+  color: #0b1f3a;
+}
+
+.inventory-list td span {
+  display: block;
+  color: #5b6b80;
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.inventory-list td em {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.15);
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+}
+
+.inventory-list__row--low {
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.inventory-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.inventory-list__actions button {
+  border: 1px solid rgba(11, 31, 58, 0.2);
+  background: #f8fafc;
+  color: #0b1f3a;
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.65rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inventory-list__actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.inventory-list__empty {
+  margin: 0;
+  color: #5b6b80;
+}
+
+@media (max-width: 760px) {
+  .inventory-list table {
+    min-width: 0;
+  }
+
+  .inventory-list thead {
+    display: none;
+  }
+
+  .inventory-list tbody,
+  .inventory-list tr,
+  .inventory-list td {
+    display: block;
+    width: 100%;
+  }
+
+  .inventory-list tr {
+    padding: 0.85rem 0.9rem;
+    border-bottom: 1px solid rgba(11, 31, 58, 0.08);
+  }
+
+  .inventory-list td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.28rem 0;
+    border: none;
+    text-align: right;
+  }
+
+  .inventory-list td::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .inventory-list__actions {
+    justify-content: flex-start;
+    padding-top: 0.55rem;
+  }
+
+  .inventory-list__actions::before {
+    display: none;
+  }
+
+  .inventory-list__actions button {
+    flex: 1;
+  }
+}
