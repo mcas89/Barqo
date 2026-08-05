@@ -7,6 +7,8 @@ import type { OrganizationId } from '../../../shared/types'
 import {
   AUDIT_EVENT_TYPES,
   type AuditEvent,
+  type BarcodeAuditEvent,
+  type LabelsPrintedAuditEvent,
   type OperatorSwitchAuditEvent,
 } from '../types'
 
@@ -73,6 +75,78 @@ export async function recordOperatorSwitch(input: {
   )
 
   return event
+}
+
+export async function recordBarcodeAudit(input: {
+  organizationId: OrganizationId
+  type: 'product.barcode.generated' | 'product.barcode.changed'
+  productId: string
+  operatorId: string
+  deviceId: string
+  previousBarcode?: string
+  newBarcode?: string
+}): Promise<BarcodeAuditEvent | null> {
+  if (!isFirebaseReady()) return null
+  try {
+    const id = createId('aud')
+    const event: BarcodeAuditEvent = {
+      id,
+      organizationId: input.organizationId,
+      type:
+        input.type === 'product.barcode.generated'
+          ? AUDIT_EVENT_TYPES.BARCODE_GENERATED
+          : AUDIT_EVENT_TYPES.BARCODE_CHANGED,
+      operatorId: input.operatorId,
+      deviceId: input.deviceId || 'unknown',
+      productId: input.productId,
+      previousBarcode: input.previousBarcode,
+      newBarcode: input.newBarcode,
+      createdAt: nowIso(),
+    }
+    await setDoc(
+      doc(requireDb(), 'organizations', input.organizationId, 'audit_events', id),
+      omitUndefined({ ...event }),
+    )
+    return event
+  } catch {
+    return null
+  }
+}
+
+export async function recordLabelsPrinted(input: {
+  organizationId: OrganizationId
+  operatorId: string
+  deviceId: string
+  modelId: string
+  totalLabels: number
+  productIds: string[]
+}): Promise<LabelsPrintedAuditEvent | null> {
+  if (!isFirebaseReady()) return null
+  try {
+    const id = createId('aud')
+    const event: LabelsPrintedAuditEvent = {
+      id,
+      organizationId: input.organizationId,
+      type: AUDIT_EVENT_TYPES.LABELS_PRINTED,
+      operatorId: input.operatorId,
+      deviceId: input.deviceId || 'unknown',
+      modelId: input.modelId,
+      totalLabels: input.totalLabels,
+      productIds: input.productIds,
+      createdAt: nowIso(),
+    }
+    await setDoc(
+      doc(requireDb(), 'organizations', input.organizationId, 'audit_events', id),
+      omitUndefined({ ...event }),
+    )
+    return event
+  } catch {
+    return null
+  }
+}
+
+function isFirebaseReady(): boolean {
+  return Boolean(getFirestoreDb())
 }
 
 export async function listAuditEvents(

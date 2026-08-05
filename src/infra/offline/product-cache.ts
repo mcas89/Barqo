@@ -17,11 +17,12 @@ function toCached(product: Product): CachedProduct {
     active: product.active,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
+    barcodeMeta: product.barcodeMeta,
   }
 }
 
 export function cachedToProduct(cached: CachedProduct): Product {
-  return {
+  const product: Product = {
     id: cached.id,
     organizationId: cached.organizationId,
     name: cached.name,
@@ -37,6 +38,8 @@ export function cachedToProduct(cached: CachedProduct): Product {
     createdAt: cached.createdAt,
     updatedAt: cached.updatedAt,
   }
+  if (cached.barcodeMeta) product.barcodeMeta = cached.barcodeMeta
+  return product
 }
 
 export async function cacheProducts(

@@ -21,6 +21,9 @@ export const PERMISSIONS = {
   MANAGE_BILLING: 'manage_billing',
   REMOVE_CART: 'remove_cart',
   CREATE_CUSTOMER: 'create_customer',
+  LABELS_PRINT: 'labels.print',
+  GENERATE_BARCODE: 'products.generate_barcode',
+  CHANGE_BARCODE: 'products.change_barcode',
 } as const
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -43,6 +46,9 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   [PERMISSIONS.MANAGE_BILLING]: 'Planos e pagamento',
   [PERMISSIONS.REMOVE_CART]: 'Remover item / limpar carrinho no PDV',
   [PERMISSIONS.CREATE_CUSTOMER]: 'Cadastrar cliente no PDV',
+  [PERMISSIONS.LABELS_PRINT]: 'Imprimir etiquetas',
+  [PERMISSIONS.GENERATE_BARCODE]: 'Gerar código de barras BALQO',
+  [PERMISSIONS.CHANGE_BARCODE]: 'Alterar código de barras',
 }
 
 /** Permissões que o Controle pode ajustar por funcionário. */
@@ -61,6 +67,9 @@ export const EDITABLE_PERMISSIONS: PermissionKey[] = [
   PERMISSIONS.MANAGE_BILLING,
   PERMISSIONS.REMOVE_CART,
   PERMISSIONS.CREATE_CUSTOMER,
+  PERMISSIONS.LABELS_PRINT,
+  PERMISSIONS.GENERATE_BARCODE,
+  PERMISSIONS.CHANGE_BARCODE,
 ]
 
 const ALL_TRUE = Object.fromEntries(
@@ -83,6 +92,9 @@ const FLOOR_DEFAULTS: PermissionMap = {
   [PERMISSIONS.MANAGE_BILLING]: false,
   [PERMISSIONS.REMOVE_CART]: false,
   [PERMISSIONS.CREATE_CUSTOMER]: false,
+  [PERMISSIONS.LABELS_PRINT]: true,
+  [PERMISSIONS.GENERATE_BARCODE]: false,
+  [PERMISSIONS.CHANGE_BARCODE]: false,
 } as PermissionMap
 
 export function defaultPermissionsForRole(role: UserRole): PermissionMap {

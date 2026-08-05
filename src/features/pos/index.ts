@@ -21,3 +21,7 @@ export {
   cartTotalCents,
   paymentsTotalCents,
 } from './services/sale-service'
+export {
+  MAX_HELD_SALES,
+  type HeldSale,
+} from './services/hold-sale-service'

@@ -99,6 +99,7 @@ export function useProducts() {
     loading,
     saving,
     error,
+    setErrorMessage: setError,
     search,
     setSearch,
     showInactive,

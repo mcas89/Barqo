@@ -441,6 +441,88 @@
   border-radius: 0.65rem;
 }
 
+.pos-page__cart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pos-page__holds {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--balqo-brand, #0b1f3a) 6%, #fff);
+  border: 1px solid color-mix(in srgb, var(--balqo-brand, #0b1f3a) 12%, transparent);
+}
+
+.pos-page__holds-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #5b6b80;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pos-page__holds-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pos-page__holds-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.55rem;
+  background: #fff;
+}
+
+.pos-page__holds-list strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #0b1f3a;
+}
+
+.pos-page__holds-list span {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pos-page__holds-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.pos-page__holds-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid rgba(11, 31, 58, 0.16);
+  background: #f8fafc;
+  color: #0b1f3a;
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pos-page__holds-actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .pos-page__empty-cart {
   flex: 1;
   display: grid;

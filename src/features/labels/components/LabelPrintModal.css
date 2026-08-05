@@ -1,0 +1,282 @@
+.label-print-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.label-print-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 31, 58, 0.45);
+}
+
+.label-print-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 100%);
+  max-height: min(90dvh, 900px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.15rem 1.2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 24px 60px rgba(11, 31, 58, 0.22);
+}
+
+.label-print-modal__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.label-print-modal__header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #0b1f3a;
+}
+
+.label-print-modal__header p {
+  margin: 0.3rem 0 0;
+  color: #5b6b80;
+  font-size: 0.88rem;
+}
+
+.label-print-modal__close,
+.label-print-modal__actions button,
+.label-print-modal__ghost {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.85rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.label-print-modal__ghost {
+  align-self: flex-start;
+}
+
+.label-print-modal__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.label-print-modal__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.55rem;
+  background: #f4f6fa;
+}
+
+.label-print-modal__row strong {
+  display: block;
+  color: #0b1f3a;
+  font-size: 0.9rem;
+}
+
+.label-print-modal__row span {
+  color: #5b6b80;
+  font-size: 0.78rem;
+}
+
+.label-print-modal__row label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0b1f3a;
+}
+
+.label-print-modal__row input {
+  width: 4.2rem;
+  border: 1px solid rgba(11, 31, 58, 0.2);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.45rem;
+  font: inherit;
+}
+
+.label-print-modal__fieldset {
+  margin: 0;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.85rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.75rem;
+}
+
+.label-print-modal__fieldset legend {
+  padding: 0 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0b1f3a;
+}
+
+.label-print-modal__fieldset label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.86rem;
+  color: #0b1f3a;
+}
+
+.label-print-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.label-print-modal__primary {
+  background: #0b1f3a !important;
+  color: #f8fafc !important;
+  border-color: #0b1f3a !important;
+}
+
+.label-print-modal__primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.label-print-modal__preview-wrap {
+  overflow: auto;
+  max-height: 55dvh;
+  background: #e8edf4;
+  border-radius: 0.7rem;
+  padding: 0.85rem;
+}
+
+.label-print-sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-start;
+}
+
+.label-print-card {
+  width: var(--label-w, 50mm);
+  min-height: var(--label-h, 30mm);
+  background: #fff;
+  border: 1px dashed rgba(11, 31, 58, 0.25);
+  border-radius: 0.25rem;
+  padding: 0.35rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  text-align: center;
+  box-sizing: border-box;
+  page-break-inside: avoid;
+}
+
+.label-print-card__store,
+.label-print-card__unit,
+.label-print-card__date {
+  margin: 0;
+  font-size: 0.65rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.label-print-card__name {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: #0b1f3a;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.label-print-card__price {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #0b1f3a;
+}
+
+.label-print-card__barcode {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.label-print-card__barcode svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.label-print-card__code {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #0b1f3a;
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .label-print-modal,
+  .label-print-modal * {
+    visibility: visible !important;
+  }
+
+  .label-print-modal {
+    position: static;
+    padding: 0;
+    display: block;
+  }
+
+  .label-print-modal__backdrop,
+  .label-print-modal__header,
+  .label-print-modal__actions,
+  .label-print-modal__items,
+  .label-print-modal__fieldset,
+  .label-print-modal__ghost,
+  .label-print-modal__close {
+    display: none !important;
+  }
+
+  .label-print-modal__panel {
+    box-shadow: none;
+    padding: 0;
+    max-height: none;
+    width: 100%;
+    overflow: visible;
+  }
+
+  .label-print-modal__preview-wrap {
+    max-height: none;
+    background: #fff;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .label-print-sheet {
+    gap: 0;
+  }
+
+  .label-print-card {
+    border: none;
+    border-radius: 0;
+  }
+}

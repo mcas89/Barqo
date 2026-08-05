@@ -24,7 +24,15 @@ import {
   completeSale,
   paymentsTotalCents,
 } from '../services/sale-service'
-import type { CartItem, PaymentMethod, Sale, SalePayment } from '../types'
+import {
+  discardHeldSale,
+  holdCurrentSale,
+  listHeldSales,
+  MAX_HELD_SALES,
+  removeHeldSale,
+  type HeldSale,
+} from '../services/hold-sale-service'
+import type { PaymentMethod, Sale, SalePayment } from '../types'
 import { PAYMENT_METHODS } from '../types'
 import { usePosOperator } from './usePosOperator'
 
@@ -45,9 +53,23 @@ export function usePos() {
   const [lastSale, setLastSale] = useState<Sale | null>(null)
   /** Cliente da venda — null = Caixa livre */
   const [customer, setCustomer] = useState<{ id: string; name: string } | null>(null)
+  const [heldSales, setHeldSales] = useState<HeldSale[]>([])
 
   const organizationId = organization?.id
   const cashOpen = Boolean(cashSession)
+
+  const refreshHeldSales = useCallback(async () => {
+    if (!organizationId || !deviceId) {
+      setHeldSales([])
+      return
+    }
+    try {
+      const rows = await listHeldSales({ organizationId, deviceId })
+      setHeldSales(rows)
+    } catch (err) {
+      console.error(err)
+    }
+  }, [organizationId, deviceId])
 
   const refreshCashSession = useCallback(async () => {
     if (!organizationId) {
@@ -104,7 +126,8 @@ export function usePos() {
   useEffect(() => {
     void refreshCatalog()
     void refreshCashSession()
-  }, [refreshCatalog, refreshCashSession])
+    void refreshHeldSales()
+  }, [refreshCatalog, refreshCashSession, refreshHeldSales])
 
   const filteredCatalog = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -363,6 +386,79 @@ export function usePos() {
     setError(null)
   }
 
+  async function holdSale(label?: string): Promise<HeldSale | undefined> {
+    if (!organizationId || !deviceId) {
+      setError('Sessão inválida.')
+      return
+    }
+    if (cart.length === 0) {
+      setError('Adicione itens antes de colocar em espera.')
+      return
+    }
+    if (!ensureCanOperate()) return
+
+    setBusy(true)
+    setError(null)
+    try {
+      const held = await holdCurrentSale({
+        organizationId,
+        deviceId,
+        cashSessionId: cashSession?.id,
+        cart,
+        discountCents,
+        customer,
+        label,
+        operatorId: operator?.id,
+        operatorName: operator?.displayName,
+      })
+      clearCart()
+      setCustomer(null)
+      await refreshHeldSales()
+      return held
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : 'Não foi possível colocar a venda em espera.')
+      return
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function resumeHeldSale(heldId: string): Promise<boolean> {
+    if (!organizationId) {
+      setError('Sessão inválida.')
+      return false
+    }
+
+    const held = heldSales.find((row) => row.id === heldId)
+    if (!held) {
+      setError('Venda em espera não encontrada.')
+      await refreshHeldSales()
+      return false
+    }
+
+    if (cart.length > 0) {
+      const ok = window.confirm(
+        'Já existe uma venda em andamento no carrinho.\n\nSubstituir pela venda em espera?',
+      )
+      if (!ok) return false
+    }
+
+    setCart(held.cart.map((item) => ({ ...item })))
+    setDiscountCents(held.discountCents)
+    setCustomer(held.customer)
+    setPayments([])
+    setError(null)
+    await removeHeldSale(held.id)
+    await refreshHeldSales()
+    return true
+  }
+
+  async function discardHeld(heldId: string): Promise<void> {
+    await discardHeldSale(heldId)
+    await refreshHeldSales()
+  }
+
   function setPaymentAmount(method: PaymentMethod, amountCents: number) {
     const value = Math.max(0, Math.round(amountCents))
     setPayments((current) => {
@@ -531,6 +627,12 @@ export function usePos() {
     setItemPrice,
     removeItem,
     clearCart,
+    holdSale,
+    resumeHeldSale,
+    discardHeld,
+    heldSales,
+    maxHeldSales: MAX_HELD_SALES,
+    refreshHeldSales,
     setPaymentAmount,
     payFullWith,
     finishSale,

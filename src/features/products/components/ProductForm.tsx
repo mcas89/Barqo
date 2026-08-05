@@ -1,13 +1,21 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
 import {
+  BARCODE_SOURCE_LABELS,
+  BARCODE_TYPE_LABELS,
   PRODUCT_TYPES,
   PRODUCT_UNITS,
   formatProductTextInput,
   type Product,
+  type ProductBarcodeMeta,
   type ProductInput,
   type ProductUnit,
 } from '../types'
+import {
+  buildBarcodeMeta,
+  generateBalqoInternalBarcode,
+  productHasBarcode,
+} from '../services/barcode-service'
 import './ProductForm.css'
 
 interface ProductFormProps {
@@ -17,6 +25,11 @@ interface ProductFormProps {
   onResolvedProduct: (product: Product | null) => void
   onSubmit: (input: ProductInput) => Promise<void>
   onCancel: () => void
+  onGenerateSaved?: () => Promise<void>
+  onPrintLabel?: () => void
+  canGenerate?: boolean
+  canChange?: boolean
+  canPrint?: boolean
 }
 
 function centsToInput(cents: number): string {
@@ -28,6 +41,7 @@ function fillFromProduct(
   setters: {
     setName: (v: string) => void
     setBarcode: (v: string) => void
+    setBarcodeMeta?: (v: ProductBarcodeMeta | undefined) => void
     setCategory: (v: string) => void
     setUnit: (v: ProductUnit) => void
     setType: (v: Product['type']) => void
@@ -42,6 +56,9 @@ function fillFromProduct(
   if (!product) {
     setters.setName('')
     setters.setBarcode(keepBarcode ?? '')
+    setters.setBarcodeMeta?.(
+      keepBarcode ? buildBarcodeMeta({ value: keepBarcode }) : undefined,
+    )
     setters.setCategory('')
     setters.setUnit('UN')
     setters.setType(PRODUCT_TYPES.PRODUCT)
@@ -55,6 +72,7 @@ function fillFromProduct(
 
   setters.setName(product.name)
   setters.setBarcode(product.barcode ?? keepBarcode ?? '')
+  setters.setBarcodeMeta?.(product.barcodeMeta)
   setters.setCategory(product.category ?? '')
   setters.setUnit(product.unit)
   setters.setType(product.type)
@@ -72,6 +90,11 @@ export function ProductForm({
   onResolvedProduct,
   onSubmit,
   onCancel,
+  onGenerateSaved,
+  onPrintLabel,
+  canGenerate = true,
+  canChange = true,
+  canPrint = true,
 }: ProductFormProps) {
   const barcodeRef = useRef<HTMLInputElement>(null)
   const stockRef = useRef<HTMLInputElement>(null)
@@ -79,6 +102,9 @@ export function ProductForm({
 
   const [name, setName] = useState(initial?.name ?? '')
   const [barcode, setBarcode] = useState(initial?.barcode ?? '')
+  const [barcodeMeta, setBarcodeMeta] = useState<ProductBarcodeMeta | undefined>(
+    initial?.barcodeMeta,
+  )
   const [category, setCategory] = useState(initial?.category ?? '')
   const [unit, setUnit] = useState<ProductUnit>(initial?.unit ?? 'UN')
   const [type, setType] = useState(initial?.type ?? PRODUCT_TYPES.PRODUCT)
@@ -89,10 +115,13 @@ export function ProductForm({
   const [active, setActive] = useState(initial?.active ?? true)
   const [localError, setLocalError] = useState<string | null>(null)
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'found' | 'new'>('idle')
+  const [editingCode, setEditingCode] = useState(!Boolean(initial?.barcode?.trim()))
+  const [generateNotice, setGenerateNotice] = useState<string | null>(null)
 
   const setters = {
     setName,
     setBarcode,
+    setBarcodeMeta,
     setCategory,
     setUnit,
     setType,
@@ -107,6 +136,7 @@ export function ProductForm({
     if (initial) {
       setName(initial.name)
       setBarcode(initial.barcode ?? '')
+      setBarcodeMeta(initial.barcodeMeta)
       setCategory(initial.category ?? '')
       setUnit(initial.unit)
       setType(initial.type)
@@ -116,9 +146,11 @@ export function ProductForm({
       setMinStock(String(initial.minStock ?? 0))
       setActive(initial.active)
       setLookupStatus('found')
+      setEditingCode(!Boolean(initial.barcode?.trim()))
     } else {
       setName('')
       setBarcode('')
+      setBarcodeMeta(undefined)
       setCategory('')
       setUnit('UN')
       setType(PRODUCT_TYPES.PRODUCT)
@@ -128,17 +160,21 @@ export function ProductForm({
       setMinStock('0')
       setActive(true)
       setLookupStatus('idle')
+      setEditingCode(true)
       barcodeRef.current?.focus()
     }
     setLocalError(null)
+    setGenerateNotice(null)
   }, [initial])
 
   function resolveBarcode(code: string) {
     const trimmed = code.trim()
     setLocalError(null)
+    setGenerateNotice(null)
 
     if (!trimmed) {
       setLookupStatus('idle')
+      setBarcodeMeta(undefined)
       onResolvedProduct(null)
       return
     }
@@ -147,6 +183,7 @@ export function ProductForm({
     if (found) {
       fillFromProduct(found, setters)
       setLookupStatus('found')
+      setEditingCode(false)
       onResolvedProduct(found)
       requestAnimationFrame(() => {
         stockRef.current?.focus()
@@ -156,6 +193,7 @@ export function ProductForm({
     }
 
     fillFromProduct(null, setters, trimmed)
+    setBarcodeMeta(buildBarcodeMeta({ value: trimmed }))
     setLookupStatus('new')
     onResolvedProduct(null)
     requestAnimationFrame(() => nameRef.current?.focus())
@@ -166,6 +204,63 @@ export function ProductForm({
       event.preventDefault()
       resolveBarcode(barcode)
     }
+  }
+
+  function focusBarcodeReader() {
+    setEditingCode(true)
+    requestAnimationFrame(() => {
+      barcodeRef.current?.focus()
+      barcodeRef.current?.select()
+    })
+  }
+
+  async function handleGenerateCode() {
+    setLocalError(null)
+    setGenerateNotice(null)
+
+    if (initial?.id && onGenerateSaved && productHasBarcode(initial)) {
+      setLocalError('Este produto já possui código. Use Alterar código se precisar trocar.')
+      return
+    }
+
+    if (initial?.id && onGenerateSaved && !productHasBarcode(initial)) {
+      try {
+        await onGenerateSaved()
+        setGenerateNotice('Código interno criado com sucesso.')
+      } catch (err) {
+        setLocalError(err instanceof Error ? err.message : 'Falha ao gerar código.')
+      }
+      return
+    }
+
+    const value = generateBalqoInternalBarcode()
+    setBarcode(value)
+    setBarcodeMeta(
+      buildBarcodeMeta({
+        value,
+        type: 'code128_internal',
+        source: 'balqo_generated',
+      }),
+    )
+    setEditingCode(false)
+    setGenerateNotice(`Código interno criado com sucesso.\n${value}`)
+    setLookupStatus((status) => (status === 'idle' ? 'new' : status))
+  }
+
+  function requestChangeCode() {
+    if (!canChange) {
+      setLocalError('Sem permissão para alterar código de barras.')
+      return
+    }
+    if (initial?.barcode) {
+      const ok = window.confirm(
+        'Este produto já possui código de barras.\n\nAlterar o código pode inutilizar etiquetas antigas.\nDeseja continuar?',
+      )
+      if (!ok) return
+    }
+    setEditingCode(true)
+    setGenerateNotice(null)
+    requestAnimationFrame(() => barcodeRef.current?.focus())
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -183,9 +278,15 @@ export function ProductForm({
       return
     }
 
+    const trimmedBarcode = barcode.trim()
     const input: ProductInput = {
       name,
-      barcode,
+      barcode: trimmedBarcode || undefined,
+      barcodeMeta: trimmedBarcode
+        ? barcodeMeta && barcodeMeta.value === trimmedBarcode
+          ? barcodeMeta
+          : buildBarcodeMeta({ value: trimmedBarcode })
+        : undefined,
       category,
       unit,
       type,
@@ -198,12 +299,13 @@ export function ProductForm({
 
     try {
       await onSubmit(input)
-    } catch {
-      setLocalError('Falha ao salvar. Tente novamente.')
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Falha ao salvar. Tente novamente.')
     }
   }
 
   const isService = type === PRODUCT_TYPES.SERVICE
+  const hasCode = Boolean(barcode.trim())
   const title =
     lookupStatus === 'found' || initial
       ? 'Atualizar produto'
@@ -212,12 +314,12 @@ export function ProductForm({
         : 'Cadastrar / atualizar'
 
   return (
-    <form className="product-form" onSubmit={handleSubmit}>
+    <form className="product-form" onSubmit={(e) => void handleSubmit(e)}>
       <header className="product-form__header">
         <div>
           <h2>{title}</h2>
           <p className="product-form__lead">
-            Passe o código primeiro. Se o produto existir, ajuste a quantidade e salve.
+            Identificação e código de barras. Gerar código e imprimir etiqueta são ações separadas.
           </p>
         </div>
         {initial && (
@@ -225,26 +327,73 @@ export function ProductForm({
         )}
       </header>
 
-      <label className="product-form__barcode">
-        Código de barras
-        <input
-          ref={barcodeRef}
-          value={barcode}
-          onChange={(e) => {
-            setBarcode(e.target.value)
-            if (lookupStatus !== 'idle') setLookupStatus('idle')
-          }}
-          onKeyDown={onBarcodeKeyDown}
-          onBlur={() => {
-            if (barcode.trim() && lookupStatus === 'idle') {
-              resolveBarcode(barcode)
-            }
-          }}
-          disabled={saving}
-          placeholder="Escaneie ou digite e pressione Enter"
-          autoComplete="off"
-        />
-      </label>
+      <section className="product-form__barcode-block">
+        <h3>Identificação e código de barras</h3>
+
+        {hasCode && !editingCode ? (
+          <div className="product-form__barcode-view">
+            <p className="product-form__barcode-value">{barcode}</p>
+            {barcodeMeta && (
+              <p className="product-form__barcode-meta">
+                Tipo: {BARCODE_TYPE_LABELS[barcodeMeta.type]} · Origem:{' '}
+                {BARCODE_SOURCE_LABELS[barcodeMeta.source]}
+              </p>
+            )}
+            <div className="product-form__barcode-actions">
+              {canPrint && onPrintLabel && (
+                <button type="button" onClick={onPrintLabel} disabled={saving}>
+                  Imprimir etiqueta
+                </button>
+              )}
+              {canChange && (
+                <button type="button" onClick={requestChangeCode} disabled={saving}>
+                  Alterar código
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <label className="product-form__barcode">
+              Código de barras
+              <input
+                ref={barcodeRef}
+                value={barcode}
+                onChange={(e) => {
+                  setBarcode(e.target.value)
+                  setBarcodeMeta(undefined)
+                  if (lookupStatus !== 'idle') setLookupStatus('idle')
+                }}
+                onKeyDown={onBarcodeKeyDown}
+                onBlur={() => {
+                  if (barcode.trim() && lookupStatus === 'idle') {
+                    resolveBarcode(barcode)
+                  }
+                }}
+                disabled={saving}
+                placeholder="Escaneie ou digite e pressione Enter"
+                autoComplete="off"
+              />
+            </label>
+            <div className="product-form__barcode-actions">
+              <button type="button" onClick={focusBarcodeReader} disabled={saving}>
+                Ler código
+              </button>
+              {canGenerate && (
+                <button type="button" onClick={() => void handleGenerateCode()} disabled={saving}>
+                  Gerar código BALQO
+                </button>
+              )}
+            </div>
+          </>
+        )}
+
+        {generateNotice && (
+          <p className="product-form__banner product-form__banner--found" role="status">
+            {generateNotice}
+          </p>
+        )}
+      </section>
 
       {lookupStatus === 'found' && (
         <p className="product-form__banner product-form__banner--found" role="status">

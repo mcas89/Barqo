@@ -1,5 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  Mail,
+  UserRound,
+} from 'lucide-react'
 import { APP_NAME, APP_TAGLINE, BALQO_LOGO_SRC } from '../../../shared/constants'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { LegalAccept } from '../../legal'
@@ -138,33 +147,40 @@ export function LoginPage() {
             {!isLogin && !isReset && (
               <label>
                 Seu nome
-                <input
-                  type="text"
-                  autoComplete="name"
-                  placeholder="Nome e sobrenome"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  disabled={loading}
-                  required
-                />
+                <span className="login-page__field">
+                  <UserRound className="login-page__field-icon" size={18} strokeWidth={2} aria-hidden />
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Nome e sobrenome"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </span>
               </label>
             )}
             <label>
               E-mail
-              <input
-                type="email"
-                autoComplete="email"
-                placeholder="voce@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                required
-              />
+              <span className="login-page__field">
+                <Mail className="login-page__field-icon" size={18} strokeWidth={2} aria-hidden />
+                <input
+                  type="email"
+                  autoComplete="email"
+                  placeholder="voce@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </span>
             </label>
             {!isReset && (
               <label>
                 Senha
                 <span className="login-page__password">
+                  <Lock className="login-page__field-icon" size={18} strokeWidth={2} aria-hidden />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     autoComplete={isLogin ? 'current-password' : 'new-password'}
@@ -180,8 +196,13 @@ export function LoginPage() {
                     className="login-page__toggle"
                     onClick={() => setShowPassword((value) => !value)}
                     disabled={loading}
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                   >
-                    {showPassword ? 'Ocultar' : 'Mostrar'}
+                    {showPassword ? (
+                      <EyeOff size={18} strokeWidth={2} aria-hidden />
+                    ) : (
+                      <Eye size={18} strokeWidth={2} aria-hidden />
+                    )}
                   </button>
                 </span>
               </label>
@@ -194,6 +215,7 @@ export function LoginPage() {
                 onClick={() => switchMode('reset')}
                 disabled={loading}
               >
+                <KeyRound size={14} strokeWidth={2} aria-hidden />
                 Esqueci a senha
               </button>
             )}
@@ -220,17 +242,20 @@ export function LoginPage() {
             )}
 
             <button className="login-page__cta" type="submit" disabled={loading}>
-              {loading
-                ? isReset
-                  ? 'Enviando…'
-                  : isLogin
-                    ? 'Entrando…'
-                    : 'Criando conta…'
-                : isReset
-                  ? 'Enviar link'
-                  : isLogin
-                    ? 'Entrar'
-                    : 'Continuar cadastro'}
+              <span>
+                {loading
+                  ? isReset
+                    ? 'Enviando…'
+                    : isLogin
+                      ? 'Entrando…'
+                      : 'Criando conta…'
+                  : isReset
+                    ? 'Enviar link'
+                    : isLogin
+                      ? 'Entrar'
+                      : 'Continuar cadastro'}
+              </span>
+              {!loading && <ArrowRight size={18} strokeWidth={2.25} aria-hidden />}
             </button>
           </form>
         )}

@@ -140,7 +140,7 @@
   width: 100%;
   border: 1px solid rgba(11, 31, 58, 0.16);
   border-radius: 0.6rem;
-  padding: 0.8rem 0.85rem;
+  padding: 0.8rem 0.85rem 0.8rem 2.55rem;
   background: #f8fafc;
   color: #0b1f3a;
 }
@@ -151,28 +151,45 @@
   background: #ffffff;
 }
 
+.login-page__field,
 .login-page__password {
   position: relative;
   display: block;
 }
 
+.login-page__field-icon {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .login-page__password input {
-  padding-right: 5.2rem;
+  padding-right: 2.75rem;
 }
 
 .login-page__toggle {
   position: absolute;
-  right: 0.45rem;
+  right: 0.35rem;
   top: 50%;
   transform: translateY(-50%);
   border: none;
   background: transparent;
   color: #1a3a66;
   font: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
   cursor: pointer;
-  padding: 0.35rem 0.4rem;
+  padding: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+}
+
+.login-page__toggle:hover {
+  background: rgba(11, 31, 58, 0.06);
 }
 
 .login-page__forgot {
@@ -186,6 +203,13 @@
   cursor: pointer;
   padding: 0;
   margin-top: -0.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.login-page__forgot:hover {
+  text-decoration: underline;
 }
 
 .login-page__error {
@@ -220,6 +244,10 @@
   font: inherit;
   font-weight: 800;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
 .login-page__cta:disabled {

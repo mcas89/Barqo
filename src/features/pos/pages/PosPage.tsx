@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Banknote, Receipt, Search, Tag, UserRound } from 'lucide-react'
+import { Banknote, Pause, Play, Receipt, Search, Tag, Trash2, UserRound } from 'lucide-react'
 import { BALQO_LOGO_SRC } from '../../../shared/constants'
 import { startOfLocalDayIso } from '../../../shared/lib/dates'
 import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
@@ -103,6 +103,11 @@ export function PosPage() {
     finishSale,
     openCash,
     payments,
+    holdSale,
+    resumeHeldSale,
+    discardHeld,
+    heldSales,
+    maxHeldSales,
   } = usePos()
 
   const paymentMethods = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).filter(
@@ -287,6 +292,41 @@ export function PosPage() {
       return
     }
     setPendingAuth({ type: 'clear' })
+  }
+
+  async function handleHoldSale() {
+    if (cart.length === 0) return
+    const label = window.prompt(
+      'Nome da espera (opcional)\nEx.: João, mesa 2, retirou depois',
+      customer?.name ?? '',
+    )
+    if (label === null) return
+    const held = await holdSale(label.trim() || undefined)
+    if (held) {
+      setToast(`Venda em espera · ${held.label}`)
+      setSelectedMethod(null)
+      setCashReceived('')
+      setShowDiscount(false)
+      searchRef.current?.focus()
+    }
+  }
+
+  async function handleResumeHeld(heldId: string) {
+    const ok = await resumeHeldSale(heldId)
+    if (ok) {
+      setSelectedMethod(null)
+      setCashReceived('')
+      setShowDiscount(false)
+      setToast('Venda retomada')
+      searchRef.current?.focus()
+    }
+  }
+
+  async function handleDiscardHeld(heldId: string) {
+    const ok = window.confirm('Descartar esta venda em espera? Os itens serão perdidos.')
+    if (!ok) return
+    await discardHeld(heldId)
+    setToast('Espera descartada')
   }
 
   async function handleAuthorize(pin: string) {
@@ -556,16 +596,78 @@ export function PosPage() {
               </span>
             </div>
             {cart.length > 0 && (
-              <button
-                type="button"
-                className="pos-page__ghost"
-                onClick={requestClear}
-                disabled={busy}
-              >
-                Limpar
-              </button>
+              <div className="pos-page__cart-actions">
+                <button
+                  type="button"
+                  className="pos-page__ghost"
+                  onClick={() => void handleHoldSale()}
+                  disabled={busy || heldSales.length >= maxHeldSales}
+                  title={
+                    heldSales.length >= maxHeldSales
+                      ? `Limite de ${maxHeldSales} esperas neste aparelho`
+                      : 'Colocar venda em espera'
+                  }
+                >
+                  <Pause size={15} strokeWidth={2} aria-hidden />
+                  Espera
+                </button>
+                <button
+                  type="button"
+                  className="pos-page__ghost"
+                  onClick={requestClear}
+                  disabled={busy}
+                >
+                  Limpar
+                </button>
+              </div>
             )}
           </header>
+
+          {heldSales.length > 0 && (
+            <div className="pos-page__holds" aria-label="Vendas em espera">
+              <p className="pos-page__holds-title">
+                Em espera ({heldSales.length}/{maxHeldSales})
+              </p>
+              <ul className="pos-page__holds-list">
+                {heldSales.map((held) => {
+                  const qty = held.cart.reduce((sum, item) => sum + item.quantity, 0)
+                  return (
+                    <li key={held.id}>
+                      <div>
+                        <strong>{held.label}</strong>
+                        <span>
+                          {qty} item(ns) ·{' '}
+                          {new Date(held.createdAt).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <div className="pos-page__holds-actions">
+                        <button
+                          type="button"
+                          onClick={() => void handleResumeHeld(held.id)}
+                          disabled={busy}
+                          title="Retomar"
+                        >
+                          <Play size={14} strokeWidth={2} aria-hidden />
+                          Retomar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDiscardHeld(held.id)}
+                          disabled={busy}
+                          title="Descartar"
+                        >
+                          <Trash2 size={14} strokeWidth={2} aria-hidden />
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
 
           {cart.length === 0 ? (
             <div className="pos-page__empty-cart">

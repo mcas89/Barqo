@@ -13,7 +13,18 @@ import { createId } from '../../../shared/lib/ids'
 import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
 import type { OrganizationId } from '../../../shared/types'
-import { normalizeProductText, type Product, type ProductInput } from '../types'
+import {
+  normalizeProductText,
+  type Product,
+  type ProductBarcodeMeta,
+  type ProductInput,
+} from '../types'
+import {
+  buildBarcodeMeta,
+  findBarcodeConflict,
+  generateBalqoInternalBarcode,
+  productHasBarcode,
+} from './barcode-service'
 
 function requireDb() {
   const db = getFirestoreDb()
@@ -27,13 +38,21 @@ function productsCollection(organizationId: OrganizationId) {
   return collection(requireDb(), 'organizations', organizationId, 'products')
 }
 
+function mapBarcodeMeta(data: Record<string, unknown>): ProductBarcodeMeta | undefined {
+  const meta = data.barcodeMeta as ProductBarcodeMeta | undefined
+  if (meta?.value) return meta
+  const barcode = (data.barcode as string | undefined)?.trim()
+  if (!barcode) return undefined
+  return buildBarcodeMeta({ value: barcode })
+}
+
 function mapProduct(id: string, data: Record<string, unknown>): Product {
-  return {
+  const barcode = (data.barcode as string | undefined) || undefined
+  const barcodeMeta = mapBarcodeMeta(data)
+  const product: Product = {
     id,
     organizationId: data.organizationId as string,
     name: normalizeProductText(String(data.name ?? '')),
-    barcode: (data.barcode as string | undefined) || undefined,
-    category: data.category ? normalizeProductText(String(data.category)) : undefined,
     unit: (data.unit as Product['unit']) || 'UN',
     type: (data.type as Product['type']) || 'product',
     priceCents: Number(data.priceCents ?? 0),
@@ -44,6 +63,45 @@ function mapProduct(id: string, data: Record<string, unknown>): Product {
     createdAt: data.createdAt as string,
     updatedAt: data.updatedAt as string,
   }
+  if (barcode) product.barcode = barcode
+  if (barcodeMeta) product.barcodeMeta = barcodeMeta
+  if (data.category) product.category = normalizeProductText(String(data.category))
+  return product
+}
+
+async function assertBarcodeUnique(
+  organizationId: OrganizationId,
+  barcode: string | undefined,
+  excludeProductId?: string,
+): Promise<void> {
+  const trimmed = barcode?.trim()
+  if (!trimmed) return
+  const products = await listProducts(organizationId, { includeInactive: true })
+  const conflict = findBarcodeConflict(products, trimmed, excludeProductId)
+  if (conflict) {
+    throw new Error(
+      `Código já usado em “${conflict.name}”. Cada código deve ser único na loja.`,
+    )
+  }
+}
+
+function resolveBarcodeFields(input: ProductInput): {
+  barcode?: string
+  barcodeMeta?: ProductBarcodeMeta
+} {
+  const barcode = input.barcode?.trim()
+  if (!barcode) return {}
+  const barcodeMeta =
+    input.barcodeMeta && input.barcodeMeta.value.trim() === barcode
+      ? input.barcodeMeta
+      : buildBarcodeMeta({
+          value: barcode,
+          type: input.barcodeMeta?.type,
+          source: input.barcodeMeta?.source,
+          generatedAt: input.barcodeMeta?.generatedAt,
+          generatedByOperatorId: input.barcodeMeta?.generatedByOperatorId,
+        })
+  return { barcode, barcodeMeta }
 }
 
 export async function listProducts(
@@ -51,7 +109,6 @@ export async function listProducts(
   options?: { includeInactive?: boolean },
 ): Promise<Product[]> {
   const col = productsCollection(organizationId)
-  // orderBy único evita índice composto; filtro active no cliente
   const snap = await getDocs(query(col, orderBy('name')))
   const products = snap.docs.map((item) => mapProduct(item.id, item.data()))
 
@@ -72,8 +129,10 @@ export async function createProduct(
   organizationId: OrganizationId,
   input: ProductInput,
 ): Promise<Product> {
+  await assertBarcodeUnique(organizationId, input.barcode)
   const id = createId('prod')
   const now = nowIso()
+  const { barcode, barcodeMeta } = resolveBarcodeFields(input)
   const product: Product = {
     id,
     organizationId,
@@ -89,9 +148,9 @@ export async function createProduct(
     updatedAt: now,
   }
 
-  const barcode = input.barcode?.trim()
   const category = input.category ? normalizeProductText(input.category) : ''
   if (barcode) product.barcode = barcode
+  if (barcodeMeta) product.barcodeMeta = barcodeMeta
   if (category) product.category = category
 
   await setDoc(
@@ -111,6 +170,9 @@ export async function updateProduct(
     throw new Error('Produto não encontrado.')
   }
 
+  await assertBarcodeUnique(organizationId, input.barcode, productId)
+
+  const { barcode, barcodeMeta } = resolveBarcodeFields(input)
   const updated: Product = {
     ...existing,
     name: normalizeProductText(input.name),
@@ -124,10 +186,14 @@ export async function updateProduct(
     updatedAt: nowIso(),
   }
 
-  const barcode = input.barcode?.trim()
   const category = input.category ? normalizeProductText(input.category) : ''
-  if (barcode) updated.barcode = barcode
-  else delete updated.barcode
+  if (barcode) {
+    updated.barcode = barcode
+    if (barcodeMeta) updated.barcodeMeta = barcodeMeta
+  } else {
+    delete updated.barcode
+    delete updated.barcodeMeta
+  }
   if (category) updated.category = category
   else delete updated.category
 
@@ -147,6 +213,93 @@ export async function setProductActive(
     active,
     updatedAt: nowIso(),
   })
+}
+
+/** Aplica código no produto sem alterar demais campos. */
+export async function setProductBarcode(
+  organizationId: OrganizationId,
+  productId: string,
+  meta: ProductBarcodeMeta,
+): Promise<Product> {
+  const existing = await getProduct(organizationId, productId)
+  if (!existing) throw new Error('Produto não encontrado.')
+
+  await assertBarcodeUnique(organizationId, meta.value, productId)
+
+  const updated: Product = {
+    ...existing,
+    barcode: meta.value.trim(),
+    barcodeMeta: meta,
+    updatedAt: nowIso(),
+  }
+
+  await setDoc(
+    doc(requireDb(), 'organizations', organizationId, 'products', productId),
+    omitUndefined({ ...updated }),
+  )
+  return updated
+}
+
+export async function generateInternalBarcodeForProduct(input: {
+  organizationId: OrganizationId
+  productId: string
+  operatorId?: string
+}): Promise<Product> {
+  const existing = await getProduct(input.organizationId, input.productId)
+  if (!existing) throw new Error('Produto não encontrado.')
+  if (productHasBarcode(existing)) {
+    throw new Error('Este produto já possui código de barras. Não substituímos códigos existentes.')
+  }
+
+  let value = generateBalqoInternalBarcode()
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      await assertBarcodeUnique(input.organizationId, value, input.productId)
+      break
+    } catch {
+      value = generateBalqoInternalBarcode()
+    }
+  }
+
+  const meta = buildBarcodeMeta({
+    value,
+    type: 'code128_internal',
+    source: 'balqo_generated',
+    generatedAt: nowIso(),
+    generatedByOperatorId: input.operatorId,
+  })
+
+  const product = await setProductBarcode(input.organizationId, input.productId, meta)
+  return product
+}
+
+export async function generateMissingBarcodes(input: {
+  organizationId: OrganizationId
+  productIds: string[]
+  operatorId?: string
+}): Promise<{ generated: number; preserved: number; products: Product[] }> {
+  let generated = 0
+  let preserved = 0
+  const products: Product[] = []
+
+  for (const productId of input.productIds) {
+    const existing = await getProduct(input.organizationId, productId)
+    if (!existing) continue
+    if (productHasBarcode(existing)) {
+      preserved += 1
+      products.push(existing)
+      continue
+    }
+    const updated = await generateInternalBarcodeForProduct({
+      organizationId: input.organizationId,
+      productId,
+      operatorId: input.operatorId,
+    })
+    generated += 1
+    products.push(updated)
+  }
+
+  return { generated, preserved, products }
 }
 
 export function filterProducts(products: Product[], search: string): Product[] {
