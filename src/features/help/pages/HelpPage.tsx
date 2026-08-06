@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
 import { CircleHelp, MessageCircle } from 'lucide-react'
-import { APP_NAME, BALQO_SUPPORT_WHATSAPP } from '../../shared/constants'
-import { formatWhatsappDisplay, whatsappUrl } from '../../shared/lib/whatsapp'
-import { useAuth } from '../../shared/hooks/useAuth'
-import { HELP_TOPICS } from './content'
+import { APP_NAME, BALQO_SUPPORT_WHATSAPP } from '../../../shared/constants'
+import { formatWhatsappDisplay, whatsappUrl } from '../../../shared/lib/whatsapp'
+import { useAuth } from '../../../shared/hooks/useAuth'
+import { HELP_TOPICS } from '../content'
 import './HelpPage.css'
 
 export function HelpPage() {
