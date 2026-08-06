@@ -39,7 +39,8 @@ export function resolveReceiptSettings(input: {
 
   return {
     printOnSale: Boolean(organization?.printReceiptOnSale),
-    sendReceiptOnSale: Boolean(organization?.sendReceiptOnSale),
+    // Envio automático por e-mail ainda não entra na oferta — força off.
+    sendReceiptOnSale: false,
     printerPath,
     paperWidth: normalizePaperWidth(organization?.receiptPaperWidth),
   }

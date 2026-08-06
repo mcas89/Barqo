@@ -106,10 +106,12 @@ export function LoginPage() {
       <div className="login-page__panel">
         <img className="login-page__logo" src={BALQO_LOGO_SRC} alt={APP_NAME} />
         <h1>Seu comércio em um só lugar</h1>
-        <p>{APP_TAGLINE}. PDV rápido, caixa organizado e controle do dia a dia.</p>
+        <p>
+          {APP_TAGLINE}. PDV no balcão, caixa e estoque — cupom interno, sem NF-e.
+        </p>
         <ul>
           <li>Vendas no balcão com PIN de operador</li>
-          <li>Caixa, estoque e fiado sem complicação</li>
+          <li>Caixa, estoque, clientes e fiado</li>
           <li>Comece no Entrada com 10 dias grátis e suba de plano quando quiser</li>
         </ul>
       </div>

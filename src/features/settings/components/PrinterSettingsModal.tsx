@@ -199,28 +199,9 @@ export function PrinterSettingsModal({
             />
             <span>Imprimir cupom ao finalizar a venda</span>
           </label>
-          <label
-            className="printer-modal__switch printer-modal__switch--disabled"
-            onClick={(event) => {
-              event.preventDefault()
-              setLocalError(null)
-              setLocalOk(null)
-              setLocalError(
-                'Envio de comprovante por e-mail está indisponível para manutenção.',
-              )
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={false}
-              disabled
-              readOnly
-              aria-disabled="true"
-            />
-            <span>Enviar comprovante (e-mail) ao finalizar — indisponível</span>
-          </label>
           <p className="printer-modal__hint">
-            Em manutenção. O cupom impresso continua disponível.
+            Cupom interno da loja (não é NF-e). Envio automático por e-mail ou WhatsApp
+            ainda não está disponível.
           </p>
 
           <label>

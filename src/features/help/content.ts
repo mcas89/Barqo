@@ -156,14 +156,15 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: 'offline',
     title: 'Offline e Sync',
-    summary: 'Continuar vendendo sem internet e sincronizar depois.',
+    summary: 'Vender e operar o caixa sem internet (núcleo) e sincronizar depois.',
     icon: RefreshCw,
     steps: [
-      'Com catálogo e caixa já abertos, vendas e movimentos podem ficar na fila local.',
+      'Com catálogo já carregado e caixa aberto, vendas e abertura/fechamento de caixa podem ficar na fila local.',
       'Quando a internet voltar, a Sync envia o pendente.',
       'Confira a tela Sync se algo ficar parado.',
-      'Cancelar venda e algumas ações ainda pedem internet.',
+      'Cancelar venda, cadastro de cliente e algumas ações ainda pedem internet.',
     ],
+    tip: 'Offline do núcleo cobre venda e caixa. Fiado/estoque multiaparelho offline ainda não é o foco deste lançamento.',
     link: { to: '/app/sync', label: 'Ver Sync' },
   },
   {

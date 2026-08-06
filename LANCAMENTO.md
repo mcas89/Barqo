@@ -1,14 +1,14 @@
 # Lançamento BALQO V0.1
 
-Status recomendado hoje: **piloto com 2–5 lojas**.  
+Status recomendado hoje: **piloto / primeiras lojas pagantes**, com comunicação honesta.  
 Trava operacional de cobrança (rules, domínio, InfinitePay, termos/LGPD, aviso sem NF-e) está feita.  
-Ainda **não** está fechado para cobrar em escala — falta **API de e-mail** do comprovante.
+**Não prometa** e-mail/WhatsApp automático do cupom nem NF-e. Offline = núcleo (venda/caixa).
 
 - App: https://balqo.vercel.app
 - Repo: https://github.com/mcas89/Barqo
 - Versão: `0.1.13`
 - Suporte: WhatsApp `5531983919015`
-- Atualizado: 5 ago 2026
+- Atualizado: 6 ago 2026
 
 Marque com `[x]` o que for concluído.
 
@@ -21,7 +21,7 @@ Não precisa refazer para o piloto.
 - [x] Cadastro, loja, tema, logo
 - [x] PDV com PIN, aparelhos e limites de plano
 - [x] Produtos, estoque, caixa, clientes, fornecedores, equipe
-- [x] Fiado só com cliente (Essencial+)
+- [x] Fiado só com cliente (todos os planos)
 - [x] Relatório do dia; período/exportação conforme o plano
 - [x] Planos Entrada R$19,90 / Essencial R$39,90 / Controle R$59,90
 - [x] Trial 10 dias, aviso, 3 dias de carência, bloqueio
@@ -68,7 +68,7 @@ Dá para pilotoar sem isso. **Não venda como pronto.**
 - [x] Offline confiável (núcleo) — venda/caixa na fila, sync idempotente, tela Sync
 - [x] Passo 3: lease dispositivo 24h/72h + assinatura offline 7d + admin aparelhos
 - [x] Escolher impressora da lista do Windows (agente local + modal em Configurações)
-- [ ] API de e-mail do comprovante (`VITE_RECEIPT_API_URL`) — UI em manutenção por enquanto
+- [ ] API de e-mail do comprovante (`VITE_RECEIPT_API_URL`) — **fora da oferta atual** (UI ocultada)
 - [x] Travar escrita de `subscriptions` nas rules (só o dono grava; republicar no Console)
 - [x] PDV: cadastro rápido, venda avulsa, alterar preço na hora
 - [x] Plano Controle: permissões finas (Equipe → checkboxes por funcionário)
@@ -118,7 +118,8 @@ Pode:
 Não pode (ainda):
 
 - Nota fiscal eletrônica
-- Receber comprovante por e-mail automático
+- Receber comprovante por e-mail ou WhatsApp automático
+- Offline total (clientes/fiado/estoque multiaparelho)
 - Impressão silenciosa sem configurar impressora / agente local
 
 ---
@@ -128,6 +129,6 @@ Não pode (ainda):
 1. ~~Rules + domínio Auth~~
 2. ~~Pagamento E2E~~
 3. ~~Texto fiscal + termos~~
-4. ~~2–5 pilotos~~ (em teste)
-5. ~~Impressora / PDV rápido / rules / permissões~~ · ~~identidade operador~~ · ~~offline núcleo~~ · ~~lease aparelho/assinatura~~ · ~~fechamento offline~~
-6. API de e-mail do comprovante → depois abrir cobrança em escala
+4. ~~2–5 pilotos~~ (em teste / primeiras vendas)
+5. ~~Impressora / PDV rápido / rules / permissões~~ · ~~identidade operador~~ · ~~offline núcleo~~ · ~~lease aparelho/assinatura~~ · ~~fechamento offline~~ · ~~textos honestos de marketing~~
+6. Novas implantações (e-mail/WhatsApp do cupom, etc.) **depois** de validar com os primeiros clientes

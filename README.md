@@ -1,14 +1,15 @@
 # BALQO
 
-PDV SaaS multissegmento para pequenos e médios comerciantes.
+PDV SaaS para pequenos comerciantes (balcão).  
+Cupom interno — **não emite NF-e**. Sem e-mail/WhatsApp automático de comprovante neste lançamento.
 
 ## Stack inicial
 
 - React + TypeScript (Vite)
-- Firebase (Auth, Firestore, Storage) — chaves depois
-- Dexie (IndexedDB) para offline
+- Firebase (Auth, Firestore, Storage)
+- Dexie (IndexedDB) para offline do núcleo (venda/caixa)
 - PWA (`vite-plugin-pwa`)
-- Deploy previsto: GitHub + Vercel
+- Deploy: GitHub + Vercel
 
 ## Firebase
 
@@ -38,13 +39,19 @@ src/
 
 | Plano | Preço | Foco |
 |---|---|---|
-| Entrada | R$ 19,90/mês | PDV, caixa e estoque no balcão · 10 dias grátis |
-| Essencial | R$ 39,90/mês | Equipe, fiado e relatórios do período |
+| Entrada | R$ 19,90/mês | PDV, caixa, estoque e fiado · 10 dias grátis |
+| Essencial | R$ 39,90/mês | Equipe, mais aparelhos e relatórios do período |
 | Controle | R$ 59,90/mês | Permissões finas e visão gerencial |
 
 Depois de assinar, só é possível subir de plano, pagando a diferença.
 
 Catálogo e gates: `src/features/billing/plans/`.
+
+## O que não prometer (ainda)
+
+- NF-e / NFC-e
+- Comprovante por e-mail ou WhatsApp automático
+- Offline total (clientes/fiado/estoque multiaparelho)
 
 ## Deploy (GitHub + Vercel)
 

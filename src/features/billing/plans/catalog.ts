@@ -14,7 +14,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
   [PLAN_IDS.ENTRADA]: {
     id: PLAN_IDS.ENTRADA,
     name: 'Entrada',
-    tagline: 'PDV completo para o dia a dia no balcão',
+    tagline: 'PDV para o dia a dia no balcão',
     audience: 'Para quem vende e quer o movimento organizado, com calma e clareza.',
     priceMonthlyCents: 1990,
     priceSemiannualCents: 9950,
@@ -41,7 +41,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'PDV, produtos, caixa e estoque simples',
       'Fiado na venda (com cliente)',
       'Painel do dia',
-      'PWA + operação offline',
+      'PWA + vendas e caixa offline',
       'Sem NF-e · cupom interno, não é documento fiscal',
     ],
     growthPain:
@@ -82,7 +82,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'Multi-usuário e papéis simples',
       'Fiado / contas a receber',
       'Relatórios por período, produtos e operador',
-      'PWA + operação offline',
+      'PWA + vendas e caixa offline',
       'Sem NF-e · cupom interno, não é documento fiscal',
     ],
     growthPain:
@@ -126,10 +126,10 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'Permissões finas',
       'Relatórios gerenciais + exportação',
       'Suporte prioritário',
-      'PWA + operação offline',
+      'PWA + vendas e caixa offline',
       'Sem NF-e · cupom interno, não é documento fiscal',
     ],
-    growthPain: 'O conjunto completo do BALQO para gerir a loja com segurança.',
+    growthPain: 'Para lojas que precisam de acessos sob medida e visão gerencial.',
   },
 }
 
