@@ -850,22 +850,203 @@
   }
 }
 
-@media (max-width: 640px) {
-  .pos-page__customer-chip,
-  .pos-page__cash-pill,
-  .pos-page__ghost,
-  .pos-page__ghost-link {
-    min-height: 2.7rem;
-    flex: 1 1 auto;
+.pos-page__phone-only {
+  display: none;
+}
+
+.pos-page__more {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.pos-page__more-btn {
+  min-width: 2.7rem;
+  padding-inline: 0.55rem;
+}
+
+.pos-page__more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.pos-page__more-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 21;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  min-width: 11.5rem;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--balqo-brand, #0b1f3a) 12%, transparent);
+  border-radius: 0.85rem;
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--balqo-brand, #0b1f3a) 18%, transparent);
+}
+
+.pos-page__more-menu a,
+.pos-page__more-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.7rem 0.75rem;
+  border-radius: 0.65rem;
+  cursor: pointer;
+}
+
+.pos-page__more-menu a:hover,
+.pos-page__more-menu button:hover {
+  background: color-mix(in srgb, var(--balqo-brand, #0b1f3a) 7%, #fff);
+}
+
+.pos-page__more-menu button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Celular: caixa enxuto — busca, carrinho, pagar */
+@media (max-width: 720px) {
+  .pos-page__desk-only {
+    display: none !important;
   }
 
+  .pos-page__phone-only {
+    display: block;
+  }
+
+  .pos-page__toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+    align-items: stretch;
+  }
+
+  .pos-page__search-wrap {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .pos-page__customer-chip {
+    min-height: 2.55rem;
+    max-width: 100%;
+    padding-inline: 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  .pos-page__customer-chip,
+  .pos-page__more {
+    flex: 0 0 auto;
+  }
+
+  .pos-page__stage {
+    gap: 0.55rem;
+  }
+
+  .pos-page__cart-panel {
+    border-radius: 0.9rem;
+    padding: 0.7rem 0.75rem;
+  }
+
+  .pos-page__cart-header {
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .pos-page__cart-header span {
+    font-size: 0.8rem;
+  }
+
+  .pos-page__empty-cart {
+    padding: 1.1rem 0.5rem;
+  }
+
+  .pos-page__empty-hint {
+    margin: 0.35rem 0 0;
+    font-size: 0.88rem;
+  }
+
+  .pos-page__holds {
+    margin-bottom: 0.5rem;
+  }
+
+  .pos-page__checkout {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    order: 2;
+    margin: 0 -0.15rem;
+    padding: 0.7rem 0.75rem calc(0.7rem + env(safe-area-inset-bottom));
+    border-radius: 1rem 1rem 0.65rem 0.65rem;
+    gap: 0.55rem;
+    box-shadow: 0 -8px 28px color-mix(in srgb, var(--balqo-brand, #0b1f3a) 12%, transparent);
+  }
+
+  .pos-page__total-block {
+    padding: 0.15rem 0;
+  }
+
+  .pos-page__total-block span {
+    font-size: 0.75rem;
+  }
+
+  .pos-page__total-block strong {
+    font-size: 1.55rem;
+  }
+
+  .pos-page__pay-label {
+    margin: 0;
+    font-size: 0.72rem;
+  }
+
+  .pos-page__pay-grid {
+    gap: 0.4rem;
+  }
+
+  .pos-page__pay-btn {
+    min-height: 2.65rem;
+    padding: 0.45rem 0.4rem;
+    font-size: 0.82rem;
+    border-radius: 0.7rem;
+  }
+
+  .pos-page__finish {
+    position: static;
+    margin-top: 0.15rem;
+    padding: 0.85rem 0.9rem;
+    font-size: 1rem;
+    border-radius: 0.8rem;
+  }
+
+  .pos-page__line-total .pos-page__ghost {
+    min-height: 2.2rem;
+    padding: 0 0.65rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 640px) {
   .pos-page__search-input {
     font-size: 16px;
-    padding: 0.9rem 1rem;
+    padding: 0.8rem 0.9rem 0.8rem 2.5rem;
   }
 
   .pos-page__qty button {
-    width: 2.6rem;
-    height: 2.6rem;
+    width: 2.45rem;
+    height: 2.45rem;
   }
 }

@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { Banknote, Pause, Play, Receipt, Search, Tag, Trash2, UserRound } from 'lucide-react'
+import {
+  Banknote,
+  EllipsisVertical,
+  Pause,
+  Play,
+  Receipt,
+  Search,
+  Tag,
+  Trash2,
+  UserRound,
+} from 'lucide-react'
 import { BALQO_LOGO_SRC } from '../../../shared/constants'
 import { startOfLocalDayIso } from '../../../shared/lib/dates'
 import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
@@ -53,6 +63,7 @@ export function PosPage() {
   const [quickBarcode, setQuickBarcode] = useState('')
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
   const [priceDraft, setPriceDraft] = useState('')
+  const [showMobileMore, setShowMobileMore] = useState(false)
 
   const { subscription, organization: authOrg } = useAuth()
   const { devices, deviceId } = useDeviceSession()
@@ -491,29 +502,126 @@ export function PosPage() {
           {customer ? customer.name : 'Cliente'}
         </button>
 
-        <div className="pos-page__cash-pill" title={cashSession?.openedByName}>
+        <div className="pos-page__cash-pill pos-page__desk-only" title={cashSession?.openedByName}>
           <Banknote size={16} strokeWidth={2} aria-hidden />
           Caixa aberto
         </div>
 
-        <button type="button" className="pos-page__ghost" onClick={() => openQuick('loose')}>
+        <button
+          type="button"
+          className="pos-page__ghost pos-page__desk-only"
+          onClick={() => openQuick('loose')}
+        >
           <Tag size={16} strokeWidth={2} aria-hidden />
           Avulsa
         </button>
         <button
           type="button"
-          className="pos-page__ghost"
+          className="pos-page__ghost pos-page__desk-only"
           onClick={() => void openRecentSales()}
         >
           <Receipt size={16} strokeWidth={2} aria-hidden />
           2ª via
         </button>
         {canAccessBackOffice && (
-          <Link to="/app/cash" className="pos-page__ghost pos-page__ghost-link">
+          <Link
+            to="/app/cash"
+            className="pos-page__ghost pos-page__ghost-link pos-page__desk-only"
+          >
             <Banknote size={16} strokeWidth={2} aria-hidden />
             Caixa
           </Link>
         )}
+
+        <div className="pos-page__more pos-page__phone-only">
+          <button
+            type="button"
+            className="pos-page__ghost pos-page__more-btn"
+            aria-expanded={showMobileMore}
+            aria-haspopup="menu"
+            aria-label="Mais opções"
+            onClick={() => setShowMobileMore((open) => !open)}
+          >
+            <EllipsisVertical size={18} strokeWidth={2} aria-hidden />
+          </button>
+          {showMobileMore && (
+            <>
+              <button
+                type="button"
+                className="pos-page__more-backdrop"
+                aria-label="Fechar menu"
+                onClick={() => setShowMobileMore(false)}
+              />
+              <ul className="pos-page__more-menu" role="menu">
+                <li role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowMobileMore(false)
+                      openQuick('loose')
+                    }}
+                  >
+                    <Tag size={16} strokeWidth={2} aria-hidden />
+                    Venda avulsa
+                  </button>
+                </li>
+                <li role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowMobileMore(false)
+                      void openRecentSales()
+                    }}
+                  >
+                    <Receipt size={16} strokeWidth={2} aria-hidden />
+                    2ª via
+                  </button>
+                </li>
+                {canAccessBackOffice && (
+                  <li role="none">
+                    <Link
+                      to="/app/cash"
+                      role="menuitem"
+                      onClick={() => setShowMobileMore(false)}
+                    >
+                      <Banknote size={16} strokeWidth={2} aria-hidden />
+                      Caixa
+                    </Link>
+                  </li>
+                )}
+                <li role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy || cart.length === 0}
+                    onClick={() => {
+                      setShowMobileMore(false)
+                      setShowDiscount(true)
+                    }}
+                  >
+                    Desconto
+                  </button>
+                </li>
+                <li role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={busy || cart.length === 0 || heldSales.length >= maxHeldSales}
+                    onClick={() => {
+                      setShowMobileMore(false)
+                      void handleHoldSale()
+                    }}
+                  >
+                    <Pause size={16} strokeWidth={2} aria-hidden />
+                    Colocar em espera
+                  </button>
+                </li>
+              </ul>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="pos-page__body">
@@ -599,7 +707,7 @@ export function PosPage() {
               <div className="pos-page__cart-actions">
                 <button
                   type="button"
-                  className="pos-page__ghost"
+                  className="pos-page__ghost pos-page__desk-only"
                   onClick={() => void handleHoldSale()}
                   disabled={busy || heldSales.length >= maxHeldSales}
                   title={
@@ -674,7 +782,12 @@ export function PosPage() {
               <strong className="pos-page__empty-mode">
                 {customer ? customer.name : 'Caixa livre'}
               </strong>
-              <p>Passe o código, busque pelo nome ou use Avulsa / cadastro rápido.</p>
+              <p className="pos-page__empty-hint pos-page__desk-only">
+                Passe o código, busque pelo nome ou use Avulsa / cadastro rápido.
+              </p>
+              <p className="pos-page__empty-hint pos-page__phone-only">
+                Busque pelo código ou nome do produto.
+              </p>
             </div>
           ) : (
             <ul className="pos-page__cart-list">
@@ -770,7 +883,11 @@ export function PosPage() {
 
           <button
             type="button"
-            className="pos-page__ghost pos-page__discount-toggle"
+            className={
+              showDiscount
+                ? 'pos-page__ghost pos-page__discount-toggle'
+                : 'pos-page__ghost pos-page__discount-toggle pos-page__desk-only'
+            }
             onClick={() => setShowDiscount((value) => !value)}
             disabled={busy || cart.length === 0}
           >

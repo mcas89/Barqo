@@ -47,15 +47,21 @@ export function PosLayout() {
             Menu
           </Link>
           {pinRequired && operator && (
-            <button type="button" className="pos-layout__back" onClick={lock}>
+            <button
+              type="button"
+              className="pos-layout__back"
+              onClick={lock}
+              title="Trocar operador"
+            >
               <UserRound size={16} strokeWidth={2} aria-hidden />
-              Trocar operador
+              <span className="pos-layout__label-full">Trocar operador</span>
+              <span className="pos-layout__label-short">Trocar</span>
             </button>
           )}
           {operator && (
             <div className="pos-layout__who">
               <strong>{operator.displayName}</strong>
-              <span>{POS_ROLE_LABELS[operator.role]}</span>
+              <span className="pos-layout__who-role">{POS_ROLE_LABELS[operator.role]}</span>
             </div>
           )}
         </div>

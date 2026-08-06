@@ -150,6 +150,10 @@
   padding: 1rem 1.1rem 1.15rem;
 }
 
+.pos-layout__label-short {
+  display: none;
+}
+
 @media (max-width: 820px) {
   .pos-layout__bar {
     padding: 0.55rem 0.75rem;
@@ -196,5 +200,66 @@
 
   .pos-layout__who strong {
     font-size: 0.8rem;
+  }
+}
+
+/* Celular: PDV enxuto (alternativa ao caixa fixo) */
+@media (max-width: 720px) {
+  .pos-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-layout__logo {
+    display: none;
+  }
+
+  .pos-layout__bar,
+  .pos-page__toolbar {
+    grid-column: 1;
+  }
+
+  .pos-page__body,
+  .pos-page.pos-page--centered,
+  .pos-page__empty,
+  .pos-unlock {
+    grid-column: 1;
+    padding: 0.55rem 0.55rem calc(0.55rem + env(safe-area-inset-bottom));
+  }
+
+  .pos-layout__bar {
+    gap: 0.45rem;
+    padding: 0.4rem 0.55rem;
+    padding-top: max(0.4rem, env(safe-area-inset-top));
+  }
+
+  .pos-layout__actions {
+    gap: 0.3rem;
+  }
+
+  .pos-layout__back {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .pos-layout__label-full {
+    display: none;
+  }
+
+  .pos-layout__label-short {
+    display: inline;
+  }
+
+  .pos-layout__who-role,
+  .pos-layout__clock {
+    display: none;
+  }
+
+  .pos-layout__who strong {
+    font-size: 0.78rem;
+    max-width: 7.5rem;
+  }
+
+  .pos-page__toolbar {
+    padding: 0.4rem 0.55rem 0.5rem;
   }
 }
