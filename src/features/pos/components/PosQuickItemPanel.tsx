@@ -134,7 +134,11 @@ export function PosQuickItemPanel({
           </label>
         )}
 
-        <div className="pos-quick__row">
+        <div
+          className={
+            mode === 'register' ? 'pos-quick__row pos-quick__row--with-stock' : 'pos-quick__row'
+          }
+        >
           <label>
             Preço
             <input

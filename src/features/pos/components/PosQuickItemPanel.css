@@ -19,6 +19,8 @@
   position: relative;
   z-index: 1;
   width: min(420px, 100%);
+  max-width: 100%;
+  overflow: hidden;
   background: #fff;
   border: 1px solid rgba(11, 31, 58, 0.12);
   border-radius: 0.9rem;
@@ -28,6 +30,7 @@
   gap: 0.7rem;
   box-shadow: 0 20px 50px rgba(11, 31, 58, 0.18);
   color: #0b1f3a;
+  box-sizing: border-box;
 }
 
 .pos-quick__card header {
@@ -98,12 +101,23 @@
   font: inherit;
   color: #0b1f3a;
   background: #f8fafc;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .pos-quick__row {
   display: grid;
-  grid-template-columns: 1.4fr 0.7fr 0.8fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr);
   gap: 0.55rem;
+}
+
+.pos-quick__row--with-stock {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.65fr) minmax(0, 0.75fr);
+}
+
+.pos-quick__row label {
+  min-width: 0;
 }
 
 .pos-quick__error {
@@ -133,7 +147,12 @@
 }
 
 @media (max-width: 520px) {
-  .pos-quick__row {
-    grid-template-columns: 1fr 1fr;
+  .pos-quick__row,
+  .pos-quick__row--with-stock {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .pos-quick__row--with-stock label:last-child {
+    grid-column: 1 / -1;
   }
 }
