@@ -307,9 +307,14 @@ export function buildCashSummary(
     suprimentoTotalCents -
     sangriaTotalCents
 
+  const fiadoCents = paymentsByMethod.on_account
+  const receivedCents = Math.max(0, salesTotalCents - fiadoCents)
+
   return {
     salesCount: sales.length,
     salesTotalCents,
+    fiadoCents,
+    receivedCents,
     paymentsByMethod,
     changeTotalCents,
     sangriaTotalCents,

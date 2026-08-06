@@ -215,6 +215,7 @@ export function CashRegisterPage() {
           <div className="cash-page__total-card">
             <span>Dinheiro esperado na gaveta</span>
             <strong>{formatMoney(summary.expectedCashInDrawerCents)}</strong>
+            <em>Só espécie — fiado, PIX e cartão não entram aqui.</em>
           </div>
 
           <div className="cash-page__stats">
@@ -223,25 +224,59 @@ export function CashRegisterPage() {
               <strong>{summary.salesCount}</strong>
             </article>
             <article>
-              <span>Faturamento</span>
+              <span>Total vendido</span>
               <strong>{formatMoney(summary.salesTotalCents)}</strong>
             </article>
             <article>
-              <span>Sangrias</span>
-              <strong>{formatMoney(summary.sangriaTotalCents)}</strong>
+              <span>Recebido (sem fiado)</span>
+              <strong>{formatMoney(summary.receivedCents)}</strong>
             </article>
             <article>
-              <span>Suprimentos</span>
-              <strong>{formatMoney(summary.suprimentoTotalCents)}</strong>
+              <span>Fiado a receber</span>
+              <strong>{formatMoney(summary.fiadoCents)}</strong>
             </article>
           </div>
 
+          {(summary.sangriaTotalCents > 0 || summary.suprimentoTotalCents > 0) && (
+            <div className="cash-page__stats cash-page__stats--secondary">
+              <article>
+                <span>Sangrias</span>
+                <strong>{formatMoney(summary.sangriaTotalCents)}</strong>
+              </article>
+              <article>
+                <span>Suprimentos</span>
+                <strong>{formatMoney(summary.suprimentoTotalCents)}</strong>
+              </article>
+            </div>
+          )}
+
+          {summary.fiadoCents > 0 && (
+            <p className="cash-page__fiado-note" role="note">
+              Ex.: vendeu {formatMoney(summary.salesTotalCents)}, sendo{' '}
+              {formatMoney(summary.fiadoCents)} em fiado → o caixa só considera o
+              recebido ({formatMoney(summary.receivedCents)}) e o dinheiro na
+              gaveta acima. O fiado fica em Contas a receber.
+            </p>
+          )}
+
           <div className="cash-page__methods">
-            <h2>Recebido por forma</h2>
+            <h2>Por forma de pagamento</h2>
             <ul>
               {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((method) => (
-                <li key={method}>
-                  <span>{PAYMENT_METHOD_LABELS[method]}</span>
+                <li
+                  key={method}
+                  className={
+                    method === 'on_account' && summary.paymentsByMethod[method] > 0
+                      ? 'cash-page__method--fiado'
+                      : undefined
+                  }
+                >
+                  <span>
+                    {PAYMENT_METHOD_LABELS[method]}
+                    {method === 'on_account' ? (
+                      <em> Não entra na gaveta</em>
+                    ) : null}
+                  </span>
                   <strong>{formatMoney(summary.paymentsByMethod[method])}</strong>
                 </li>
               ))}
@@ -340,7 +375,11 @@ export function CashRegisterPage() {
         <form className="cash-page__card" onSubmit={handleClose}>
           <h2>Fechar caixa</h2>
           <p className="cash-page__hint">
-            Esperado na gaveta: <strong>{formatMoney(summary.expectedCashInDrawerCents)}</strong>
+            Esperado na gaveta (só dinheiro):{' '}
+            <strong>{formatMoney(summary.expectedCashInDrawerCents)}</strong>
+            {summary.fiadoCents > 0
+              ? ` · Fiado a receber: ${formatMoney(summary.fiadoCents)} (não conta na gaveta)`
+              : ''}
           </p>
           <label>
             Quanto tem na gaveta agora? (R$)

@@ -25,6 +25,10 @@ export interface DaySummary {
   fromIso: string
   salesCount: number
   salesTotalCents: number
+  /** Fiado do dia — a receber, não é dinheiro na gaveta. */
+  fiadoCents: number
+  /** Total vendido menos fiado. */
+  receivedCents: number
   ticketAverageCents: number
   changeTotalCents: number
   payments: DayPaymentBreakdown[]
@@ -87,6 +91,9 @@ export function buildDaySummary(input: {
   const ticketAverageCents =
     salesCount > 0 ? Math.round(salesTotalCents / salesCount) : 0
 
+  const fiadoCents = paymentsMap[PAYMENT_METHODS.ON_ACCOUNT]
+  const receivedCents = Math.max(0, salesTotalCents - fiadoCents)
+
   const payments: DayPaymentBreakdown[] = (
     Object.keys(paymentsMap) as PaymentMethod[]
   )
@@ -123,6 +130,8 @@ export function buildDaySummary(input: {
     fromIso: input.fromIso,
     salesCount,
     salesTotalCents,
+    fiadoCents,
+    receivedCents,
     ticketAverageCents,
     changeTotalCents,
     payments,

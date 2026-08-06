@@ -82,20 +82,20 @@ export function HomePage() {
 
           <div className="home-page__kpis">
             <article className="home-page__kpi">
-              <span>Faturamento</span>
+              <span>Total vendido</span>
               <strong>{formatMoney(summary.salesTotalCents)}</strong>
+            </article>
+            <article className="home-page__kpi">
+              <span>Recebido (sem fiado)</span>
+              <strong>{formatMoney(summary.receivedCents)}</strong>
+            </article>
+            <article className="home-page__kpi">
+              <span>Fiado a receber</span>
+              <strong>{formatMoney(summary.fiadoCents)}</strong>
             </article>
             <article className="home-page__kpi">
               <span>Vendas</span>
               <strong>{summary.salesCount}</strong>
-            </article>
-            <article className="home-page__kpi">
-              <span>Ticket médio</span>
-              <strong>{formatMoney(summary.ticketAverageCents)}</strong>
-            </article>
-            <article className="home-page__kpi">
-              <span>Troco dado</span>
-              <strong>{formatMoney(summary.changeTotalCents)}</strong>
             </article>
           </div>
 
@@ -108,7 +108,12 @@ export function HomePage() {
                 <ul className="home-page__rows">
                   {summary.payments.map((row) => (
                     <li key={row.method}>
-                      <span>{PAYMENT_METHOD_LABELS[row.method]}</span>
+                      <span>
+                        {PAYMENT_METHOD_LABELS[row.method]}
+                        {row.method === 'on_account' ? (
+                          <em> a receber · não é dinheiro</em>
+                        ) : null}
+                      </span>
                       <strong>{formatMoney(row.amountCents)}</strong>
                     </li>
                   ))}

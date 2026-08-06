@@ -86,11 +86,16 @@ export interface CashSession {
 
 export interface CashSummary {
   salesCount: number
+  /** Total vendido na sessão (inclui fiado). */
   salesTotalCents: number
+  /** Parte em fiado — a receber, não entrou no caixa. */
+  fiadoCents: number
+  /** Vendido menos fiado (dinheiro/PIX/cartão registrados). */
+  receivedCents: number
   paymentsByMethod: PaymentTotals
   changeTotalCents: number
   sangriaTotalCents: number
   suprimentoTotalCents: number
-  /** Dinheiro esperado na gaveta */
+  /** Dinheiro esperado na gaveta (só espécie; fiado não entra). */
   expectedCashInDrawerCents: number
 }

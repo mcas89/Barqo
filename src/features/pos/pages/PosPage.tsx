@@ -9,7 +9,6 @@ import {
   DEFAULT_PLAN_ID,
   PLAN_FEATURES,
   planHasFeature,
-  upgradeMessageForFeature,
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { useDeviceSession } from '../../devices'
@@ -60,7 +59,6 @@ export function PosPage() {
   const planId =
     subscription?.planId ?? authOrg?.planId ?? DEFAULT_PLAN_ID
   const canUseFiado = planHasFeature(planId, PLAN_FEATURES.RECEIVABLES)
-  const fiadoUpgradeHint = upgradeMessageForFeature(PLAN_FEATURES.RECEIVABLES)
 
   const {
     operator,
@@ -112,8 +110,10 @@ export function PosPage() {
     maxHeldSales,
   } = usePos()
 
-  const paymentMethods = Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]
-  const fiadoEnabled = canUseFiado && Boolean(customer)
+  const paymentMethods = (Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).filter(
+    (method) =>
+      method !== PAYMENT_METHODS.ON_ACCOUNT || (canUseFiado && Boolean(customer)),
+  )
 
   const showSuggestions = cashOpen && search.trim().length > 0 && !busy
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
@@ -221,17 +221,6 @@ export function PosPage() {
   }
 
   function choosePayment(method: PaymentMethod) {
-    if (method === PAYMENT_METHODS.ON_ACCOUNT) {
-      if (!canUseFiado) {
-        setToast(fiadoUpgradeHint)
-        return
-      }
-      if (!customer) {
-        setToast('Selecione o cliente para vender no fiado.')
-        setShowCustomerPicker(true)
-        return
-      }
-    }
     setSelectedMethod(method)
     if (method === 'cash') {
       const received = cashReceived
@@ -804,38 +793,22 @@ export function PosPage() {
 
           <p className="pos-page__pay-label">Forma de pagamento</p>
           <div className="pos-page__pay-grid">
-            {paymentMethods.map((method) => {
-              const isFiado = method === PAYMENT_METHODS.ON_ACCOUNT
-              const fiadoLocked = isFiado && !fiadoEnabled
-              return (
-                <button
-                  key={method}
-                  type="button"
-                  className={
-                    activeMethod === method
-                      ? 'pos-page__pay-btn pos-page__pay-btn--active'
-                      : fiadoLocked
-                        ? 'pos-page__pay-btn pos-page__pay-btn--muted'
-                        : 'pos-page__pay-btn'
-                  }
-                  onClick={() => choosePayment(method)}
-                  disabled={busy || totalCents <= 0}
-                  title={
-                    isFiado && !canUseFiado
-                      ? fiadoUpgradeHint
-                      : isFiado && !customer
-                        ? 'Selecione o cliente para vender no fiado'
-                        : undefined
-                  }
-                >
-                  {PAYMENT_METHOD_LABELS[method]}
-                </button>
-              )
-            })}
+            {paymentMethods.map((method) => (
+              <button
+                key={method}
+                type="button"
+                className={
+                  activeMethod === method
+                    ? 'pos-page__pay-btn pos-page__pay-btn--active'
+                    : 'pos-page__pay-btn'
+                }
+                onClick={() => choosePayment(method)}
+                disabled={busy || totalCents <= 0}
+              >
+                {PAYMENT_METHOD_LABELS[method]}
+              </button>
+            ))}
           </div>
-          {customer && canUseFiado ? (
-            <p className="pos-page__fiado-hint">Fiado liberado para {customer.name}</p>
-          ) : null}
 
           {activeMethod === 'cash' && (
             <label className="pos-page__cash">

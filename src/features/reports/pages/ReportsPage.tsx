@@ -145,20 +145,22 @@ export function ReportsPage() {
         <>
           <div className="reports-page__kpis">
             <article>
-              <span>Faturamento</span>
+              <span>Total vendido</span>
               <strong>{formatMoney(summary.salesTotalCents)}</strong>
+            </article>
+            <article>
+              <span>Recebido (sem fiado)</span>
+              <strong>
+                {formatMoney(Math.max(0, summary.salesTotalCents - summary.fiadoCents))}
+              </strong>
+            </article>
+            <article>
+              <span>Fiado a receber</span>
+              <strong>{formatMoney(summary.fiadoCents)}</strong>
             </article>
             <article>
               <span>Vendas</span>
               <strong>{summary.salesCount}</strong>
-            </article>
-            <article>
-              <span>Ticket médio</span>
-              <strong>{formatMoney(summary.ticketAverageCents)}</strong>
-            </article>
-            <article>
-              <span>Fiado no período</span>
-              <strong>{formatMoney(summary.fiadoCents)}</strong>
             </article>
           </div>
 
@@ -171,7 +173,10 @@ export function ReportsPage() {
                 <ul>
                   {summary.payments.map((row) => (
                     <li key={row.method}>
-                      <span>{PAYMENT_METHOD_LABELS[row.method]}</span>
+                      <span>
+                        {PAYMENT_METHOD_LABELS[row.method]}
+                        {row.method === 'on_account' ? ' (a receber)' : ''}
+                      </span>
                       <strong>{formatMoney(row.amountCents)}</strong>
                     </li>
                   ))}
