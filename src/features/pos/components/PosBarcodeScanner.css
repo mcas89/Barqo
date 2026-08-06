@@ -1,0 +1,128 @@
+.pos-barcode-scan {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+.pos-barcode-scan__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(11, 31, 58, 0.55);
+  cursor: pointer;
+}
+
+.pos-barcode-scan__sheet {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 28rem);
+  max-height: min(92dvh, 40rem);
+  margin: 0 auto;
+  background: #0b1f3a;
+  color: #f8fafc;
+  border-radius: 1.15rem 1.15rem 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.35);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pos-barcode-scan__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem 0.7rem;
+}
+
+.pos-barcode-scan__head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.pos-barcode-scan__head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: rgba(248, 250, 252, 0.72);
+  font-weight: 600;
+}
+
+.pos-barcode-scan__close {
+  flex-shrink: 0;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.pos-barcode-scan__viewport {
+  position: relative;
+  margin: 0 0.85rem;
+  aspect-ratio: 3 / 4;
+  max-height: 58dvh;
+  border-radius: 0.9rem;
+  overflow: hidden;
+  background: #000;
+}
+
+.pos-barcode-scan__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pos-barcode-scan__reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(78%, 16rem);
+  height: 3.4rem;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(248, 250, 252, 0.92);
+  border-radius: 0.55rem;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+}
+
+.pos-barcode-scan__overlay-msg {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.55);
+  color: #f8fafc;
+}
+
+.pos-barcode-scan__foot {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.pos-barcode-scan__cancel {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid rgba(248, 250, 252, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  border-radius: 0.75rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+}

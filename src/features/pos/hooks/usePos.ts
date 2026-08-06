@@ -241,6 +241,27 @@ export function usePos() {
     return 'not_found'
   }
 
+  /** Câmera / leitor: só casa código de barras exato (não adivinha por nome). */
+  function addByBarcode(rawCode: string): 'added' | 'not_found' | 'empty' {
+    if (!ensureCashOpen()) return 'empty'
+    const term = rawCode.trim().toLowerCase()
+    if (!term) return 'empty'
+
+    const exactBarcode = catalog.find(
+      (product) => product.barcode?.toLowerCase() === term,
+    )
+    if (exactBarcode) {
+      const ok = addProduct(exactBarcode)
+      playScanBeep(ok ? 'ok' : 'error')
+      if (ok) setSearch('')
+      return ok ? 'added' : 'empty'
+    }
+
+    playScanBeep('error')
+    setError(null)
+    return 'not_found'
+  }
+
   function setItemPrice(productId: string, unitPriceCents: number) {
     const nextPrice = Math.max(0, Math.round(unitPriceCents))
     if (nextPrice <= 0) {
@@ -621,6 +642,7 @@ export function usePos() {
     customerLabel: customer?.name.trim() || 'Caixa livre',
     addProduct,
     addBySearchEnter,
+    addByBarcode,
     addLooseItem,
     quickCreateAndAdd,
     setItemQuantity,

@@ -6,6 +6,7 @@ import {
   Pause,
   Play,
   Receipt,
+  ScanLine,
   Search,
   Tag,
   Trash2,
@@ -24,6 +25,7 @@ import { useAuth } from '../../../shared/hooks/useAuth'
 import { useDeviceSession } from '../../devices'
 import { fulfillSaleReceipt, resolveReceiptSettings } from '../../receipts'
 import { PinAuthorizeModal } from '../components/PinAuthorizeModal'
+import { PosBarcodeScanner } from '../components/PosBarcodeScanner'
 import { PosCustomerPicker } from '../components/PosCustomerPicker'
 import { PosQuickItemPanel, type QuickItemMode } from '../components/PosQuickItemPanel'
 import { PosRecentSalesPanel } from '../components/PosRecentSalesPanel'
@@ -64,6 +66,7 @@ export function PosPage() {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
   const [priceDraft, setPriceDraft] = useState('')
   const [showMobileMore, setShowMobileMore] = useState(false)
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
 
   const { subscription, organization: authOrg } = useAuth()
   const { devices, deviceId } = useDeviceSession()
@@ -103,6 +106,7 @@ export function PosPage() {
     setCustomer,
     addProduct,
     addBySearchEnter,
+    addByBarcode,
     addLooseItem,
     quickCreateAndAdd,
     setItemQuantity,
@@ -211,6 +215,25 @@ export function PosPage() {
     if (event.key === 'Escape') {
       setSearch('')
     }
+  }
+
+  function handleBarcodeDetect(code: string) {
+    setShowBarcodeScanner(false)
+    const result = addByBarcode(code)
+    if (result === 'added') {
+      setToast('Produto adicionado')
+      return
+    }
+    if (result === 'not_found') {
+      setSearch(code)
+      setQuickBarcode(code)
+      setQuickName('')
+      setQuickMode('register')
+      setQuickOpen(true)
+      setToast('Código não cadastrado')
+      return
+    }
+    setToast('Abra o caixa para vender')
   }
 
   function startPriceEdit(productId: string, unitPriceCents: number) {
@@ -454,6 +477,17 @@ export function PosPage() {
             autoComplete="off"
           />
 
+          <button
+            type="button"
+            className="pos-page__scan-btn"
+            title="Ler código com a câmera"
+            aria-label="Ler código com a câmera"
+            disabled={busy}
+            onClick={() => setShowBarcodeScanner(true)}
+          >
+            <ScanLine size={20} strokeWidth={2} aria-hidden />
+          </button>
+
           {showSuggestions && (
             <ul className="pos-page__suggest" role="listbox">
               {loadingCatalog ? (
@@ -557,6 +591,20 @@ export function PosPage() {
                   <button
                     type="button"
                     role="menuitem"
+                    disabled={busy}
+                    onClick={() => {
+                      setShowMobileMore(false)
+                      setShowBarcodeScanner(true)
+                    }}
+                  >
+                    <ScanLine size={16} strokeWidth={2} aria-hidden />
+                    Ler código
+                  </button>
+                </li>
+                <li role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
                     onClick={() => {
                       setShowMobileMore(false)
                       openQuick('loose')
@@ -636,6 +684,13 @@ export function PosPage() {
           sales={recentSales}
           loading={loadingRecentSales}
           onClose={() => setShowRecentSales(false)}
+        />
+      )}
+
+      {showBarcodeScanner && (
+        <PosBarcodeScanner
+          onDetect={handleBarcodeDetect}
+          onClose={() => setShowBarcodeScanner(false)}
         />
       )}
 
