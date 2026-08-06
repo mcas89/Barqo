@@ -54,6 +54,9 @@ export function HomePage() {
         <Link to="/app/customers" className="home-page__shortcut">
           Clientes
         </Link>
+        <Link to="/app/help" className="home-page__shortcut">
+          Ajuda
+        </Link>
       </nav>
 
       {loading || !summary ? (

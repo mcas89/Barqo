@@ -6,6 +6,7 @@ import {
   BarChart3,
   Boxes,
   CreditCard,
+  CircleHelp,
   Home,
   LogOut,
   MoreHorizontal,
@@ -56,6 +57,7 @@ const NAV: Array<{
   { to: '/app/suppliers', label: 'Fornecedores', permission: PERMISSIONS.MANAGE_SUPPLIERS, icon: Truck },
   { to: '/app/reports', label: 'Relatórios', permission: PERMISSIONS.VIEW_REPORTS, icon: BarChart3 },
   { to: '/app/sync', label: 'Sync', permission: null, icon: RefreshCw },
+  { to: '/app/help', label: 'Ajuda', permission: null, icon: CircleHelp },
   { to: '/app/billing', label: 'Planos', permission: PERMISSIONS.MANAGE_BILLING, icon: CreditCard },
   { to: '/app/settings', label: 'Config', permission: PERMISSIONS.MANAGE_SETTINGS, icon: Settings },
 ]

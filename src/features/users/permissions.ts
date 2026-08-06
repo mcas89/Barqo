@@ -133,6 +133,7 @@ export function hasPermission(
 export function permissionForPath(pathname: string): PermissionKey | null {
   if (pathname.startsWith('/app/pos')) return null
   if (pathname.startsWith('/app/sync')) return null
+  if (pathname.startsWith('/app/help')) return null
   if (pathname === '/app' || pathname.startsWith('/app/billing')) {
     return pathname.startsWith('/app/billing') ? PERMISSIONS.MANAGE_BILLING : PERMISSIONS.BACK_OFFICE
   }
