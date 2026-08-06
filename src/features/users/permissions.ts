@@ -21,6 +21,7 @@ export const PERMISSIONS = {
   MANAGE_BILLING: 'manage_billing',
   REMOVE_CART: 'remove_cart',
   CREATE_CUSTOMER: 'create_customer',
+  CANCEL_SALE: 'cancel_sale',
   LABELS_PRINT: 'labels.print',
   GENERATE_BARCODE: 'products.generate_barcode',
   CHANGE_BARCODE: 'products.change_barcode',
@@ -46,6 +47,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   [PERMISSIONS.MANAGE_BILLING]: 'Planos e pagamento',
   [PERMISSIONS.REMOVE_CART]: 'Remover item / limpar carrinho no PDV',
   [PERMISSIONS.CREATE_CUSTOMER]: 'Cadastrar cliente no PDV',
+  [PERMISSIONS.CANCEL_SALE]: 'Cancelar / devolver venda',
   [PERMISSIONS.LABELS_PRINT]: 'Imprimir etiquetas',
   [PERMISSIONS.GENERATE_BARCODE]: 'Gerar código de barras BALQO',
   [PERMISSIONS.CHANGE_BARCODE]: 'Alterar código de barras',
@@ -67,6 +69,7 @@ export const EDITABLE_PERMISSIONS: PermissionKey[] = [
   PERMISSIONS.MANAGE_BILLING,
   PERMISSIONS.REMOVE_CART,
   PERMISSIONS.CREATE_CUSTOMER,
+  PERMISSIONS.CANCEL_SALE,
   PERMISSIONS.LABELS_PRINT,
   PERMISSIONS.GENERATE_BARCODE,
   PERMISSIONS.CHANGE_BARCODE,
@@ -92,6 +95,7 @@ const FLOOR_DEFAULTS: PermissionMap = {
   [PERMISSIONS.MANAGE_BILLING]: false,
   [PERMISSIONS.REMOVE_CART]: false,
   [PERMISSIONS.CREATE_CUSTOMER]: false,
+  [PERMISSIONS.CANCEL_SALE]: false,
   [PERMISSIONS.LABELS_PRINT]: true,
   [PERMISSIONS.GENERATE_BARCODE]: false,
   [PERMISSIONS.CHANGE_BARCODE]: false,
@@ -135,6 +139,7 @@ export function permissionForPath(pathname: string): PermissionKey | null {
   if (pathname.startsWith('/app/products')) return PERMISSIONS.MANAGE_PRODUCTS
   if (pathname.startsWith('/app/inventory')) return PERMISSIONS.MANAGE_INVENTORY
   if (pathname.startsWith('/app/cash')) return PERMISSIONS.MANAGE_CASH
+  if (pathname.startsWith('/app/sales')) return PERMISSIONS.CANCEL_SALE
   if (pathname.startsWith('/app/customers')) return PERMISSIONS.MANAGE_CUSTOMERS
   if (pathname.startsWith('/app/receivables')) return PERMISSIONS.MANAGE_RECEIVABLES
   if (pathname.startsWith('/app/suppliers')) return PERMISSIONS.MANAGE_SUPPLIERS

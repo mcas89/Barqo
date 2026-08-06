@@ -10,6 +10,7 @@ import {
   type BarcodeAuditEvent,
   type LabelsPrintedAuditEvent,
   type OperatorSwitchAuditEvent,
+  type SaleCanceledAuditEvent,
 } from '../types'
 
 function requireDb() {
@@ -133,6 +134,38 @@ export async function recordLabelsPrinted(input: {
       modelId: input.modelId,
       totalLabels: input.totalLabels,
       productIds: input.productIds,
+      createdAt: nowIso(),
+    }
+    await setDoc(
+      doc(requireDb(), 'organizations', input.organizationId, 'audit_events', id),
+      omitUndefined({ ...event }),
+    )
+    return event
+  } catch {
+    return null
+  }
+}
+
+export async function recordSaleCanceled(input: {
+  organizationId: OrganizationId
+  saleId: string
+  totalCents: number
+  operatorId: string
+  deviceId: string
+  reason: string
+}): Promise<SaleCanceledAuditEvent | null> {
+  if (!isFirebaseReady()) return null
+  try {
+    const id = createId('aud')
+    const event: SaleCanceledAuditEvent = {
+      id,
+      organizationId: input.organizationId,
+      type: AUDIT_EVENT_TYPES.SALE_CANCELED,
+      saleId: input.saleId,
+      totalCents: input.totalCents,
+      operatorId: input.operatorId,
+      deviceId: input.deviceId || 'unknown',
+      reason: input.reason,
       createdAt: nowIso(),
     }
     await setDoc(

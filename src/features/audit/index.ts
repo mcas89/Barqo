@@ -4,4 +4,5 @@ export {
   recordOperatorSwitch,
   recordBarcodeAudit,
   recordLabelsPrinted,
+  recordSaleCanceled,
 } from './services/audit-service'

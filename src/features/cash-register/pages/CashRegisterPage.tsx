@@ -296,6 +296,9 @@ export function CashRegisterPage() {
             <button type="button" onClick={() => setPanel('suprimento')} disabled={busy}>
               Suprimento
             </button>
+            <Link to="/app/sales" className="cash-page__ghost cash-page__ghost-link">
+              Cancelar venda
+            </Link>
             <button
               type="button"
               className="cash-page__primary"

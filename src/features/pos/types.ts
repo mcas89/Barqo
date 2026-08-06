@@ -71,6 +71,11 @@ export interface Sale {
   customerId?: string
   customerName?: string
   note?: string
+  canceledAt?: string
+  canceledByUserId?: UserId
+  canceledByName?: string
+  canceledByOperatorId?: string
+  cancelReason?: string
 }
 
 export interface CompleteSaleInput {

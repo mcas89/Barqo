@@ -2,6 +2,7 @@ import type { OrganizationId, UserId } from '../../shared/types'
 
 export const STOCK_MOVEMENT_TYPES = {
   SALE: 'sale',
+  SALE_RETURN: 'sale_return',
   ENTRY: 'entry',
   ADJUSTMENT: 'adjustment',
   LOSS: 'loss',
@@ -12,6 +13,7 @@ export type StockMovementType =
 
 export const STOCK_MOVEMENT_LABELS: Record<StockMovementType, string> = {
   sale: 'Venda',
+  sale_return: 'Devolução / cancelamento',
   entry: 'Entrada',
   adjustment: 'Ajuste',
   loss: 'Perda / saída',

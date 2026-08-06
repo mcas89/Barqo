@@ -5,6 +5,7 @@ export const AUDIT_EVENT_TYPES = {
   BARCODE_GENERATED: 'product.barcode.generated',
   BARCODE_CHANGED: 'product.barcode.changed',
   LABELS_PRINTED: 'labels.printed',
+  SALE_CANCELED: 'sale.canceled',
 } as const
 
 export type AuditEventType =
@@ -49,7 +50,20 @@ export interface LabelsPrintedAuditEvent {
   createdAt: string
 }
 
+export interface SaleCanceledAuditEvent {
+  id: string
+  organizationId: OrganizationId
+  type: typeof AUDIT_EVENT_TYPES.SALE_CANCELED
+  saleId: string
+  totalCents: number
+  operatorId: string
+  deviceId: string
+  reason: string
+  createdAt: string
+}
+
 export type AuditEvent =
   | OperatorSwitchAuditEvent
   | BarcodeAuditEvent
   | LabelsPrintedAuditEvent
+  | SaleCanceledAuditEvent

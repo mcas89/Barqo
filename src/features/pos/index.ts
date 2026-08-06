@@ -1,4 +1,5 @@
 export { PosPage } from './pages/PosPage'
+export { SalesCancelPage } from './pages/SalesCancelPage'
 export { PosOperatorProvider, usePosOperator } from './hooks/usePosOperator'
 export type {
   Sale,
@@ -17,6 +18,7 @@ export {
 } from './types/operator'
 export {
   completeSale,
+  cancelSale,
   cartSubtotalCents,
   cartTotalCents,
   paymentsTotalCents,

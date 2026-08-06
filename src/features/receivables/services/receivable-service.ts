@@ -220,6 +220,55 @@ export async function receivePayment(input: {
   }
 }
 
+/** Cancela fiado da venda. Bloqueia se já houve pagamento parcial/total. */
+export async function findReceivableBySaleId(
+  organizationId: OrganizationId,
+  saleId: string,
+): Promise<Receivable | null> {
+  const stableId = `rec_${saleId}`
+  const byId = await getReceivable(organizationId, stableId)
+  if (byId) return byId
+
+  const all = await listReceivables(organizationId, { includePaid: true })
+  return all.find((item) => item.saleId === saleId) ?? null
+}
+
+export function assertReceivableCancellableForSale(receivable: Receivable | null): void {
+  if (!receivable) return
+  if (receivable.status === RECEIVABLE_STATUS.CANCELED) return
+  if (receivable.paidCents > 0 || receivable.status === RECEIVABLE_STATUS.PAID) {
+    throw new Error(
+      'Este fiado já teve pagamento. Quite ou estorne o recebimento antes de cancelar a venda.',
+    )
+  }
+}
+
+export async function cancelReceivableLinkedToSale(input: {
+  organizationId: OrganizationId
+  saleId: string
+}): Promise<Receivable | null> {
+  const receivable = await findReceivableBySaleId(input.organizationId, input.saleId)
+  if (!receivable) return null
+  if (receivable.status === RECEIVABLE_STATUS.CANCELED) return receivable
+
+  assertReceivableCancellableForSale(receivable)
+
+  const updatedAt = nowIso()
+  await updateDoc(
+    doc(requireDb(), 'organizations', input.organizationId, 'receivables', receivable.id),
+    {
+      status: RECEIVABLE_STATUS.CANCELED,
+      updatedAt,
+    },
+  )
+
+  return {
+    ...receivable,
+    status: RECEIVABLE_STATUS.CANCELED,
+    updatedAt,
+  }
+}
+
 export function filterReceivables(
   items: Receivable[],
   search: string,

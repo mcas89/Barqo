@@ -9,7 +9,7 @@ import { LoginPage, RedirectIfAuthenticated, RequireAuth } from '../features/aut
 import { OnboardingPage } from '../features/onboarding'
 import { PrivacyPage, TermsPage } from '../features/legal'
 import { HomePage, ReportsPage } from '../features/reports'
-import { PosPage } from '../features/pos'
+import { PosPage, SalesCancelPage } from '../features/pos'
 import { ProductsPage } from '../features/products'
 import { CustomersPage } from '../features/customers'
 import { CashRegisterPage } from '../features/cash-register'
@@ -73,6 +73,7 @@ export function AppRouter() {
         <Route path="customers" element={<CustomersPage />} />
         <Route path="suppliers" element={<SuppliersPage />} />
         <Route path="cash" element={<CashRegisterPage />} />
+        <Route path="sales" element={<SalesCancelPage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="receivables" element={<ReceivablesPage />} />

@@ -1,10 +1,16 @@
-import { doc, getDoc, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore'
 import { getFirestoreDb } from '../../../infra/firebase'
 import { createId } from '../../../shared/lib/ids'
 import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
 import { getProduct } from '../../products'
-import { createReceivable } from '../../receivables/services/receivable-service'
+import {
+  assertReceivableCancellableForSale,
+  cancelReceivableLinkedToSale,
+  createReceivable,
+  findReceivableBySaleId,
+} from '../../receivables/services/receivable-service'
+import { recordSaleCanceled } from '../../audit'
 import {
   adjustCachedStock,
   enqueueOperation,
@@ -356,4 +362,175 @@ export async function completeSale(input: CompleteSaleInput): Promise<Sale> {
     await persistSaleOffline(input, sale, onAccountCents)
     return sale
   }
+}
+
+export async function getSale(
+  organizationId: string,
+  saleId: string,
+): Promise<Sale | null> {
+  const snap = await getDoc(
+    doc(requireDb(), 'organizations', organizationId, 'sales', saleId),
+  )
+  if (!snap.exists()) return null
+  return { id: snap.id, ...snap.data() } as Sale
+}
+
+/** Lista vendas do período (inclui canceladas) para gestão/devolução. */
+export async function listSalesForManagement(
+  organizationId: string,
+  fromIso: string,
+  toIso?: string,
+): Promise<Sale[]> {
+  const col = collection(requireDb(), 'organizations', organizationId, 'sales')
+  const snap = await getDocs(
+    query(col, where('createdAt', '>=', fromIso), orderBy('createdAt', 'asc')),
+  )
+
+  return snap.docs
+    .map((item) => ({ id: item.id, ...item.data() }) as Sale)
+    .filter((sale) => {
+      if (toIso && sale.createdAt > toIso) return false
+      return true
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+}
+
+export async function cancelSale(input: {
+  organizationId: string
+  saleId: string
+  userId: string
+  userName: string
+  operatorId: string
+  deviceId: string
+  reason: string
+}): Promise<Sale> {
+  if (!isOnline()) {
+    throw new Error('Cancele a venda com internet. Offline ainda não é suportado.')
+  }
+  if (!input.operatorId?.trim()) {
+    throw new Error('Operador não identificado.')
+  }
+  if (!input.deviceId?.trim()) {
+    throw new Error('Dispositivo não identificado.')
+  }
+
+  const reason = input.reason.trim()
+  if (reason.length < 3) {
+    throw new Error('Informe o motivo do cancelamento (mín. 3 caracteres).')
+  }
+
+  const sale = await getSale(input.organizationId, input.saleId)
+  if (!sale) throw new Error('Venda não encontrada.')
+  if (sale.status === 'canceled') return sale
+  if (sale.status && sale.status !== 'completed') {
+    throw new Error('Esta venda não pode ser cancelada.')
+  }
+
+  const linkedReceivable = await findReceivableBySaleId(input.organizationId, sale.id)
+  assertReceivableCancellableForSale(linkedReceivable)
+
+  const canceledAt = nowIso()
+  const db = requireDb()
+  const batch = writeBatch(db)
+
+  const canceledSale: Sale = {
+    ...sale,
+    status: 'canceled',
+    canceledAt,
+    canceledByUserId: input.userId,
+    canceledByName: input.userName,
+    canceledByOperatorId: input.operatorId,
+    cancelReason: reason,
+  }
+
+  batch.set(
+    doc(db, 'organizations', input.organizationId, 'sales', sale.id),
+    omitUndefined({ ...canceledSale }),
+  )
+
+  const stockRestores = new Map<
+    string,
+    { productId: string; name: string; quantity: number }
+  >()
+  for (const item of sale.items ?? []) {
+    if (item.type !== 'product') continue
+    const qty = Math.max(0, Math.round(item.quantity))
+    if (qty <= 0) continue
+    const current = stockRestores.get(item.productId)
+    if (current) {
+      current.quantity += qty
+    } else {
+      stockRestores.set(item.productId, {
+        productId: item.productId,
+        name: item.name,
+        quantity: qty,
+      })
+    }
+  }
+
+  for (const restore of stockRestores.values()) {
+    const product = await getProduct(input.organizationId, restore.productId)
+    if (!product || product.type !== 'product') continue
+
+    const stockBefore = product.stock
+    const stockAfter = stockBefore + restore.quantity
+    const movementId = `mov_cancel_${sale.id}_${restore.productId}`
+
+    batch.update(
+      doc(db, 'organizations', input.organizationId, 'products', restore.productId),
+      {
+        stock: stockAfter,
+        updatedAt: canceledAt,
+      },
+    )
+
+    batch.set(
+      doc(db, 'organizations', input.organizationId, 'stock_movements', movementId),
+      omitUndefined({
+        id: movementId,
+        organizationId: input.organizationId,
+        productId: restore.productId,
+        productName: restore.name,
+        type: 'sale_return',
+        quantity: restore.quantity,
+        stockBefore,
+        stockAfter,
+        saleId: sale.id,
+        createdAt: canceledAt,
+        createdByUserId: input.userId,
+        createdByName: input.userName,
+        operatorId: input.operatorId,
+        deviceId: input.deviceId,
+        note: `Cancelamento: ${reason}`,
+      }),
+    )
+  }
+
+  await batch.commit()
+
+  await cancelReceivableLinkedToSale({
+    organizationId: input.organizationId,
+    saleId: sale.id,
+  })
+
+  for (const restore of stockRestores.values()) {
+    await adjustCachedStock(
+      input.organizationId,
+      restore.productId,
+      restore.quantity,
+    ).catch(() => undefined)
+  }
+
+  await saveLocalSale(canceledSale, true).catch(() => undefined)
+
+  await recordSaleCanceled({
+    organizationId: input.organizationId,
+    saleId: sale.id,
+    totalCents: sale.totalCents,
+    operatorId: input.operatorId,
+    deviceId: input.deviceId,
+    reason,
+  })
+
+  return canceledSale
 }

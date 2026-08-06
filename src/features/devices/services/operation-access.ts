@@ -190,6 +190,7 @@ export function isOperationalWritePath(pathname: string): boolean {
   if (pathname.startsWith('/app/pos')) return true
   if (pathname.startsWith('/app/inventory')) return true
   if (pathname.startsWith('/app/receivables')) return true
+  if (pathname.startsWith('/app/sales')) return true
   if (pathname.startsWith('/app/team')) return true
   if (pathname.startsWith('/app/suppliers')) return true
   return false
