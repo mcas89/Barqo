@@ -33,17 +33,19 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       PLAN_FEATURES.OFFLINE,
       PLAN_FEATURES.PWA,
       PLAN_FEATURES.REPORTS_BASIC,
+      PLAN_FEATURES.RECEIVABLES,
     ],
     includedHighlights: [
       '1 usuário (proprietário)',
       '1 dispositivo',
       'PDV, produtos, caixa e estoque simples',
+      'Fiado na venda (com cliente)',
       'Painel do dia',
       'PWA + operação offline',
       'Sem NF-e · cupom interno, não é documento fiscal',
     ],
     growthPain:
-      'Quando a equipe entra no dia a dia, o Essencial libera mais usuários, fiado e relatórios.',
+      'Quando a equipe entra no dia a dia, o Essencial libera mais usuários, papéis e relatórios por período.',
   },
 
   [PLAN_IDS.ESSENCIAL]: {
