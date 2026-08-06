@@ -266,7 +266,7 @@ export function SalesCancelPage() {
           title="Autorizar cancelamento"
           description="Só proprietário ou gerente pode cancelar venda. Digite o PIN."
           busy={busy}
-          onConfirm={(pin) => void runCancel(pin)}
+          onConfirm={(pin) => runCancel(pin)}
           onCancel={() => setAskPin(false)}
         />
       )}
