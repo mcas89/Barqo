@@ -528,7 +528,7 @@ export function PosPage() {
 
         <button
           type="button"
-          className="pos-page__customer-chip"
+          className="pos-page__customer-chip pos-page__desk-only"
           title="Cliente da venda"
           onClick={() => setShowCustomerPicker(true)}
         >
@@ -587,6 +587,19 @@ export function PosPage() {
                 onClick={() => setShowMobileMore(false)}
               />
               <ul className="pos-page__more-menu" role="menu">
+                <li role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowMobileMore(false)
+                      setShowCustomerPicker(true)
+                    }}
+                  >
+                    <UserRound size={16} strokeWidth={2} aria-hidden />
+                    {customer ? `Cliente · ${customer.name}` : 'Cliente'}
+                  </button>
+                </li>
                 <li role="none">
                   <button
                     type="button"

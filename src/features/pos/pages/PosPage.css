@@ -941,8 +941,8 @@
   }
 
   .pos-page__search-wrap {
-    grid-column: 1 / -1;
-    order: -1;
+    grid-column: 1;
+    order: unset;
   }
 
   .pos-page__search-input {
@@ -971,14 +971,6 @@
     cursor: not-allowed;
   }
 
-  .pos-page__customer-chip {
-    min-height: 2.55rem;
-    max-width: 100%;
-    padding-inline: 0.7rem;
-    font-size: 0.82rem;
-  }
-
-  .pos-page__customer-chip,
   .pos-page__more {
     flex: 0 0 auto;
   }

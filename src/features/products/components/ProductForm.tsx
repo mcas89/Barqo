@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { ScanLine } from 'lucide-react'
 import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
+import { PosBarcodeScanner } from '../../pos/components/PosBarcodeScanner'
 import {
   BARCODE_SOURCE_LABELS,
   BARCODE_TYPE_LABELS,
@@ -117,6 +119,7 @@ export function ProductForm({
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'found' | 'new'>('idle')
   const [editingCode, setEditingCode] = useState(!Boolean(initial?.barcode?.trim()))
   const [generateNotice, setGenerateNotice] = useState<string | null>(null)
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
 
   const setters = {
     setName,
@@ -206,12 +209,16 @@ export function ProductForm({
     }
   }
 
-  function focusBarcodeReader() {
+  function openBarcodeScanner() {
     setEditingCode(true)
-    requestAnimationFrame(() => {
-      barcodeRef.current?.focus()
-      barcodeRef.current?.select()
-    })
+    setShowBarcodeScanner(true)
+  }
+
+  function handleBarcodeScanned(code: string) {
+    setShowBarcodeScanner(false)
+    setBarcode(code)
+    setBarcodeMeta(undefined)
+    resolveBarcode(code)
   }
 
   async function handleGenerateCode() {
@@ -356,27 +363,40 @@ export function ProductForm({
           <>
             <label className="product-form__barcode">
               Código de barras
-              <input
-                ref={barcodeRef}
-                value={barcode}
-                onChange={(e) => {
-                  setBarcode(e.target.value)
-                  setBarcodeMeta(undefined)
-                  if (lookupStatus !== 'idle') setLookupStatus('idle')
-                }}
-                onKeyDown={onBarcodeKeyDown}
-                onBlur={() => {
-                  if (barcode.trim() && lookupStatus === 'idle') {
-                    resolveBarcode(barcode)
-                  }
-                }}
-                disabled={saving}
-                placeholder="Escaneie ou digite e pressione Enter"
-                autoComplete="off"
-              />
+              <div className="product-form__barcode-input-row">
+                <input
+                  ref={barcodeRef}
+                  value={barcode}
+                  onChange={(e) => {
+                    setBarcode(e.target.value)
+                    setBarcodeMeta(undefined)
+                    if (lookupStatus !== 'idle') setLookupStatus('idle')
+                  }}
+                  onKeyDown={onBarcodeKeyDown}
+                  onBlur={() => {
+                    if (barcode.trim() && lookupStatus === 'idle') {
+                      resolveBarcode(barcode)
+                    }
+                  }}
+                  disabled={saving}
+                  placeholder="Escaneie ou digite e pressione Enter"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="product-form__scan-btn"
+                  title="Ler código com a câmera"
+                  aria-label="Ler código com a câmera"
+                  disabled={saving}
+                  onClick={openBarcodeScanner}
+                >
+                  <ScanLine size={20} strokeWidth={2} aria-hidden />
+                </button>
+              </div>
             </label>
             <div className="product-form__barcode-actions">
-              <button type="button" onClick={focusBarcodeReader} disabled={saving}>
+              <button type="button" onClick={openBarcodeScanner} disabled={saving}>
+                <ScanLine size={15} strokeWidth={2} aria-hidden />
                 Ler código
               </button>
               {canGenerate && (
@@ -530,6 +550,13 @@ export function ProductForm({
           {saving ? 'Salvando…' : lookupStatus === 'found' || initial ? 'Salvar alterações' : 'Cadastrar'}
         </button>
       </footer>
+
+      {showBarcodeScanner && (
+        <PosBarcodeScanner
+          onDetect={handleBarcodeScanned}
+          onClose={() => setShowBarcodeScanner(false)}
+        />
+      )}
     </form>
   )
 }

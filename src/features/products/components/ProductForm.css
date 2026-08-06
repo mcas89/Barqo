@@ -110,6 +110,37 @@
   font-weight: 600;
   color: #0b1f3a;
   background: #fff;
+  width: 100%;
+  min-width: 0;
+}
+
+.product-form__barcode-input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.product-form__scan-btn {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 3.1rem;
+  border: 2px solid rgba(11, 31, 58, 0.28);
+  border-radius: 0.7rem;
+  background: #fff;
+  color: #0b1f3a;
+  cursor: pointer;
+}
+
+.product-form__scan-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.product-form__barcode-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .product-form__barcode input:focus {
