@@ -33,6 +33,7 @@ import {
   WhatsappReceiptSettingsModal,
   type WhatsappReceiptSettingsValue,
 } from '../components/WhatsappReceiptSettingsModal'
+import { CategoriesSettingsModal } from '../components/CategoriesSettingsModal'
 import { useSettings } from '../hooks/useSettings'
 import './SettingsPage.css'
 
@@ -89,6 +90,7 @@ export function SettingsPage() {
   const [printerModalOpen, setPrinterModalOpen] = useState(false)
   const [whatsappReceiptOnSale, setWhatsappReceiptOnSale] = useState(false)
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false)
+  const [categoriesModalOpen, setCategoriesModalOpen] = useState(false)
 
   useEffect(() => {
     const root = globalThis.document?.documentElement
@@ -315,6 +317,12 @@ export function SettingsPage() {
           }}
         />
       )}
+      {categoriesModalOpen && (
+        <CategoriesSettingsModal
+          canEdit={canEdit}
+          onClose={() => setCategoriesModalOpen(false)}
+        />
+      )}
       <header className="settings-page__header">
         <div>
           <h1>Configurações</h1>
@@ -480,6 +488,21 @@ export function SettingsPage() {
               disabled={!canEdit}
             >
               Configurar WhatsApp
+            </button>
+          </section>
+
+          <section className="settings-page__card">
+            <h2>Categorias de produtos</h2>
+            <p className="settings-page__hint">
+              Organize o catálogo. No cadastro do produto a categoria é opcional e só por seleção.
+            </p>
+            <button
+              type="button"
+              className="settings-page__printer-btn"
+              onClick={() => setCategoriesModalOpen(true)}
+              disabled={!canEdit}
+            >
+              Gerenciar categorias
             </button>
           </section>
 

@@ -1,13 +1,20 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { ScanLine } from 'lucide-react'
+import { Plus, ScanLine } from 'lucide-react'
 import { formatMoney, parseMoneyToCents } from '../../../shared/lib/money'
+import { useAuth } from '../../../shared/hooks/useAuth'
 import { PosBarcodeScanner } from '../../pos/components/PosBarcodeScanner'
+import {
+  createCategory,
+  listCategories,
+} from '../services/category-service'
+import type { ProductCategory } from '../types/category'
 import {
   BARCODE_SOURCE_LABELS,
   BARCODE_TYPE_LABELS,
   PRODUCT_TYPES,
   PRODUCT_UNITS,
   formatProductTextInput,
+  normalizeProductText,
   type Product,
   type ProductBarcodeMeta,
   type ProductInput,
@@ -120,6 +127,12 @@ export function ProductForm({
   const [editingCode, setEditingCode] = useState(!Boolean(initial?.barcode?.trim()))
   const [generateNotice, setGenerateNotice] = useState<string | null>(null)
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [categories, setCategories] = useState<ProductCategory[]>([])
+  const [showQuickCategory, setShowQuickCategory] = useState(false)
+  const [quickCategoryName, setQuickCategoryName] = useState('')
+  const [categoryBusy, setCategoryBusy] = useState(false)
+  const { organization } = useAuth()
+  const quickCategoryRef = useRef<HTMLInputElement>(null)
 
   const setters = {
     setName,
@@ -168,7 +181,57 @@ export function ProductForm({
     }
     setLocalError(null)
     setGenerateNotice(null)
+    setShowQuickCategory(false)
+    setQuickCategoryName('')
   }, [initial])
+
+  useEffect(() => {
+    if (!organization?.id) return
+    let cancelled = false
+    void listCategories(organization.id)
+      .then((items) => {
+        if (!cancelled) setCategories(items)
+      })
+      .catch((err) => {
+        console.error(err)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [organization?.id])
+
+  useEffect(() => {
+    if (showQuickCategory) {
+      requestAnimationFrame(() => quickCategoryRef.current?.focus())
+    }
+  }, [showQuickCategory])
+
+  async function refreshCategories() {
+    if (!organization?.id) return
+    setCategories(await listCategories(organization.id))
+  }
+
+  async function handleQuickCreateCategory() {
+    if (!organization?.id) return
+    const name = normalizeProductText(quickCategoryName)
+    if (!name) {
+      setLocalError('Informe o nome da categoria.')
+      return
+    }
+    setCategoryBusy(true)
+    setLocalError(null)
+    try {
+      const created = await createCategory(organization.id, { name })
+      await refreshCategories()
+      setCategory(created.name)
+      setShowQuickCategory(false)
+      setQuickCategoryName('')
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'Falha ao criar categoria.')
+    } finally {
+      setCategoryBusy(false)
+    }
+  }
 
   function resolveBarcode(code: string) {
     const trimmed = code.trim()
@@ -501,15 +564,69 @@ export function ProductForm({
           </select>
         </label>
 
-        <label>
-          Categoria
-          <input
-            value={category}
-            onChange={(e) => setCategory(formatProductTextInput(e.target.value))}
-            disabled={saving}
-            placeholder="Ex.: Bebidas"
-          />
-        </label>
+        <div className="product-form__category">
+          <span className="product-form__category-label">Categoria</span>
+          <div className="product-form__category-row">
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              disabled={saving || categoryBusy}
+              aria-label="Categoria"
+            >
+              <option value="">Sem categoria</option>
+              {categories.map((item) => (
+                <option key={item.id} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+              {category &&
+                !categories.some((item) => item.name === category) && (
+                  <option value={category}>{category}</option>
+                )}
+            </select>
+            <button
+              type="button"
+              className="product-form__category-add"
+              title="Nova categoria"
+              aria-label="Nova categoria"
+              disabled={saving || categoryBusy}
+              onClick={() => {
+                setShowQuickCategory((open) => !open)
+                setQuickCategoryName('')
+              }}
+            >
+              <Plus size={18} strokeWidth={2} aria-hidden />
+            </button>
+          </div>
+          {showQuickCategory && (
+            <div className="product-form__category-quick">
+              <input
+                ref={quickCategoryRef}
+                value={quickCategoryName}
+                onChange={(e) => setQuickCategoryName(formatProductTextInput(e.target.value))}
+                placeholder="Nome da categoria"
+                disabled={saving || categoryBusy}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void handleQuickCreateCategory()
+                  }
+                  if (e.key === 'Escape') {
+                    setShowQuickCategory(false)
+                    setQuickCategoryName('')
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => void handleQuickCreateCategory()}
+                disabled={saving || categoryBusy || !normalizeProductText(quickCategoryName)}
+              >
+                {categoryBusy ? '…' : 'OK'}
+              </button>
+            </div>
+          )}
+        </div>
 
         {!isService && (
           <label>

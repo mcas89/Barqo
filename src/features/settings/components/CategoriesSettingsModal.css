@@ -1,0 +1,170 @@
+.categories-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.categories-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(11, 31, 58, 0.45);
+  cursor: pointer;
+}
+
+.categories-modal__card {
+  position: relative;
+  z-index: 1;
+  width: min(480px, 100%);
+  max-height: min(86dvh, 720px);
+  overflow: auto;
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.12);
+  border-radius: 0.95rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: 0 20px 50px rgba(11, 31, 58, 0.18);
+  color: #0b1f3a;
+}
+
+.categories-modal__card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.categories-modal__card h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.categories-modal__card header button {
+  background: transparent;
+  border: 1px solid rgba(11, 31, 58, 0.2);
+  color: #0b1f3a;
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.65rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.categories-modal__lead,
+.categories-modal__hint,
+.categories-modal__empty {
+  margin: 0;
+  color: #5b6b80;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.categories-modal__add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.categories-modal__add label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.categories-modal__add input,
+.categories-modal__list input {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  border-radius: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  font-weight: 600;
+}
+
+.categories-modal__add button,
+.categories-modal__row-actions button {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.categories-modal__add button {
+  background: #0b1f3a;
+  border-color: #0b1f3a;
+  color: #f8fafc;
+  min-height: 2.7rem;
+}
+
+.categories-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.categories-modal__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 0.65rem;
+  background: #f8fafc;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+}
+
+.categories-modal__list strong {
+  font-size: 0.92rem;
+}
+
+.categories-modal__list input {
+  flex: 1;
+  min-width: 0;
+}
+
+.categories-modal__row-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.categories-modal__danger {
+  color: #991b1b !important;
+  border-color: rgba(153, 27, 27, 0.25) !important;
+}
+
+.categories-modal__error {
+  margin: 0;
+  color: #991b1b;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.categories-modal__ok {
+  margin: 0;
+  color: #065f46;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.categories-modal__add button:disabled,
+.categories-modal__row-actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}

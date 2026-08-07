@@ -22,6 +22,13 @@ export {
   setProductBarcode,
 } from './services/product-service'
 export {
+  listCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from './services/category-service'
+export type { ProductCategory, ProductCategoryInput } from './types/category'
+export {
   generateBalqoInternalBarcode,
   productHasBarcode,
   buildBarcodeMeta,
