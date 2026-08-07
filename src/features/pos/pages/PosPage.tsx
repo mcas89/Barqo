@@ -23,7 +23,7 @@ import {
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { useDeviceSession } from '../../devices'
-import { fulfillSaleReceipt, resolveReceiptSettings } from '../../receipts'
+import { fulfillSaleReceipt, resolveReceiptSettings, WhatsappReceiptSheet } from '../../receipts'
 import { PinAuthorizeModal } from '../components/PinAuthorizeModal'
 import { PosBarcodeScanner } from '../components/PosBarcodeScanner'
 import { PosCustomerPicker } from '../components/PosCustomerPicker'
@@ -67,6 +67,11 @@ export function PosPage() {
   const [priceDraft, setPriceDraft] = useState('')
   const [showMobileMore, setShowMobileMore] = useState(false)
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [whatsappReceipt, setWhatsappReceipt] = useState<{
+    sale: Sale
+    phone?: string
+    copy?: 'original' | 'segunda_via'
+  } | null>(null)
 
   const { subscription, organization: authOrg } = useAuth()
   const { devices, deviceId } = useDeviceSession()
@@ -291,6 +296,7 @@ export function PosPage() {
           ]
         : [{ method: activeMethod, amountCents: totalCents }]
 
+    const customerPhoneSnapshot = customer?.phone
     const sale = await finishSale(payment)
     if (!sale || !organization) return
     setCompletedSale(sale)
@@ -308,6 +314,13 @@ export function PosPage() {
     if (settings.printOnSale || settings.sendReceiptOnSale) {
       void fulfillSaleReceipt({ sale, organization, settings }).catch((err) => {
         console.error(err)
+      })
+    }
+    if (settings.offerWhatsappReceiptOnSale) {
+      setWhatsappReceipt({
+        sale,
+        phone: customerPhoneSnapshot || sale.customerPhone,
+        copy: 'original',
       })
     }
   }
@@ -696,6 +709,15 @@ export function PosPage() {
         <PosRecentSalesPanel
           sales={recentSales}
           loading={loadingRecentSales}
+          offerWhatsapp={Boolean(organization?.offerWhatsappReceiptOnSale)}
+          onWhatsapp={(sale) => {
+            setShowRecentSales(false)
+            setWhatsappReceipt({
+              sale,
+              phone: sale.customerPhone,
+              copy: 'segunda_via',
+            })
+          }}
           onClose={() => setShowRecentSales(false)}
         />
       )}
@@ -704,6 +726,16 @@ export function PosPage() {
         <PosBarcodeScanner
           onDetect={handleBarcodeDetect}
           onClose={() => setShowBarcodeScanner(false)}
+        />
+      )}
+
+      {whatsappReceipt && organization && (
+        <WhatsappReceiptSheet
+          sale={whatsappReceipt.sale}
+          organization={organization}
+          initialPhone={whatsappReceipt.phone}
+          copy={whatsappReceipt.copy}
+          onClose={() => setWhatsappReceipt(null)}
         />
       )}
 

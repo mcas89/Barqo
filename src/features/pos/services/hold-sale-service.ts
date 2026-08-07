@@ -33,7 +33,7 @@ export async function holdCurrentSale(input: {
   cashSessionId?: string
   cart: CartItem[]
   discountCents: number
-  customer: { id: string; name: string } | null
+  customer: { id: string; name: string; phone?: string } | null
   label?: string
   operatorId?: string
   operatorName?: string

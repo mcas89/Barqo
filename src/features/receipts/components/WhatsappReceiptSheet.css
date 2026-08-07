@@ -1,0 +1,151 @@
+.whatsapp-receipt-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.whatsapp-receipt-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(11, 31, 58, 0.45);
+  cursor: pointer;
+}
+
+.whatsapp-receipt-sheet__card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 26rem);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 1.1rem 1.1rem 0 0;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 -16px 40px rgba(11, 31, 58, 0.18);
+}
+
+.whatsapp-receipt-sheet__card header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.whatsapp-receipt-sheet__card header p {
+  margin: 0.25rem 0 0;
+  color: #5b6b80;
+  font-size: 0.88rem;
+}
+
+.whatsapp-receipt-sheet__hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.whatsapp-receipt-sheet__phone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.whatsapp-receipt-sheet__phone input {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  border-radius: 0.7rem;
+  padding: 0.85rem 0.95rem;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.whatsapp-receipt-sheet__phone em {
+  font-style: normal;
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.whatsapp-receipt-sheet__recent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.whatsapp-receipt-sheet__recent > span {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.whatsapp-receipt-sheet__recent > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.whatsapp-receipt-sheet__recent button {
+  border: 1px solid rgba(11, 31, 58, 0.14);
+  background: #f8fafc;
+  color: #0b1f3a;
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.whatsapp-receipt-sheet__error {
+  margin: 0;
+  color: #991b1b;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.whatsapp-receipt-sheet__card footer {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.whatsapp-receipt-sheet__skip,
+.whatsapp-receipt-sheet__send {
+  min-height: 2.85rem;
+  border-radius: 0.75rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.whatsapp-receipt-sheet__skip {
+  border: 1px solid rgba(11, 31, 58, 0.16);
+  background: #fff;
+  color: #0b1f3a;
+}
+
+.whatsapp-receipt-sheet__send {
+  border: none;
+  background: #128c7e;
+  color: #fff;
+}
+
+@media (min-width: 721px) {
+  .whatsapp-receipt-sheet {
+    align-items: center;
+  }
+
+  .whatsapp-receipt-sheet__card {
+    border-radius: 1rem;
+    padding-bottom: 1.1rem;
+  }
+}

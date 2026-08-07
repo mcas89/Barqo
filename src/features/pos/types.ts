@@ -70,6 +70,7 @@ export interface Sale {
   operatorRole?: string
   customerId?: string
   customerName?: string
+  customerPhone?: string
   note?: string
   canceledAt?: string
   canceledByUserId?: UserId
@@ -91,5 +92,6 @@ export interface CompleteSaleInput {
   operatorRole?: string
   customerId?: string
   customerName?: string
+  customerPhone?: string
   note?: string
 }

@@ -120,6 +120,7 @@ function buildSaleDraft(input: CompleteSaleInput): {
   if (input.operatorRole) sale.operatorRole = input.operatorRole
   if (input.customerId) sale.customerId = input.customerId
   if (input.customerName) sale.customerName = input.customerName
+  if (input.customerPhone) sale.customerPhone = input.customerPhone
   const note = input.note?.trim()
   if (note) sale.note = note
 

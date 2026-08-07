@@ -52,7 +52,11 @@ export function usePos() {
   const [error, setError] = useState<string | null>(null)
   const [lastSale, setLastSale] = useState<Sale | null>(null)
   /** Cliente da venda — null = Caixa livre */
-  const [customer, setCustomer] = useState<{ id: string; name: string } | null>(null)
+  const [customer, setCustomer] = useState<{
+    id: string
+    name: string
+    phone?: string
+  } | null>(null)
   const [heldSales, setHeldSales] = useState<HeldSale[]>([])
 
   const organizationId = organization?.id
@@ -595,6 +599,7 @@ export function usePos() {
         operatorRole: operator.role,
         customerId: customer?.id,
         customerName: customer?.name,
+        customerPhone: customer?.phone,
         note: customer ? `Cliente: ${customer.name}` : 'Caixa livre',
       })
       setLastSale(sale)

@@ -10,6 +10,7 @@ export type ReceiptDeliveryStatus = 'sent' | 'queued' | 'skipped' | 'failed'
 export interface ReceiptSettings {
   printOnSale: boolean
   sendReceiptOnSale: boolean
+  offerWhatsappReceiptOnSale: boolean
   printerPath: string
   paperWidth: ReceiptPaperWidth
 }

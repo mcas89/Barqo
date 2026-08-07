@@ -29,6 +29,10 @@ import {
   PrinterSettingsModal,
   type PrinterSettingsValue,
 } from '../components/PrinterSettingsModal'
+import {
+  WhatsappReceiptSettingsModal,
+  type WhatsappReceiptSettingsValue,
+} from '../components/WhatsappReceiptSettingsModal'
 import { useSettings } from '../hooks/useSettings'
 import './SettingsPage.css'
 
@@ -83,6 +87,8 @@ export function SettingsPage() {
   const [paperWidth, setPaperWidth] = useState<ReceiptPaperWidth>('58mm')
   const [testingPrint, setTestingPrint] = useState(false)
   const [printerModalOpen, setPrinterModalOpen] = useState(false)
+  const [whatsappReceiptOnSale, setWhatsappReceiptOnSale] = useState(false)
+  const [whatsappModalOpen, setWhatsappModalOpen] = useState(false)
 
   useEffect(() => {
     const root = globalThis.document?.documentElement
@@ -113,6 +119,7 @@ export function SettingsPage() {
     setLogoDirty(false)
     setPrintOnSale(Boolean(organization.printReceiptOnSale))
     setSendReceiptOnSale(Boolean(organization.sendReceiptOnSale))
+    setWhatsappReceiptOnSale(Boolean(organization.offerWhatsappReceiptOnSale))
     setPaperWidth(normalizePaperWidth(organization.receiptPaperWidth))
   }, [organization])
 
@@ -164,6 +171,7 @@ export function SettingsPage() {
         logoDataUrl: logoDirty ? logoDataUrl : undefined,
         printReceiptOnSale: printOnSale,
         sendReceiptOnSale: false,
+        offerWhatsappReceiptOnSale: whatsappReceiptOnSale,
         receiptPaperWidth: paperWidth,
         printerPath,
       })
@@ -235,6 +243,7 @@ export function SettingsPage() {
       logoDataUrl: logoDirty ? logoDataUrl : undefined,
       printReceiptOnSale: value.printOnSale,
       sendReceiptOnSale: false,
+      offerWhatsappReceiptOnSale: whatsappReceiptOnSale,
       receiptPaperWidth: value.paperWidth,
       printerPath: value.printerPath,
     })
@@ -243,6 +252,28 @@ export function SettingsPage() {
       await updateThisDevicePrinterPath(organization.id, value.printerPath).catch(() => undefined)
       await refreshDevices().catch(() => undefined)
     }
+    setLogoDirty(false)
+  }
+
+  async function handleSaveWhatsapp(value: WhatsappReceiptSettingsValue) {
+    clearFeedback()
+    setLocalError(null)
+    setWhatsappReceiptOnSale(value.offerWhatsappReceiptOnSale)
+    await save({
+      name,
+      document,
+      segment,
+      phone,
+      address,
+      whatsapp,
+      themeColor,
+      logoDataUrl: logoDirty ? logoDataUrl : undefined,
+      printReceiptOnSale: printOnSale,
+      sendReceiptOnSale: false,
+      offerWhatsappReceiptOnSale: value.offerWhatsappReceiptOnSale,
+      receiptPaperWidth: paperWidth,
+      printerPath,
+    })
     setLogoDirty(false)
   }
 
@@ -269,6 +300,19 @@ export function SettingsPage() {
           onClose={() => setPrinterModalOpen(false)}
           onSave={handleSavePrinter}
           onTestPrint={handleTestPrint}
+        />
+      )}
+      {whatsappModalOpen && (
+        <WhatsappReceiptSettingsModal
+          initial={{ offerWhatsappReceiptOnSale: whatsappReceiptOnSale }}
+          canEdit={canEdit}
+          saving={saving}
+          storeWhatsapp={whatsapp}
+          onClose={() => setWhatsappModalOpen(false)}
+          onSave={async (value) => {
+            await handleSaveWhatsapp(value)
+            setWhatsappModalOpen(false)
+          }}
         />
       )}
       <header className="settings-page__header">
@@ -419,6 +463,23 @@ export function SettingsPage() {
               disabled={!canEdit}
             >
               Configurar impressora
+            </button>
+          </section>
+
+          <section className="settings-page__card">
+            <h2>Comprovante WhatsApp</h2>
+            <p className="settings-page__hint">
+              {whatsappReceiptOnSale
+                ? 'Após a venda, oferece opção de abrir o WhatsApp com o cupom pronto'
+                : 'Oferta de WhatsApp após a venda desligada'}
+            </p>
+            <button
+              type="button"
+              className="settings-page__printer-btn"
+              onClick={() => setWhatsappModalOpen(true)}
+              disabled={!canEdit}
+            >
+              Configurar WhatsApp
             </button>
           </section>
 

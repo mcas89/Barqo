@@ -156,6 +156,7 @@ function mapOrganization(id: string, data: Record<string, unknown>): Organizatio
   if (whatsapp) organization.whatsapp = whatsapp
   organization.printReceiptOnSale = Boolean(data.printReceiptOnSale)
   organization.sendReceiptOnSale = Boolean(data.sendReceiptOnSale)
+  organization.offerWhatsappReceiptOnSale = Boolean(data.offerWhatsappReceiptOnSale)
   if (printerPath) organization.printerPath = printerPath
   if (receiptPaperWidth === '58mm' || receiptPaperWidth === '80mm') {
     organization.receiptPaperWidth = receiptPaperWidth
@@ -186,6 +187,7 @@ export interface OrganizationSettingsInput {
   whatsapp?: string
   printReceiptOnSale?: boolean
   sendReceiptOnSale?: boolean
+  offerWhatsappReceiptOnSale?: boolean
   printerPath?: string
   receiptPaperWidth?: '58mm' | '80mm'
 }
@@ -236,6 +238,9 @@ export async function updateOrganizationSettings(
   if (input.sendReceiptOnSale !== undefined) {
     next.sendReceiptOnSale = input.sendReceiptOnSale
   }
+  if (input.offerWhatsappReceiptOnSale !== undefined) {
+    next.offerWhatsappReceiptOnSale = input.offerWhatsappReceiptOnSale
+  }
   if (input.receiptPaperWidth) {
     next.receiptPaperWidth = input.receiptPaperWidth
   }
@@ -264,6 +269,7 @@ export async function updateOrganizationSettings(
       whatsapp: next.whatsapp ?? null,
       printReceiptOnSale: next.printReceiptOnSale ?? false,
       sendReceiptOnSale: next.sendReceiptOnSale ?? false,
+      offerWhatsappReceiptOnSale: next.offerWhatsappReceiptOnSale ?? false,
       printerPath: next.printerPath ?? null,
       receiptPaperWidth: next.receiptPaperWidth ?? '58mm',
       updatedAt,

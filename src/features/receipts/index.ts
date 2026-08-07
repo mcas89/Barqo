@@ -15,7 +15,14 @@ export {
   reprintSaleReceipt,
 } from './delivery'
 export { ReprintSaleButton } from './components/ReprintSaleButton'
+export { WhatsappReceiptSheet } from './components/WhatsappReceiptSheet'
 export { useReprintSale } from './hooks/useReprintSale'
+export {
+  buildWhatsappReceiptMessage,
+  listRecentWhatsappPhones,
+  openWhatsappReceipt,
+  rememberRecentWhatsappPhone,
+} from './whatsapp-receipt'
 export { flushReceiptOutbox, listQueuedReceipts } from './outbox'
 export {
   BROWSER_PRINT_VALUE,

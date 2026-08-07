@@ -102,6 +102,14 @@
   font-weight: 600;
 }
 
+.pos-recent-sales__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
 .pos-recent-sales__card li button {
   border: none;
   border-radius: 0.55rem;
@@ -113,6 +121,10 @@
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.pos-recent-sales__whatsapp {
+  background: #128c7e !important;
 }
 
 .pos-recent-sales__card li button:disabled {

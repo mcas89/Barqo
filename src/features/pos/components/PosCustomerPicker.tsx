@@ -13,7 +13,7 @@ import './PosCustomerPicker.css'
 
 interface PosCustomerPickerProps {
   currentId?: string | null
-  onSelect: (customer: { id: string; name: string } | null) => void
+  onSelect: (customer: { id: string; name: string; phone?: string } | null) => void
   onClose: () => void
 }
 
@@ -79,7 +79,11 @@ export function PosCustomerPicker({
     setCreateError(null)
     try {
       const created = await createCustomer(organization.id, input)
-      onSelect({ id: created.id, name: created.name })
+      onSelect({
+        id: created.id,
+        name: created.name,
+        phone: created.phone,
+      })
       onClose()
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Não foi possível cadastrar.')
@@ -161,7 +165,11 @@ export function PosCustomerPicker({
                         currentId === customer.id ? 'pos-customer__item--active' : undefined
                       }
                       onClick={() => {
-                        onSelect({ id: customer.id, name: customer.name })
+                        onSelect({
+                          id: customer.id,
+                          name: customer.name,
+                          phone: customer.phone,
+                        })
                         onClose()
                       }}
                     >

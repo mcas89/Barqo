@@ -7,10 +7,18 @@ import './PosRecentSalesPanel.css'
 interface PosRecentSalesPanelProps {
   sales: Sale[]
   loading: boolean
+  offerWhatsapp?: boolean
+  onWhatsapp?: (sale: Sale) => void
   onClose: () => void
 }
 
-export function PosRecentSalesPanel({ sales, loading, onClose }: PosRecentSalesPanelProps) {
+export function PosRecentSalesPanel({
+  sales,
+  loading,
+  offerWhatsapp,
+  onWhatsapp,
+  onClose,
+}: PosRecentSalesPanelProps) {
   const { reprint, busyId } = useReprintSale()
 
   return (
@@ -42,13 +50,24 @@ export function PosRecentSalesPanel({ sales, loading, onClose }: PosRecentSalesP
                     {sale.customerName ? ` · ${sale.customerName}` : ' · Caixa livre'}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void reprint(sale)}
-                  disabled={busyId === sale.id}
-                >
-                  {busyId === sale.id ? 'Imprimindo…' : 'Imprimir'}
-                </button>
+                <div className="pos-recent-sales__actions">
+                  {offerWhatsapp && onWhatsapp && (
+                    <button
+                      type="button"
+                      className="pos-recent-sales__whatsapp"
+                      onClick={() => onWhatsapp(sale)}
+                    >
+                      WhatsApp
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void reprint(sale)}
+                    disabled={busyId === sale.id}
+                  >
+                    {busyId === sale.id ? 'Imprimindo…' : 'Imprimir'}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

@@ -22,6 +22,8 @@ export interface Organization {
   printReceiptOnSale?: boolean
   /** Enfileira/envia comprovante (e-mail) ao finalizar a venda. */
   sendReceiptOnSale?: boolean
+  /** Oferece envio do comprovante via WhatsApp (link wa.me) após a venda. */
+  offerWhatsappReceiptOnSale?: boolean
   /** Caminho ou nome padrão da impressora (fallback do aparelho). */
   printerPath?: string
   /** Largura do cupom térmico. */
