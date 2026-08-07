@@ -28,6 +28,7 @@ import { PinAuthorizeModal } from '../components/PinAuthorizeModal'
 import { PosBarcodeScanner } from '../components/PosBarcodeScanner'
 import { PosCustomerPicker } from '../components/PosCustomerPicker'
 import { PosQuickItemPanel, type QuickItemMode } from '../components/PosQuickItemPanel'
+import { PosRemainingPaymentModal } from '../components/PosRemainingPaymentModal'
 import { PosRecentSalesPanel } from '../components/PosRecentSalesPanel'
 import { PosUnlockScreen } from '../components/PosUnlockScreen'
 import { usePos } from '../hooks/usePos'
@@ -37,6 +38,7 @@ import {
   PAYMENT_METHODS,
   type PaymentMethod,
   type Sale,
+  type SalePayment,
 } from '../types'
 import './PosPage.css'
 
@@ -50,7 +52,7 @@ export function PosPage() {
   const [showDiscount, setShowDiscount] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
   const [cashReceived, setCashReceived] = useState('')
-  const [paymentDraft, setPaymentDraft] = useState('')
+  const [splitPayments, setSplitPayments] = useState<SalePayment[] | null>(null)
   const [openingValue, setOpeningValue] = useState('0,00')
   const [toast, setToast] = useState<string | null>(null)
   const [completedSale, setCompletedSale] = useState<Sale | null>(null)
@@ -120,13 +122,11 @@ export function PosPage() {
     removeItem,
     clearCart,
     setPaymentAmount,
-    applyPayment,
-    removePayment,
+    payFullWith,
     finishSale,
     openCash,
     payments,
     paidCents,
-    remainingCents,
     changeCents,
     holdSale,
     resumeHeldSale,
@@ -271,76 +271,47 @@ export function PosPage() {
   function choosePayment(method: PaymentMethod) {
     if (totalCents <= 0) return
     setSelectedMethod(method)
+    setSplitPayments(null)
 
-    const existing = payments.find((payment) => payment.method === method)?.amountCents ?? 0
-    const suggest =
-      existing > 0 ? existing : remainingCents > 0 ? remainingCents : totalCents
-
-    // Atalho: 1 toque em PIX/débito/crédito/fiado lança o restante.
-    if (method !== PAYMENT_METHODS.CASH && existing === 0 && remainingCents > 0) {
-      applyPayment(method, remainingCents)
-      setCashReceived('')
-      setPaymentDraft('')
+    if (method === PAYMENT_METHODS.CASH) {
+      const draft = cashReceived.trim()
+        ? cashReceived
+        : centsToInput(totalCents)
+      setCashReceived(draft)
+      setPaymentAmount(PAYMENT_METHODS.CASH, parseMoneyToCents(draft))
       return
     }
 
-    const draft = centsToInput(suggest)
-    setPaymentDraft(draft)
-    if (method === PAYMENT_METHODS.CASH) {
-      setCashReceived(draft)
-      applyPayment(PAYMENT_METHODS.CASH, suggest)
-    }
-  }
-
-  function applySelectedPayment() {
-    if (!selectedMethod) return
-    const raw =
-      selectedMethod === PAYMENT_METHODS.CASH ? cashReceived : paymentDraft
-    const amount = parseMoneyToCents(raw)
-    applyPayment(selectedMethod, amount)
-    if (selectedMethod === PAYMENT_METHODS.CASH) {
-      setCashReceived(amount > 0 ? centsToInput(amount) : '')
-    } else {
-      setPaymentDraft(amount > 0 ? centsToInput(amount) : '')
-    }
+    setCashReceived('')
+    payFullWith(method)
   }
 
   function onCashReceivedChange(value: string) {
     setCashReceived(value)
-    setPaymentDraft(value)
     const received = parseMoneyToCents(value)
-    applyPayment(PAYMENT_METHODS.CASH, received)
-  }
-
-  function onPaymentDraftChange(value: string) {
-    setPaymentDraft(value)
-  }
-
-  function removePaymentLine(method: PaymentMethod) {
-    removePayment(method)
-    if (selectedMethod === method) {
-      setSelectedMethod(null)
-      setPaymentDraft('')
-      if (method === PAYMENT_METHODS.CASH) setCashReceived('')
-    }
-  }
-
-  async function handleFinish() {
-    if (paidCents < totalCents) return
-
-    let finalPayments = payments
     if (selectedMethod === PAYMENT_METHODS.CASH) {
-      const cashAmt = parseMoneyToCents(cashReceived)
-      finalPayments = [
-        ...payments.filter((payment) => payment.method !== PAYMENT_METHODS.CASH),
-        ...(cashAmt > 0
-          ? [{ method: PAYMENT_METHODS.CASH, amountCents: cashAmt }]
-          : []),
-      ]
+      setPaymentAmount(PAYMENT_METHODS.CASH, received)
+    }
+  }
+
+  function paymentsTotal(list: SalePayment[]) {
+    return list.reduce((sum, payment) => sum + payment.amountCents, 0)
+  }
+
+  function buildPrimaryPayments(): SalePayment[] | null {
+    if (!selectedMethod) return null
+
+    if (selectedMethod === PAYMENT_METHODS.CASH) {
+      const amount = parseMoneyToCents(cashReceived)
+      if (amount <= 0) return null
+      return [{ method: PAYMENT_METHODS.CASH, amountCents: amount }]
     }
 
-    if (paymentsTotal(finalPayments) < totalCents) return
+    if (payments.length > 0) return payments
+    return [{ method: selectedMethod, amountCents: totalCents }]
+  }
 
+  async function completeSaleWithPayments(finalPayments: SalePayment[]) {
     const hasFiado = finalPayments.some(
       (payment) => payment.method === PAYMENT_METHODS.ON_ACCOUNT,
     )
@@ -349,11 +320,14 @@ export function PosPage() {
     const customerPhoneSnapshot = customer?.phone
     const sale = await finishSale(finalPayments)
     if (!sale || !organization) return
+
+    setSplitPayments(null)
     setCompletedSale(sale)
-    setRecentSales((current) => [sale, ...current.filter((item) => item.id !== sale.id)].slice(0, 5))
+    setRecentSales((current) =>
+      [sale, ...current.filter((item) => item.id !== sale.id)].slice(0, 5),
+    )
     setSelectedMethod(null)
     setCashReceived('')
-    setPaymentDraft('')
     setShowDiscount(false)
     searchRef.current?.focus()
 
@@ -376,8 +350,26 @@ export function PosPage() {
     }
   }
 
-  function paymentsTotal(list: { amountCents: number }[]) {
-    return list.reduce((sum, payment) => sum + payment.amountCents, 0)
+  async function handleFinish() {
+    const primary = buildPrimaryPayments()
+    if (!primary) return
+
+    const paid = paymentsTotal(primary)
+    if (paid < totalCents) {
+      setSplitPayments(primary)
+      return
+    }
+
+    await completeSaleWithPayments(primary)
+  }
+
+  async function handleSplitConfirm(nextPayments: SalePayment[]) {
+    const paid = paymentsTotal(nextPayments)
+    if (paid < totalCents) {
+      setSplitPayments(nextPayments)
+      return
+    }
+    await completeSaleWithPayments(nextPayments)
   }
 
   function requestRemove(productId: string) {
@@ -408,7 +400,7 @@ export function PosPage() {
       setToast(`Venda em espera · ${held.label}`)
       setSelectedMethod(null)
       setCashReceived('')
-      setPaymentDraft('')
+      setSplitPayments(null)
       setShowDiscount(false)
       searchRef.current?.focus()
     }
@@ -419,7 +411,7 @@ export function PosPage() {
     if (ok) {
       setSelectedMethod(null)
       setCashReceived('')
-      setPaymentDraft('')
+      setSplitPayments(null)
       setShowDiscount(false)
       setToast('Venda retomada')
       searchRef.current?.focus()
@@ -514,14 +506,17 @@ export function PosPage() {
 
   const paidMethod = payments[0]?.method
   const activeMethod = selectedMethod ?? paidMethod ?? null
-  const hasFiadoPayment = payments.some(
-    (payment) => payment.method === PAYMENT_METHODS.ON_ACCOUNT,
-  )
+  const cashReady =
+    activeMethod !== PAYMENT_METHODS.CASH ||
+    parseMoneyToCents(cashReceived) > 0
+  const fiadoReady =
+    activeMethod !== PAYMENT_METHODS.ON_ACCOUNT || Boolean(customer)
   const canFinish =
     cart.length > 0 &&
-    paidCents >= totalCents &&
+    Boolean(activeMethod) &&
     totalCents > 0 &&
-    (!hasFiadoPayment || Boolean(customer)) &&
+    cashReady &&
+    fiadoReady &&
     !busy
 
   return (
@@ -795,6 +790,17 @@ export function PosPage() {
         />
       )}
 
+      {splitPayments && (
+        <PosRemainingPaymentModal
+          totalCents={totalCents}
+          payments={splitPayments}
+          methods={paymentMethods}
+          busy={busy}
+          onConfirm={(next) => void handleSplitConfirm(next)}
+          onCancel={() => setSplitPayments(null)}
+        />
+      )}
+
       {pendingAuth && (
         <PinAuthorizeModal
           title={
@@ -1065,74 +1071,27 @@ export function PosPage() {
           )}
 
           <p className="pos-page__pay-label">Forma de pagamento</p>
-          <p className="pos-page__pay-hint">
-            Pode combinar (ex.: parte dinheiro + resto no Pix)
-          </p>
-
-          {(paidCents > 0 || remainingCents > 0) && totalCents > 0 && (
-            <div className="pos-page__pay-balance">
-              <span>
-                Pago <strong>{formatMoney(paidCents)}</strong>
-              </span>
-              <span className={remainingCents > 0 ? 'pos-page__pay-balance--due' : undefined}>
-                {remainingCents > 0
-                  ? `Falta ${formatMoney(remainingCents)}`
-                  : 'Quitado'}
-              </span>
-            </div>
-          )}
-
-          {payments.length > 0 && (
-            <ul className="pos-page__pay-lines">
-              {payments.map((payment) => (
-                <li key={payment.method}>
-                  <span>
-                    {PAYMENT_METHOD_LABELS[payment.method]}{' '}
-                    <strong>{formatMoney(payment.amountCents)}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removePaymentLine(payment.method)}
-                    disabled={busy}
-                    aria-label={`Remover ${PAYMENT_METHOD_LABELS[payment.method]}`}
-                  >
-                    Remover
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
           <div className="pos-page__pay-grid">
-            {paymentMethods.map((method) => {
-              const hasLine = payments.some((payment) => payment.method === method)
-              const disabled =
-                busy ||
-                totalCents <= 0 ||
-                (remainingCents <= 0 && !hasLine)
-              return (
-                <button
-                  key={method}
-                  type="button"
-                  className={
-                    activeMethod === method
-                      ? 'pos-page__pay-btn pos-page__pay-btn--active'
-                      : hasLine
-                        ? 'pos-page__pay-btn pos-page__pay-btn--used'
-                        : 'pos-page__pay-btn'
-                  }
-                  onClick={() => choosePayment(method)}
-                  disabled={disabled}
-                >
-                  {PAYMENT_METHOD_LABELS[method]}
-                </button>
-              )
-            })}
+            {paymentMethods.map((method) => (
+              <button
+                key={method}
+                type="button"
+                className={
+                  activeMethod === method
+                    ? 'pos-page__pay-btn pos-page__pay-btn--active'
+                    : 'pos-page__pay-btn'
+                }
+                onClick={() => choosePayment(method)}
+                disabled={busy || totalCents <= 0}
+              >
+                {PAYMENT_METHOD_LABELS[method]}
+              </button>
+            ))}
           </div>
 
           {activeMethod === PAYMENT_METHODS.CASH && (
             <label className="pos-page__cash">
-              Valor em dinheiro
+              Valor recebido
               <input
                 value={cashReceived}
                 onChange={(e) => onCashReceivedChange(e.target.value)}
@@ -1143,39 +1102,7 @@ export function PosPage() {
             </label>
           )}
 
-          {activeMethod &&
-            activeMethod !== PAYMENT_METHODS.CASH &&
-            (remainingCents > 0 ||
-              payments.some((payment) => payment.method === activeMethod)) && (
-            <label className="pos-page__cash">
-              Valor em {PAYMENT_METHOD_LABELS[activeMethod].toLowerCase()}
-              <div className="pos-page__pay-amount-row">
-                <input
-                  value={paymentDraft}
-                  onChange={(e) => onPaymentDraftChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      applySelectedPayment()
-                    }
-                  }}
-                  placeholder="0,00"
-                  disabled={busy}
-                  inputMode="decimal"
-                />
-                <button
-                  type="button"
-                  className="pos-page__pay-apply"
-                  onClick={applySelectedPayment}
-                  disabled={busy}
-                >
-                  Aplicar
-                </button>
-              </div>
-            </label>
-          )}
-
-          {changeCents > 0 && (
+          {activeMethod === PAYMENT_METHODS.CASH && changeCents > 0 && (
             <div className="pos-page__change">
               <span>Troco</span>
               <strong>{formatMoney(changeCents)}</strong>
@@ -1188,11 +1115,7 @@ export function PosPage() {
             onClick={() => void handleFinish()}
             disabled={!canFinish}
           >
-            {busy
-              ? 'Finalizando…'
-              : remainingCents > 0
-                ? `Falta ${formatMoney(remainingCents)}`
-                : 'Finalizar venda'}
+            {busy ? 'Finalizando…' : 'Finalizar venda'}
           </button>
         </aside>
       </div>

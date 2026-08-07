@@ -1,0 +1,183 @@
+.pos-remaining {
+  position: fixed;
+  inset: 0;
+  z-index: 66;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pos-remaining__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(11, 31, 58, 0.45);
+  cursor: pointer;
+}
+
+.pos-remaining__card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 26rem);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 1.1rem 1.1rem 0 0;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 -16px 40px rgba(11, 31, 58, 0.18);
+}
+
+.pos-remaining__card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.pos-remaining__card h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.pos-remaining__card header p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.pos-remaining__card header button {
+  border: none;
+  background: none;
+  color: #64748b;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pos-remaining__due {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.85rem;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.pos-remaining__due span {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pos-remaining__due strong {
+  font-size: 1.65rem;
+  letter-spacing: -0.03em;
+}
+
+.pos-remaining__lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.pos-remaining__label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.pos-remaining__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.pos-remaining__btn {
+  min-height: 2.85rem;
+  border: 1px solid rgba(11, 31, 58, 0.14);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 0.75rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pos-remaining__btn--active {
+  background: var(--balqo-brand, #0b1f3a);
+  border-color: var(--balqo-brand, #0b1f3a);
+  color: #f8fafc;
+}
+
+.pos-remaining__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pos-remaining__cash {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.pos-remaining__cash-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+}
+
+.pos-remaining__cash input {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  border-radius: 0.65rem;
+  padding: 0.8rem 0.85rem;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.pos-remaining__cash-row button {
+  border: none;
+  border-radius: 0.65rem;
+  padding: 0 1rem;
+  background: var(--balqo-brand, #0b1f3a);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pos-remaining__error {
+  margin: 0;
+  color: #991b1b;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+@media (min-width: 721px) {
+  .pos-remaining {
+    align-items: center;
+  }
+
+  .pos-remaining__card {
+    border-radius: 1rem;
+    padding-bottom: 1.1rem;
+  }
+}
