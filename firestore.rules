@@ -6,6 +6,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isBootstrapAdmin() {
+      return signedIn()
+        && request.auth.token.email == 'marcos.mcas89@gmail.com';
+    }
+
+    function isListedPlatformAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+    }
+
+    function isPlatformAdmin() {
+      return isBootstrapAdmin() || isListedPlatformAdmin();
+    }
+
     function isMember(orgId) {
       return signedIn()
         && exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid));
@@ -27,19 +41,29 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn() && (request.auth.uid == userId || isPlatformAdmin());
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /platform_admins/{adminId} {
+      allow read: if isPlatformAdmin();
+      allow create, update: if isPlatformAdmin();
+      allow delete: if isPlatformAdmin()
+        && resource.data.get('email', '') != 'marcos.mcas89@gmail.com'
+        && resource.data.get('bootstrap', false) != true;
     }
 
     match /organizations/{orgId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid;
-      allow read: if canAccessOrg(orgId);
+      allow read: if canAccessOrg(orgId) || isPlatformAdmin();
       allow update: if isOwner(orgId)
+        || isPlatformAdmin()
         || (canAccessOrg(orgId) && orgBillingFieldsUnchanged());
       allow delete: if isOwner(orgId);
 
       match /members/{memberId} {
-        allow read: if canAccessOrg(orgId);
+        allow read: if canAccessOrg(orgId) || isPlatformAdmin();
         allow create, update, delete: if isOwner(orgId);
       }
 
@@ -52,7 +76,8 @@ service cloud.firestore {
       }
 
       match /sales/{saleId} {
-        allow read, write: if canAccessOrg(orgId);
+        allow read: if canAccessOrg(orgId) || isPlatformAdmin();
+        allow write: if canAccessOrg(orgId);
       }
 
       match /stock_movements/{movementId} {
@@ -80,7 +105,8 @@ service cloud.firestore {
       }
 
       match /devices/{deviceId} {
-        allow read, write: if canAccessOrg(orgId);
+        allow read: if canAccessOrg(orgId) || isPlatformAdmin();
+        allow write: if canAccessOrg(orgId);
       }
 
       match /operator_sessions/{sessionId} {
@@ -97,15 +123,15 @@ service cloud.firestore {
       }
 
       match /billing_orders/{orderId} {
-        allow read: if canAccessOrg(orgId);
+        allow read: if canAccessOrg(orgId) || isPlatformAdmin();
         allow create, update: if isOwner(orgId);
         allow delete: if false;
       }
     }
 
     match /subscriptions/{orgId} {
-      allow read: if canAccessOrg(orgId);
-      allow create, update: if isOwner(orgId);
+      allow read: if canAccessOrg(orgId) || isPlatformAdmin();
+      allow create, update: if isOwner(orgId) || isPlatformAdmin();
       allow delete: if false;
     }
   }
