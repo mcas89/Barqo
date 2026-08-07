@@ -121,10 +121,10 @@ export async function deleteCategory(
   const current = existing.find((item) => item.id === categoryId)
   if (!current) return
 
+  await clearCategoryOnProducts(organizationId, current.name)
   await deleteDoc(
     doc(requireDb(), 'organizations', organizationId, 'categories', categoryId),
   )
-  await clearCategoryOnProducts(organizationId, current.name)
 }
 
 async function renameCategoryOnProducts(

@@ -6,9 +6,9 @@ Trava operacional de cobrança (rules, domínio, InfinitePay, termos/LGPD, aviso
 
 - App: https://balqo.vercel.app
 - Repo: https://github.com/mcas89/Barqo
-- Versão: `0.1.13`
+- Versão: `1.0.13`
 - Suporte: WhatsApp `5531983919015`
-- Atualizado: 6 ago 2026
+- Atualizado: 7 ago 2026
 
 Marque com `[x]` o que for concluído.
 
@@ -76,7 +76,7 @@ Dá para pilotoar sem isso. **Não venda como pronto.**
 - [x] PIN: 5 falhas → lock 5 min + log `pin_attempts` + reset ao redefinir PIN
 - [x] Sync: recusa ops criadas após bloqueio/remoção do aparelho
 - [x] Assinatura bloqueada online: vendas off; consulta/export/sync/billing on
-- [x] Fechar versão `0.1.13`
+- [x] Fechar versão `1.0.13`
 
 ### Offline — status
 

@@ -25,14 +25,19 @@ function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2).replace('.', ',')
 }
 
-function upsertPayment(
+function addPayment(
   list: SalePayment[],
   method: PaymentMethod,
   amountCents: number,
 ): SalePayment[] {
-  const others = list.filter((payment) => payment.method !== method)
-  if (amountCents <= 0) return others
-  return [...others, { method, amountCents }]
+  if (amountCents <= 0) return list
+  const existing = list.find((payment) => payment.method === method)
+  if (!existing) return [...list, { method, amountCents }]
+  return list.map((payment) =>
+    payment.method === method
+      ? { ...payment, amountCents: payment.amountCents + amountCents }
+      : payment,
+  )
 }
 
 export function PosRemainingPaymentModal({
@@ -74,7 +79,7 @@ export function PosRemainingPaymentModal({
     setAmountDraft(centsToInput(remainingCents))
 
     if (method !== PAYMENT_METHODS.CASH && remainingCents > 0) {
-      const next = upsertPayment(payments, method, remainingCents)
+      const next = addPayment(payments, method, remainingCents)
       const nextPaid = paymentsTotal(next)
       if (nextPaid >= totalCents) {
         onConfirm(next)
@@ -95,7 +100,7 @@ export function PosRemainingPaymentModal({
       return
     }
 
-    const next = upsertPayment(payments, PAYMENT_METHODS.CASH, amount)
+    const next = addPayment(payments, PAYMENT_METHODS.CASH, amount)
     const nextPaid = paymentsTotal(next)
     if (nextPaid >= totalCents) {
       onConfirm(next)
