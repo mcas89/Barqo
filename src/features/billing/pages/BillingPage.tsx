@@ -108,7 +108,7 @@ export function BillingPage() {
       <header className="billing-page__header">
         <h1>Planos BALQO</h1>
         <p>
-          O Entrada inclui 10 dias grátis. Depois de assinar, você só sobe de plano — sem
+          O Solo inclui 10 dias grátis. Depois de assinar, você só sobe de plano — sem
           voltar atrás — e paga a diferença do valor já quitado. Semestral e anual saem com
           desconto.
         </p>

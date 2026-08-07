@@ -194,7 +194,7 @@ export function OnboardingPage() {
           <h1>Deixe o BALQO com a cara do seu comércio</h1>
           <p>
             Olá, {user?.displayName || user?.email}. Complete os dados do comércio para começar.
-            O Entrada tem {ENTRADA_TRIAL_DAYS} dias grátis.
+            O Solo tem {ENTRADA_TRIAL_DAYS} dias grátis.
           </p>
         </header>
 

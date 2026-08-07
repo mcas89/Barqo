@@ -63,13 +63,13 @@ export function ReceivablesPage() {
           </div>
         </header>
         <div className="receivables-page__upsell">
-          <h2>Disponível a partir do Essencial</h2>
+          <h2>Disponível a partir do Equipe</h2>
           <p>
             {upgradeHint} Controle fiado por cliente, baixas parciais e vínculo com
             vendas do PDV.
           </p>
           <p>
-            Essencial: {formatPlanPrice('essencial')} · Controle:{' '}
+            Equipe: {formatPlanPrice('essencial')} · Gestão:{' '}
             {formatPlanPrice('controle')}
           </p>
           <Link to="/app/billing" className="receivables-page__upsell-link">

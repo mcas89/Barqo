@@ -165,11 +165,11 @@ export function TeamPage() {
 
       {mode === 'list' && !hasMultiUser && (
         <div className="team-page__upsell">
-          <h2>Plano Entrada: só o proprietário</h2>
+          <h2>Plano Solo: só o proprietário</h2>
           <p>
-            No Entrada o PDV abre direto com o proprietário, sem PIN. Para cadastrar
-            funcionários com PIN, suba para o Essencial ({formatPlanPrice('essencial')})
-            ou Controle ({formatPlanPrice('controle')}).
+            No Solo o PDV abre direto com o proprietário, sem PIN. Para cadastrar
+            funcionários com PIN, suba para o Equipe ({formatPlanPrice('essencial')})
+            ou Gestão ({formatPlanPrice('controle')}).
           </p>
           <Link to="/app/billing" className="team-page__upsell-link">
             Ver planos

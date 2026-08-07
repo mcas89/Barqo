@@ -112,7 +112,7 @@ export function LoginPage() {
         <ul>
           <li>Vendas no balcão com PIN de operador</li>
           <li>Caixa, estoque, clientes e fiado</li>
-          <li>Comece no Entrada com 10 dias grátis e suba de plano quando quiser</li>
+          <li>Comece no Solo com 10 dias grátis e suba de plano quando quiser</li>
         </ul>
       </div>
 

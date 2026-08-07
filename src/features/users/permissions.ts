@@ -53,7 +53,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   [PERMISSIONS.CHANGE_BARCODE]: 'Alterar código de barras',
 }
 
-/** Permissões que o Controle pode ajustar por funcionário. */
+/** Permissões que o Gestão pode ajustar por funcionário. */
 export const EDITABLE_PERMISSIONS: PermissionKey[] = [
   PERMISSIONS.BACK_OFFICE,
   PERMISSIONS.MANAGE_PRODUCTS,

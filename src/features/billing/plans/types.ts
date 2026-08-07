@@ -59,6 +59,8 @@ export interface PlanLimits {
   maxUsers: number
   maxDevices: number
   maxOrganizations: number
+  /** Produtos ativos (cadastro). */
+  maxProducts: number
 }
 
 export interface PlanDefinition {
@@ -81,7 +83,7 @@ export interface OrganizationSubscription {
   organizationId: string
   planId: PlanId
   status: SubscriptionStatus
-  /** Fim do trial gratuito (Entrada: 10 dias) */
+  /** Fim do trial gratuito (Solo: 10 dias) */
   trialEndsAt?: string
   /** Cobrança manual no início — pago até esta data */
   paidThrough?: string

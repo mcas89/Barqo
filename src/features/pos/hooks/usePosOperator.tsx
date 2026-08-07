@@ -50,7 +50,7 @@ interface PosOperatorContextValue {
   operator: PosOperatorSession | null
   loading: boolean
   error: string | null
-  /** Plano Entrada: dono entra no PDV sem PIN. */
+  /** Plano Solo: dono entra no PDV sem PIN. */
   pinRequired: boolean
   /** Página liberada temporariamente com PIN de dono/gerente. */
   elevatedPath: string | null

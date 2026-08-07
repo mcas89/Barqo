@@ -126,10 +126,10 @@ export function ReportsPage() {
       ) : (
         <div className="reports-page__basic-note">
           <p>
-            No plano Entrada o relatório mostra só o <strong>dia de hoje</strong>.{' '}
+            No plano Solo o relatório mostra só o <strong>dia de hoje</strong>.{' '}
             {upgradeHint}
           </p>
-          <Link to="/app/billing">Ver planos · Essencial {formatPlanPrice('essencial')}</Link>
+          <Link to="/app/billing">Ver planos · Equipe {formatPlanPrice('essencial')}</Link>
         </div>
       )}
 

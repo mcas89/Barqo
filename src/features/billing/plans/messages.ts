@@ -49,10 +49,11 @@ export function upgradeMessageForLimit(kind: LimitKind, planId: PlanId): string 
     users: 'usuários',
     devices: 'dispositivos',
     organizations: 'lojas',
+    products: 'produtos',
   }
 
   if (planId === 'controle') {
-    return `Limite de ${labels[kind]} do plano Controle atingido. Fale com o suporte BALQO.`
+    return `Limite de ${labels[kind]} do plano ${current.name} atingido. Fale com o suporte BALQO.`
   }
 
   const nextId: PlanId = planId === 'entrada' ? 'essencial' : 'controle'

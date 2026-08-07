@@ -35,13 +35,13 @@ src/
   styles/
 ```
 
-## Planos (V0.1)
+## Planos
 
 | Plano | Preço | Foco |
 |---|---|---|
-| Entrada | R$ 19,90/mês | PDV, caixa, estoque e fiado · 10 dias grátis |
-| Essencial | R$ 39,90/mês | Equipe, mais aparelhos e relatórios do período |
-| Controle | R$ 59,90/mês | Permissões finas e visão gerencial |
+| Solo | R$ 19,90/mês | 1 usuário · até 1.000 produtos · 10 dias grátis |
+| Equipe | R$ 39,90/mês | Até 3 usuários · 2.000 produtos · relatórios do período |
+| Gestão | R$ 59,90/mês | Até 10 usuários · 5.000 produtos · permissões finas |
 
 Depois de assinar, só é possível subir de plano, pagando a diferença.
 

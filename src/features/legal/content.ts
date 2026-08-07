@@ -21,7 +21,7 @@ export const TERMS_SECTIONS = [
   },
   {
     title: '4. Planos e pagamento',
-    body: 'O plano Entrada inclui período de teste gratuito. Depois, a assinatura é cobrada pelo meio de pagamento indicado (hoje InfinitePay). Upgrade no mesmo ciclo cobra só a diferença. Não há downgrade no ciclo já pago. Sem pagamento após o vencimento e a carência, o acesso operacional pode ser bloqueado.',
+    body: 'O plano Solo inclui período de teste gratuito. Depois, a assinatura é cobrada pelo meio de pagamento indicado (hoje InfinitePay). Upgrade no mesmo ciclo cobra só a diferença. Não há downgrade no ciclo já pago. Sem pagamento após o vencimento e a carência, o acesso operacional pode ser bloqueado.',
   },
   {
     title: '5. Disponibilidade',

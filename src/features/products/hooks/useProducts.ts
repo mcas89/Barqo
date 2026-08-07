@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  canAddMore,
+  DEFAULT_PLAN_ID,
+  getLimitValue,
+  getPlan,
+} from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import {
   createProduct,
@@ -10,7 +16,7 @@ import {
 import type { Product, ProductInput } from '../types'
 
 export function useProducts() {
-  const { organization } = useAuth()
+  const { organization, subscription } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -19,6 +25,10 @@ export function useProducts() {
   const [showInactive, setShowInactive] = useState(false)
 
   const organizationId = organization?.id
+  const planId =
+    subscription?.planId ?? organization?.planId ?? DEFAULT_PLAN_ID
+  const maxProducts = getLimitValue(planId, 'products')
+  const plan = getPlan(planId)
 
   const refresh = useCallback(async () => {
     if (!organizationId) {
@@ -44,6 +54,12 @@ export function useProducts() {
     void refresh()
   }, [refresh])
 
+  const activeCount = useMemo(
+    () => products.filter((product) => product.active).length,
+    [products],
+  )
+  const canAddProduct = canAddMore(planId, 'products', activeCount)
+
   const filtered = filterProducts(products, search)
 
   function findByBarcode(barcode: string) {
@@ -63,14 +79,14 @@ export function useProducts() {
     setError(null)
     try {
       if (productId) {
-        await updateProduct(organizationId, productId, input)
+        await updateProduct(organizationId, productId, input, planId)
       } else {
-        await createProduct(organizationId, input)
+        await createProduct(organizationId, input, planId)
       }
       await refresh()
     } catch (err) {
       console.error(err)
-      setError('Não foi possível salvar o produto.')
+      setError(err instanceof Error ? err.message : 'Não foi possível salvar o produto.')
       throw err
     } finally {
       setSaving(false)
@@ -82,11 +98,15 @@ export function useProducts() {
     setSaving(true)
     setError(null)
     try {
-      await setProductActive(organizationId, product.id, !product.active)
+      await setProductActive(organizationId, product.id, !product.active, planId)
       await refresh()
     } catch (err) {
       console.error(err)
-      setError('Não foi possível atualizar o status do produto.')
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível atualizar o status do produto.',
+      )
     } finally {
       setSaving(false)
     }
@@ -96,6 +116,11 @@ export function useProducts() {
     products: filtered,
     allProducts: products,
     totalCount: products.length,
+    activeCount,
+    maxProducts,
+    planId,
+    planName: plan.name,
+    canAddProduct,
     loading,
     saving,
     error,

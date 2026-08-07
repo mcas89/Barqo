@@ -18,6 +18,7 @@ import {
   normalizeProductText,
   type Product,
 } from '../../products'
+import { DEFAULT_PLAN_ID } from '../../billing'
 import {
   cartSubtotalCents,
   cartTotalCents,
@@ -37,7 +38,7 @@ import { PAYMENT_METHODS } from '../types'
 import { usePosOperator } from './usePosOperator'
 
 export function usePos() {
-  const { organization, user } = useAuth()
+  const { organization, user, subscription } = useAuth()
   const { operator } = usePosOperator()
   const { deviceId, getOperationAccess } = useDeviceSession()
   const [catalog, setCatalog] = useState<Product[]>([])
@@ -353,16 +354,22 @@ export function usePos() {
     setBusy(true)
     setError(null)
     try {
-      const product = await createProduct(organizationId, {
-        name,
-        barcode,
-        unit: 'UN',
-        type: 'product',
-        priceCents: unitPriceCents,
-        costCents: 0,
-        stock,
-        minStock: 0,
-      })
+      const planId =
+        subscription?.planId ?? organization?.planId ?? DEFAULT_PLAN_ID
+      const product = await createProduct(
+        organizationId,
+        {
+          name,
+          barcode,
+          unit: 'UN',
+          type: 'product',
+          priceCents: unitPriceCents,
+          costCents: 0,
+          stock,
+          minStock: 0,
+        },
+        planId,
+      )
       setCatalog((current) =>
         [...current.filter((item) => item.id !== product.id), product].sort((left, right) =>
           left.name.localeCompare(right.name, 'pt-BR'),

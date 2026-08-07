@@ -23,7 +23,7 @@ Não precisa refazer para o piloto.
 - [x] Produtos, estoque, caixa, clientes, fornecedores, equipe
 - [x] Fiado só com cliente (todos os planos)
 - [x] Relatório do dia; período/exportação conforme o plano
-- [x] Planos Entrada R$19,90 / Essencial R$39,90 / Controle R$59,90
+- [x] Planos Solo R$19,90 / Equipe R$39,90 / Gestão R$59,90 (até 1.000 / 2.000 / 5.000 produtos)
 - [x] Trial 10 dias, aviso, 3 dias de carência, bloqueio
 - [x] Upgrade só com diferença de preço; sem downgrade no ciclo
 - [x] InfinitePay + tela de plano / comprovante / histórico
@@ -71,7 +71,7 @@ Dá para pilotoar sem isso. **Não venda como pronto.**
 - [ ] API de e-mail do comprovante (`VITE_RECEIPT_API_URL`) — **fora da oferta atual** (UI ocultada)
 - [x] Travar escrita de `subscriptions` nas rules (só o dono grava; republicar no Console)
 - [x] PDV: cadastro rápido, venda avulsa, alterar preço na hora
-- [x] Plano Controle: permissões finas (Equipe → checkboxes por funcionário)
+- [x] Plano Gestão: permissões finas (Equipe → checkboxes por funcionário)
 - [x] Operador + dispositivo em vendas/caixa/estoque/fiado + evento `operator.switch`
 - [x] PIN: 5 falhas → lock 5 min + log `pin_attempts` + reset ao redefinir PIN
 - [x] Sync: recusa ops criadas após bloqueio/remoção do aparelho

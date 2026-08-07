@@ -14,6 +14,11 @@ import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
 import type { OrganizationId } from '../../../shared/types'
 import {
+  canAddMore,
+  upgradeMessageForLimit,
+  type PlanId,
+} from '../../billing/plans'
+import {
   normalizeProductText,
   type Product,
   type ProductBarcodeMeta,
@@ -125,10 +130,29 @@ export async function getProduct(
   return mapProduct(snap.id, snap.data())
 }
 
+export async function countActiveProducts(
+  organizationId: OrganizationId,
+): Promise<number> {
+  const products = await listProducts(organizationId, { includeInactive: false })
+  return products.length
+}
+
+async function assertProductSlotAvailable(
+  organizationId: OrganizationId,
+  planId: PlanId,
+): Promise<void> {
+  const activeCount = await countActiveProducts(organizationId)
+  if (!canAddMore(planId, 'products', activeCount)) {
+    throw new Error(upgradeMessageForLimit('products', planId))
+  }
+}
+
 export async function createProduct(
   organizationId: OrganizationId,
   input: ProductInput,
+  planId: PlanId,
 ): Promise<Product> {
+  await assertProductSlotAvailable(organizationId, planId)
   await assertBarcodeUnique(organizationId, input.barcode)
   const id = createId('prod')
   const now = nowIso()
@@ -164,10 +188,19 @@ export async function updateProduct(
   organizationId: OrganizationId,
   productId: string,
   input: ProductInput,
+  planId?: PlanId,
 ): Promise<Product> {
   const existing = await getProduct(organizationId, productId)
   if (!existing) {
     throw new Error('Produto não encontrado.')
+  }
+
+  const nextActive = input.active ?? existing.active
+  if (nextActive && !existing.active) {
+    if (!planId) {
+      throw new Error('Plano necessário para reativar produto.')
+    }
+    await assertProductSlotAvailable(organizationId, planId)
   }
 
   await assertBarcodeUnique(organizationId, input.barcode, productId)
@@ -208,7 +241,17 @@ export async function setProductActive(
   organizationId: OrganizationId,
   productId: string,
   active: boolean,
+  planId?: PlanId,
 ): Promise<void> {
+  if (active) {
+    if (!planId) {
+      throw new Error('Plano necessário para reativar produto.')
+    }
+    const existing = await getProduct(organizationId, productId)
+    if (existing && !existing.active) {
+      await assertProductSlotAvailable(organizationId, planId)
+    }
+  }
   await updateDoc(doc(requireDb(), 'organizations', organizationId, 'products', productId), {
     active,
     updatedAt: nowIso(),

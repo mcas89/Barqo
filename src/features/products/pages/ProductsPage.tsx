@@ -24,6 +24,10 @@ export function ProductsPage() {
     products,
     allProducts,
     totalCount,
+    activeCount,
+    maxProducts,
+    planName,
+    canAddProduct,
     loading,
     saving,
     error,
@@ -54,6 +58,12 @@ export function ProductsPage() {
   )
 
   function openCreate() {
+    if (!canAddProduct) {
+      setErrorMessage(
+        `Limite de produtos do plano ${planName} atingido (${activeCount}/${maxProducts}).`,
+      )
+      return
+    }
     setEditing(null)
     setMode('form')
   }
@@ -215,13 +225,25 @@ export function ProductsPage() {
               : (
                 <>
                   Catálogo de <strong>{organization.name}</strong>
-                  {totalCount > 0 ? ` · ${totalCount} item(ns)` : ''}
+                  {` · ${activeCount}/${maxProducts} ativos`}
+                  {totalCount !== activeCount ? ` · ${totalCount} na lista` : ''}
+                  {` · plano ${planName}`}
                 </>
               )}
           </p>
         </div>
         {mode === 'list' && (
-          <button type="button" className="products-page__cta" onClick={openCreate}>
+          <button
+            type="button"
+            className="products-page__cta"
+            onClick={openCreate}
+            disabled={!canAddProduct}
+            title={
+              canAddProduct
+                ? undefined
+                : `Limite do plano ${planName}: ${maxProducts} produtos ativos`
+            }
+          >
             Cadastrar / atualizar
           </button>
         )}

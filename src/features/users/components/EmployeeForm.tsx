@@ -125,7 +125,7 @@ export function EmployeeForm({
 
       {finePermissions && (
         <fieldset className="employee-form__perms">
-          <legend>Permissões finas (Controle)</legend>
+          <legend>Permissões finas (Gestão)</legend>
           <p>Ajuste o que este funcionário pode fazer além do padrão da função.</p>
           <div className="employee-form__perms-grid">
             {EDITABLE_PERMISSIONS.map((key) => (

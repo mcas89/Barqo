@@ -7,15 +7,15 @@ import {
 } from './types'
 
 /**
- * Catálogo comercial fechado da V0.1.
- * Fonte única para UI, gates e painel admin.
+ * Catálogo comercial — nomes de exibição Solo / Equipe / Gestão.
+ * IDs internos (`entrada` / `essencial` / `controle`) permanecem estáveis nas assinaturas.
  */
 export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
   [PLAN_IDS.ENTRADA]: {
     id: PLAN_IDS.ENTRADA,
-    name: 'Entrada',
-    tagline: 'PDV para o dia a dia no balcão',
-    audience: 'Para quem vende e quer o movimento organizado, com calma e clareza.',
+    name: 'Solo',
+    tagline: 'PDV para quem opera o caixa sozinho',
+    audience: 'Para quem vende sozinho no balcão e quer o movimento organizado.',
     priceMonthlyCents: 1990,
     priceSemiannualCents: 9950,
     priceAnnualCents: 19900,
@@ -24,6 +24,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       maxUsers: 1,
       maxDevices: 1,
       maxOrganizations: 1,
+      maxProducts: 1000,
     },
     features: [
       PLAN_FEATURES.POS,
@@ -38,6 +39,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
     includedHighlights: [
       '1 usuário (proprietário)',
       '1 dispositivo',
+      'Até 1.000 produtos',
       'PDV, produtos, caixa e estoque simples',
       'Fiado na venda (com cliente)',
       'Painel do dia',
@@ -45,13 +47,13 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'Sem NF-e · cupom interno, não é documento fiscal',
     ],
     growthPain:
-      'Quando a equipe entra no dia a dia, o Essencial libera mais usuários, papéis e relatórios por período.',
+      'Quando entram ajudantes no balcão, o Equipe libera mais usuários, aparelhos e relatórios por período.',
   },
 
   [PLAN_IDS.ESSENCIAL]: {
     id: PLAN_IDS.ESSENCIAL,
-    name: 'Essencial',
-    tagline: 'Equipe no balcão, loja no ritmo',
+    name: 'Equipe',
+    tagline: 'Quando entram ajudantes no balcão',
     audience: 'Para vender com colaboradores, acompanhar o fiado e ver o período.',
     priceMonthlyCents: 3990,
     priceSemiannualCents: 19950,
@@ -62,6 +64,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       maxUsers: 3,
       maxDevices: 2,
       maxOrganizations: 1,
+      maxProducts: 2000,
     },
     features: [
       PLAN_FEATURES.POS,
@@ -79,6 +82,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
     includedHighlights: [
       'Até 3 usuários',
       'Até 2 dispositivos',
+      'Até 2.000 produtos',
       'Multi-usuário e papéis simples',
       'Fiado / contas a receber',
       'Relatórios por período, produtos e operador',
@@ -86,13 +90,13 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'Sem NF-e · cupom interno, não é documento fiscal',
     ],
     growthPain:
-      'Se quiser permissões finas e relatórios gerenciais, o Controle acompanha o próximo passo.',
+      'Se quiser permissões finas e visão de longe, o Gestão acompanha o próximo passo.',
   },
 
   [PLAN_IDS.CONTROLE]: {
     id: PLAN_IDS.CONTROLE,
-    name: 'Controle',
-    tagline: 'Visão da operação e acessos sob medida',
+    name: 'Gestão',
+    tagline: 'Controle de acessos e números da operação',
     audience: 'Para conduzir a equipe, os acessos e os indicadores com clareza.',
     priceMonthlyCents: 5990,
     priceSemiannualCents: 29950,
@@ -102,6 +106,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       maxUsers: 10,
       maxDevices: 5,
       maxOrganizations: 1,
+      maxProducts: 5000,
     },
     features: [
       PLAN_FEATURES.POS,
@@ -123,6 +128,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
     includedHighlights: [
       'Até 10 usuários',
       'Até 5 dispositivos',
+      'Até 5.000 produtos',
       'Permissões finas',
       'Relatórios gerenciais + exportação',
       'Suporte prioritário',
@@ -144,14 +150,8 @@ export const DEFAULT_PLAN_ID: PlanId = PLAN_IDS.ENTRADA
 /** Plano comercial-alvo (volume no médio prazo) */
 export const TARGET_PLAN_ID: PlanId = PLAN_IDS.ESSENCIAL
 
-/** Amostra grátis do plano Entrada (dias) */
+/** Amostra grátis do plano Solo / ID entrada (dias) */
 export const ENTRADA_TRIAL_DAYS = 10
-
-/** Dias de uso após o vencimento antes de bloquear */
-export const PAYMENT_GRACE_DAYS = 3
-
-/** Aviso amarelo no Início quando faltam estes dias */
-export const PAYMENT_WARNING_DAYS = 3
 
 export const CORE_FEATURES_ALL_PLANS: PlanFeature[] = [
   PLAN_FEATURES.POS,
@@ -161,4 +161,5 @@ export const CORE_FEATURES_ALL_PLANS: PlanFeature[] = [
   PLAN_FEATURES.OFFLINE,
   PLAN_FEATURES.PWA,
   PLAN_FEATURES.REPORTS_BASIC,
+  PLAN_FEATURES.RECEIVABLES,
 ]

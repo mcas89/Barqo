@@ -28,12 +28,13 @@ export function lowestPlanWithFeature(feature: PlanFeature): PlanDefinition | nu
   return null
 }
 
-export type LimitKind = 'users' | 'devices' | 'organizations'
+export type LimitKind = 'users' | 'devices' | 'organizations' | 'products'
 
 export function getLimitValue(planId: PlanId, kind: LimitKind): number {
   const limits = getPlan(planId).limits
   if (kind === 'users') return limits.maxUsers
   if (kind === 'devices') return limits.maxDevices
+  if (kind === 'products') return limits.maxProducts
   return limits.maxOrganizations
 }
 

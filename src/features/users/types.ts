@@ -20,7 +20,7 @@ export interface Employee {
   /** Hash do PIN — nunca expor o PIN em claro. */
   pinHash: string
   active: boolean
-  /** Só no plano Controle — sobrescreve o padrão do papel. */
+  /** Só no plano Gestão — sobrescreve o padrão do papel. */
   permissions?: PermissionOverrides
   createdAt: string
   updatedAt: string

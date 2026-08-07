@@ -173,7 +173,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     summary: 'Trial, assinatura e upgrade.',
     icon: CreditCard,
     steps: [
-      'Entrada tem trial; depois o acesso segue o status do plano.',
+      'Solo tem trial; depois o acesso segue o status do plano.',
       'Em Planos, escolha ciclo e pague pelo checkout.',
       'Upgrade cobra a diferença do período; downgrade no ciclo não está liberado.',
       'Se o pagamento atrasar, há aviso e carência antes do bloqueio de vendas.',
