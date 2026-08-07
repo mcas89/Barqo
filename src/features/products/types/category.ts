@@ -1,4 +1,4 @@
-import type { OrganizationId } from '../../shared/types'
+import type { OrganizationId } from '../../../shared/types'
 
 export interface ProductCategory {
   id: string
