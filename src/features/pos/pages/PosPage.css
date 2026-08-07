@@ -747,6 +747,64 @@
   letter-spacing: 0.04em;
 }
 
+.pos-page__pay-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pos-page__pay-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--balqo-brand, #0b1f3a) 7%, #fff);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0b1f3a;
+}
+
+.pos-page__pay-balance--due {
+  color: #b45309;
+  font-weight: 800;
+}
+
+.pos-page__pay-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pos-page__pay-lines li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.55rem;
+  background: #f8fafc;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.pos-page__pay-lines button {
+  border: none;
+  background: none;
+  color: #64748b;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0.15rem 0.25rem;
+}
+
 .pos-page__pay-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -772,9 +830,33 @@
   color: #f8fafc;
 }
 
+.pos-page__pay-btn--used {
+  border-color: color-mix(in srgb, var(--balqo-brand, #0b1f3a) 35%, transparent);
+  background: color-mix(in srgb, var(--balqo-brand, #0b1f3a) 8%, #fff);
+}
+
 .pos-page__pay-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.pos-page__pay-amount-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+}
+
+.pos-page__pay-apply {
+  border: 1px solid rgba(11, 31, 58, 0.16);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 0.55rem;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .pos-page__change {

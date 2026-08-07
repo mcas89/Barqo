@@ -493,8 +493,33 @@ export function usePos() {
     })
   }
 
+  function removePayment(method: PaymentMethod) {
+    setPayments((current) => current.filter((payment) => payment.method !== method))
+  }
+
   function payFullWith(method: PaymentMethod) {
     setPayments([{ method, amountCents: totalCents }])
+  }
+
+  /** Aplica valor numa forma; em não-dinheiro limita ao restante (+ o que já estava nela). */
+  function applyPayment(method: PaymentMethod, amountCents: number) {
+    const value = Math.max(0, Math.round(amountCents))
+    if (value <= 0) {
+      removePayment(method)
+      return
+    }
+    setPayments((current) => {
+      const others = current.filter((payment) => payment.method !== method)
+      const othersTotal = others.reduce((sum, payment) => sum + payment.amountCents, 0)
+      const room = Math.max(0, totalCents - othersTotal)
+      if (method === PAYMENT_METHODS.CASH) {
+        // Dinheiro pode passar do restante (gera troco).
+        return [...others, { method, amountCents: value }]
+      }
+      const capped = Math.min(value, room)
+      if (capped <= 0) return others
+      return [...others, { method, amountCents: capped }]
+    })
   }
 
   async function openCash(openingAmountCents: number) {
@@ -661,6 +686,8 @@ export function usePos() {
     maxHeldSales: MAX_HELD_SALES,
     refreshHeldSales,
     setPaymentAmount,
+    applyPayment,
+    removePayment,
     payFullWith,
     finishSale,
     openCash,
