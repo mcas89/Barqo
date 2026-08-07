@@ -126,7 +126,6 @@ export function PosPage() {
     finishSale,
     openCash,
     payments,
-    paidCents,
     changeCents,
     holdSale,
     resumeHeldSale,
