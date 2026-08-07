@@ -51,7 +51,7 @@ export function PosPage() {
   const searchRef = useRef<HTMLInputElement>(null)
   const [showDiscount, setShowDiscount] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null)
-  const [cashReceived, setCashReceived] = useState('')
+  const [paymentAmountDraft, setPaymentAmountDraft] = useState('')
   const [splitPayments, setSplitPayments] = useState<SalePayment[] | null>(null)
   const [openingValue, setOpeningValue] = useState('0,00')
   const [toast, setToast] = useState<string | null>(null)
@@ -271,26 +271,19 @@ export function PosPage() {
     if (totalCents <= 0) return
     setSelectedMethod(method)
     setSplitPayments(null)
-
-    if (method === PAYMENT_METHODS.CASH) {
-      const draft = cashReceived.trim()
-        ? cashReceived
-        : centsToInput(totalCents)
-      setCashReceived(draft)
-      setPaymentAmount(PAYMENT_METHODS.CASH, parseMoneyToCents(draft))
-      return
-    }
-
-    setCashReceived('')
+    const draft = centsToInput(totalCents)
+    setPaymentAmountDraft(draft)
     payFullWith(method)
   }
 
-  function onCashReceivedChange(value: string) {
-    setCashReceived(value)
-    const received = parseMoneyToCents(value)
-    if (selectedMethod === PAYMENT_METHODS.CASH) {
-      setPaymentAmount(PAYMENT_METHODS.CASH, received)
+  function onPaymentAmountChange(value: string) {
+    setPaymentAmountDraft(value)
+    if (!selectedMethod) return
+    let amount = parseMoneyToCents(value)
+    if (selectedMethod !== PAYMENT_METHODS.CASH && amount > totalCents) {
+      amount = totalCents
     }
+    setPaymentAmount(selectedMethod, amount)
   }
 
   function paymentsTotal(list: SalePayment[]) {
@@ -299,15 +292,12 @@ export function PosPage() {
 
   function buildPrimaryPayments(): SalePayment[] | null {
     if (!selectedMethod) return null
-
-    if (selectedMethod === PAYMENT_METHODS.CASH) {
-      const amount = parseMoneyToCents(cashReceived)
-      if (amount <= 0) return null
-      return [{ method: PAYMENT_METHODS.CASH, amountCents: amount }]
+    let amount = parseMoneyToCents(paymentAmountDraft)
+    if (amount <= 0) return null
+    if (selectedMethod !== PAYMENT_METHODS.CASH && amount > totalCents) {
+      amount = totalCents
     }
-
-    if (payments.length > 0) return payments
-    return [{ method: selectedMethod, amountCents: totalCents }]
+    return [{ method: selectedMethod, amountCents: amount }]
   }
 
   async function completeSaleWithPayments(finalPayments: SalePayment[]) {
@@ -326,7 +316,7 @@ export function PosPage() {
       [sale, ...current.filter((item) => item.id !== sale.id)].slice(0, 5),
     )
     setSelectedMethod(null)
-    setCashReceived('')
+    setPaymentAmountDraft('')
     setShowDiscount(false)
     searchRef.current?.focus()
 
@@ -398,7 +388,7 @@ export function PosPage() {
     if (held) {
       setToast(`Venda em espera · ${held.label}`)
       setSelectedMethod(null)
-      setCashReceived('')
+      setPaymentAmountDraft('')
       setSplitPayments(null)
       setShowDiscount(false)
       searchRef.current?.focus()
@@ -409,7 +399,7 @@ export function PosPage() {
     const ok = await resumeHeldSale(heldId)
     if (ok) {
       setSelectedMethod(null)
-      setCashReceived('')
+      setPaymentAmountDraft('')
       setSplitPayments(null)
       setShowDiscount(false)
       setToast('Venda retomada')
@@ -505,16 +495,14 @@ export function PosPage() {
 
   const paidMethod = payments[0]?.method
   const activeMethod = selectedMethod ?? paidMethod ?? null
-  const cashReady =
-    activeMethod !== PAYMENT_METHODS.CASH ||
-    parseMoneyToCents(cashReceived) > 0
+  const paymentReady = parseMoneyToCents(paymentAmountDraft) > 0
   const fiadoReady =
     activeMethod !== PAYMENT_METHODS.ON_ACCOUNT || Boolean(customer)
   const canFinish =
     cart.length > 0 &&
     Boolean(activeMethod) &&
     totalCents > 0 &&
-    cashReady &&
+    paymentReady &&
     fiadoReady &&
     !busy
 
@@ -1088,15 +1076,16 @@ export function PosPage() {
             ))}
           </div>
 
-          {activeMethod === PAYMENT_METHODS.CASH && (
+          {activeMethod && (
             <label className="pos-page__cash">
-              Valor recebido
+              Valor neste pagamento
               <input
-                value={cashReceived}
-                onChange={(e) => onCashReceivedChange(e.target.value)}
+                value={paymentAmountDraft}
+                onChange={(e) => onPaymentAmountChange(e.target.value)}
                 placeholder="0,00"
                 disabled={busy}
                 inputMode="decimal"
+                aria-label={`Valor em ${PAYMENT_METHOD_LABELS[activeMethod]}`}
               />
             </label>
           )}
