@@ -11,6 +11,7 @@ import {
   Tag,
   Trash2,
   UserRound,
+  Wallet,
 } from 'lucide-react'
 import { BALQO_LOGO_SRC } from '../../../shared/constants'
 import { startOfLocalDayIso } from '../../../shared/lib/dates'
@@ -33,6 +34,7 @@ import { PosRecentSalesPanel } from '../components/PosRecentSalesPanel'
 import { PosUnlockScreen } from '../components/PosUnlockScreen'
 import { usePos } from '../hooks/usePos'
 import { usePosOperator } from '../hooks/usePosOperator'
+import { PERMISSIONS } from '../../users/permissions'
 import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_METHODS,
@@ -89,8 +91,13 @@ export function PosPage() {
     authorizePrivileged,
     canRemoveCartItem,
     canAccessBackOffice,
+    can,
     pinRequired,
   } = usePosOperator()
+
+  const canOpenFiados =
+    canUseFiado &&
+    (canAccessBackOffice || can(PERMISSIONS.MANAGE_RECEIVABLES))
 
   const {
     organization,
@@ -587,10 +594,24 @@ export function PosPage() {
           {customer ? customer.name : 'Cliente'}
         </button>
 
-        <div className="pos-page__cash-pill pos-page__desk-only" title={cashSession?.openedByName}>
-          <Banknote size={16} strokeWidth={2} aria-hidden />
-          Caixa aberto
-        </div>
+        {canOpenFiados ? (
+          <Link
+            to="/app/receivables"
+            className="pos-page__cash-pill pos-page__cash-pill--link pos-page__desk-only"
+            title="Receber fiados"
+          >
+            <Wallet size={16} strokeWidth={2} aria-hidden />
+            Fiados
+          </Link>
+        ) : (
+          <div
+            className="pos-page__cash-pill pos-page__desk-only"
+            title={cashSession?.openedByName}
+          >
+            <Banknote size={16} strokeWidth={2} aria-hidden />
+            Caixa aberto
+          </div>
+        )}
 
         <button
           type="button"
@@ -691,6 +712,18 @@ export function PosPage() {
                     2ª via
                   </button>
                 </li>
+                {canOpenFiados && (
+                  <li role="none">
+                    <Link
+                      to="/app/receivables"
+                      role="menuitem"
+                      onClick={() => setShowMobileMore(false)}
+                    >
+                      <Wallet size={16} strokeWidth={2} aria-hidden />
+                      Fiados
+                    </Link>
+                  </li>
+                )}
                 {canAccessBackOffice && (
                   <li role="none">
                     <Link
@@ -845,7 +878,7 @@ export function PosPage() {
             <div>
               {cart.length > 0 && (
                 <p className="pos-page__sale-mode">
-                  {customer ? customer.name : '-'}
+                  {customer ? customer.name : 'Caixa livre'}
                 </p>
               )}
               <span>
@@ -929,7 +962,7 @@ export function PosPage() {
           {cart.length === 0 ? (
             <div className="pos-page__empty-cart">
               <strong className="pos-page__empty-mode">
-                {customer ? customer.name : '-'}
+                {customer ? customer.name : 'Caixa livre'}
               </strong>
               <p className="pos-page__empty-hint pos-page__desk-only">
                 Passe o código, busque pelo nome ou use Avulsa / cadastro rápido.

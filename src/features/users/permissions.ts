@@ -86,7 +86,7 @@ const FLOOR_DEFAULTS: PermissionMap = {
   [PERMISSIONS.MANAGE_INVENTORY]: false,
   [PERMISSIONS.MANAGE_CASH]: false,
   [PERMISSIONS.MANAGE_CUSTOMERS]: false,
-  [PERMISSIONS.MANAGE_RECEIVABLES]: false,
+  [PERMISSIONS.MANAGE_RECEIVABLES]: true,
   [PERMISSIONS.MANAGE_SUPPLIERS]: false,
   [PERMISSIONS.VIEW_REPORTS]: false,
   [PERMISSIONS.EXPORT_REPORTS]: false,
@@ -119,8 +119,18 @@ export function resolvePermissions(input: {
 }): PermissionMap {
   const base = defaultPermissionsForRole(input.role)
   if (input.role === USER_ROLES.OWNER) return base
-  if (!planSupportsFinePermissions(input.planId) || !input.overrides) return base
-  return { ...base, ...input.overrides }
+  const map =
+    !planSupportsFinePermissions(input.planId) || !input.overrides
+      ? base
+      : { ...base, ...input.overrides }
+  // Caixa/atendente sempre podem receber fiado no PDV.
+  if (
+    input.role === USER_ROLES.CASHIER ||
+    input.role === USER_ROLES.ATTENDANT
+  ) {
+    return { ...map, [PERMISSIONS.MANAGE_RECEIVABLES]: true }
+  }
+  return map
 }
 
 export function hasPermission(

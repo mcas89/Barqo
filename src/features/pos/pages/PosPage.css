@@ -382,6 +382,14 @@
   cursor: default;
 }
 
+.pos-page__cash-pill--link {
+  cursor: pointer;
+}
+
+.pos-page__cash-pill--link:hover {
+  background: color-mix(in srgb, #15803d 18%, #fff);
+}
+
 .pos-page__ghost,
 .pos-page__ghost-link {
   border: 1px solid rgba(11, 31, 58, 0.14);
