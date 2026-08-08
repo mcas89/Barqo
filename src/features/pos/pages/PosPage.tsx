@@ -929,7 +929,7 @@ export function PosPage() {
           {cart.length === 0 ? (
             <div className="pos-page__empty-cart">
               <strong className="pos-page__empty-mode">
-                {customer ? customer.name : 'Caixa livre'}
+                {customer ? customer.name : '-'}
               </strong>
               <p className="pos-page__empty-hint pos-page__desk-only">
                 Passe o código, busque pelo nome ou use Avulsa / cadastro rápido.
