@@ -32,6 +32,11 @@
   font-style: normal;
 }
 
+.receivable-list__paid-at {
+  color: #0f6e56 !important;
+  font-weight: 600;
+}
+
 .receivable-list__side {
   text-align: right;
   display: flex;
