@@ -3,8 +3,11 @@ export {
   listReceivables,
   createReceivable,
   receivePayment,
+  receiveAccountPayment,
+  buildCustomerAccounts,
   sumOpenCents,
   filterReceivables,
+  filterCustomerAccounts,
 } from './services/receivable-service'
 export type {
   Receivable,
@@ -12,6 +15,8 @@ export type {
   ReceivableStatus,
   CreateReceivableInput,
   ReceivePaymentInput,
+  CustomerReceivableAccount,
+  ReceivableChargeLine,
 } from './types'
 export {
   RECEIVABLE_STATUS,

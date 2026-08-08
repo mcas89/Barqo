@@ -93,7 +93,8 @@ export const HELP_TOPICS: HelpTopic[] = [
     steps: [
       'Cadastre o cliente em Clientes (ou pelo PDV).',
       'No PDV, selecione o cliente — aí aparece o botão Fiado.',
-      'A venda gera uma conta em Fiado / Contas a receber.',
+      'Várias compras do mesmo cliente ficam num único card até quitar tudo.',
+      'Abra o card para ver data, itens e valor de cada lançamento.',
       'Quando o cliente pagar, baixe o valor na tela Fiado (pode ser parcial).',
       'Fiado em dinheiro exige caixa aberto e entra na gaveta (suprimento).',
       'Fiado não aumenta o dinheiro da gaveta até a baixa.',

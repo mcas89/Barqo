@@ -5,15 +5,11 @@ import {
   PAYMENT_METHODS,
   type PaymentMethod,
 } from '../../pos'
-import {
-  remainingCents,
-  type ReceivePaymentInput,
-  type Receivable,
-} from '../types'
+import type { CustomerReceivableAccount, ReceivePaymentInput } from '../types'
 import './ReceivePaymentForm.css'
 
 interface ReceivePaymentFormProps {
-  receivable: Receivable
+  account: CustomerReceivableAccount
   saving: boolean
   onSubmit: (input: ReceivePaymentInput) => Promise<void>
   onCancel: () => void
@@ -27,12 +23,12 @@ const METHODS: PaymentMethod[] = [
 ]
 
 export function ReceivePaymentForm({
-  receivable,
+  account,
   saving,
   onSubmit,
   onCancel,
 }: ReceivePaymentFormProps) {
-  const open = remainingCents(receivable)
+  const open = account.openCents
   const [amount, setAmount] = useState((open / 100).toFixed(2).replace('.', ','))
   const [method, setMethod] = useState<PaymentMethod>(PAYMENT_METHODS.CASH)
   const [note, setNote] = useState('')
@@ -61,11 +57,13 @@ export function ReceivePaymentForm({
   return (
     <form className="receive-pay-form" onSubmit={(e) => void handleSubmit(e)}>
       <header>
-        <h2>Receber de {receivable.customerName}</h2>
-        <p>Em aberto: {formatMoney(open)}</p>
+        <h2>Receber de {account.customerName}</h2>
+        <p>
+          Em aberto: {formatMoney(open)} · {account.chargeCount} lançamento(s)
+        </p>
         <p className="receive-pay-form__hint">
-          Dinheiro exige caixa aberto e entra na gaveta como suprimento. PIX e cartão
-          não alteram o dinheiro esperado.
+          O valor baixa os lançamentos mais antigos primeiro. Dinheiro exige caixa
+          aberto e entra na gaveta como suprimento.
         </p>
       </header>
 

@@ -8,8 +8,8 @@ import { ReceivePaymentForm } from '../components/ReceivePaymentForm'
 import { useReceivables } from '../hooks/useReceivables'
 import type {
   CreateReceivableInput,
+  CustomerReceivableAccount,
   ReceivePaymentInput,
-  Receivable,
 } from '../types'
 import './ReceivablesPage.css'
 
@@ -20,7 +20,7 @@ export function ReceivablesPage() {
     organization,
     hasReceivables,
     upgradeHint,
-    items,
+    accounts,
     openTotalCents,
     customers,
     loading,
@@ -31,11 +31,12 @@ export function ReceivablesPage() {
     includePaid,
     setIncludePaid,
     addReceivable,
-    payReceivable,
+    payAccount,
+    loadAccountSaleItems,
   } = useReceivables()
 
   const [mode, setMode] = useState<Mode>('list')
-  const [receiving, setReceiving] = useState<Receivable | null>(null)
+  const [receiving, setReceiving] = useState<CustomerReceivableAccount | null>(null)
 
   async function handleCreate(input: CreateReceivableInput) {
     await addReceivable(input)
@@ -44,7 +45,7 @@ export function ReceivablesPage() {
 
   async function handleReceive(input: ReceivePaymentInput) {
     if (!receiving) return
-    await payReceivable(receiving.id, input)
+    await payAccount(receiving.customerId, input)
     setReceiving(null)
     setMode('list')
   }
@@ -116,7 +117,7 @@ export function ReceivablesPage() {
         />
       ) : mode === 'receive' && receiving ? (
         <ReceivePaymentForm
-          receivable={receiving}
+          account={receiving}
           saving={saving}
           onSubmit={handleReceive}
           onCancel={() => {
@@ -147,10 +148,11 @@ export function ReceivablesPage() {
             <p className="receivables-page__empty">Carregando…</p>
           ) : (
             <ReceivableList
-              items={items}
+              accounts={accounts}
               busy={saving}
-              onReceive={(item) => {
-                setReceiving(item)
+              onExpand={loadAccountSaleItems}
+              onReceive={(account) => {
+                setReceiving(account)
                 setMode('receive')
               }}
             />

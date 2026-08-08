@@ -65,6 +65,31 @@ export interface ReceivePaymentInput {
   note?: string
 }
 
+/** Linha de cobrança dentro da conta do cliente (um lançamento/venda). */
+export interface ReceivableChargeLine {
+  receivable: Receivable
+  openCents: number
+  saleItems?: Array<{ name: string; quantity: number; totalCents: number }>
+}
+
+/**
+ * Conta de fiado por cliente: um card enquanto houver saldo.
+ * Novo card só depois que a conta anterior for 100% quitada.
+ */
+export interface CustomerReceivableAccount {
+  customerId: string
+  customerName: string
+  status: 'open' | 'partial' | 'paid'
+  totalCents: number
+  paidCents: number
+  openCents: number
+  chargeCount: number
+  charges: ReceivableChargeLine[]
+  createdAt: string
+  updatedAt: string
+  lastPaidAt?: string
+}
+
 export function remainingCents(receivable: Receivable): number {
   return Math.max(0, receivable.totalCents - receivable.paidCents)
 }

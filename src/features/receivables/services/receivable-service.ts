@@ -24,6 +24,7 @@ import {
   remainingCents,
   statusFromAmounts,
   type CreateReceivableInput,
+  type CustomerReceivableAccount,
   type ReceivePaymentInput,
   type Receivable,
   type ReceivablePayment,
@@ -157,6 +158,8 @@ export async function receivePayment(input: {
   operatorId: string
   deviceId: string
   data: ReceivePaymentInput
+  /** Quando o pagamento da conta aplica várias baixas, o caixa lança uma vez só. */
+  skipCashMovement?: boolean
 }): Promise<Receivable> {
   if (!input.operatorId?.trim()) {
     throw new Error('Operador não identificado.')
@@ -183,7 +186,7 @@ export async function receivePayment(input: {
   }
 
   const method = input.data.method
-  const isCash = method === PAYMENT_METHODS.CASH
+  const isCash = method === PAYMENT_METHODS.CASH && !input.skipCashMovement
 
   /** Dinheiro na gaveta: exige caixa aberto e vira suprimento. */
   let openCashId: string | null = null
@@ -327,6 +330,225 @@ export function filterReceivables(
 
 export function sumOpenCents(items: Receivable[]): number {
   return items.reduce((sum, item) => sum + remainingCents(item), 0)
+}
+
+function lastPaymentAt(item: Receivable): string | undefined {
+  let latest: string | undefined
+  for (const payment of item.payments) {
+    if (!payment.paidAt) continue
+    if (!latest || payment.paidAt > latest) latest = payment.paidAt
+  }
+  return latest
+}
+
+function accountStatus(
+  openCents: number,
+  paidCents: number,
+): CustomerReceivableAccount['status'] {
+  if (openCents <= 0) return 'paid'
+  if (paidCents > 0) return 'partial'
+  return 'open'
+}
+
+/**
+ * Agrupa fiados: 1 card por cliente com saldo;
+ * quitados (sem saldo) viram card histórico quando includePaid.
+ */
+export function buildCustomerAccounts(
+  items: Receivable[],
+  options?: { includePaid?: boolean },
+): CustomerReceivableAccount[] {
+  const active = items.filter(
+    (item) =>
+      item.status === RECEIVABLE_STATUS.OPEN ||
+      item.status === RECEIVABLE_STATUS.PARTIAL,
+  )
+  const paidOnly = items.filter((item) => item.status === RECEIVABLE_STATUS.PAID)
+
+  const openByCustomer = new Map<string, Receivable[]>()
+  for (const item of active) {
+    const list = openByCustomer.get(item.customerId) ?? []
+    list.push(item)
+    openByCustomer.set(item.customerId, list)
+  }
+
+  const accounts: CustomerReceivableAccount[] = []
+
+  for (const [customerId, charges] of openByCustomer) {
+    charges.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    const totalCents = charges.reduce((sum, item) => sum + item.totalCents, 0)
+    const paidCents = charges.reduce((sum, item) => sum + item.paidCents, 0)
+    const openCents = charges.reduce((sum, item) => sum + remainingCents(item), 0)
+    let lastPaidAt: string | undefined
+    for (const item of charges) {
+      const at = lastPaymentAt(item)
+      if (at && (!lastPaidAt || at > lastPaidAt)) lastPaidAt = at
+    }
+    accounts.push({
+      customerId,
+      customerName: charges[0]?.customerName ?? customerId,
+      status: accountStatus(openCents, paidCents),
+      totalCents,
+      paidCents,
+      openCents,
+      chargeCount: charges.length,
+      charges: charges.map((receivable) => ({
+        receivable,
+        openCents: remainingCents(receivable),
+      })),
+      createdAt: charges[0]?.createdAt ?? '',
+      updatedAt: charges.reduce(
+        (latest, item) => (item.updatedAt > latest ? item.updatedAt : latest),
+        charges[0]?.updatedAt ?? '',
+      ),
+      lastPaidAt,
+    })
+  }
+
+  if (options?.includePaid) {
+    const paidByCustomer = new Map<string, Receivable[]>()
+    for (const item of paidOnly) {
+      if (openByCustomer.has(item.customerId)) continue
+      const list = paidByCustomer.get(item.customerId) ?? []
+      list.push(item)
+      paidByCustomer.set(item.customerId, list)
+    }
+
+    for (const [customerId, charges] of paidByCustomer) {
+      charges.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      const totalCents = charges.reduce((sum, item) => sum + item.totalCents, 0)
+      const paidCents = charges.reduce((sum, item) => sum + item.paidCents, 0)
+      let lastPaidAt: string | undefined
+      for (const item of charges) {
+        const at = lastPaymentAt(item)
+        if (at && (!lastPaidAt || at > lastPaidAt)) lastPaidAt = at
+      }
+      accounts.push({
+        customerId,
+        customerName: charges[0]?.customerName ?? customerId,
+        status: 'paid',
+        totalCents,
+        paidCents,
+        openCents: 0,
+        chargeCount: charges.length,
+        charges: charges.map((receivable) => ({
+          receivable,
+          openCents: 0,
+        })),
+        createdAt: charges[0]?.createdAt ?? '',
+        updatedAt: charges.reduce(
+          (latest, item) => (item.updatedAt > latest ? item.updatedAt : latest),
+          charges[0]?.updatedAt ?? '',
+        ),
+        lastPaidAt,
+      })
+    }
+  }
+
+  accounts.sort((a, b) => {
+    if (a.status === 'paid' && b.status !== 'paid') return 1
+    if (a.status !== 'paid' && b.status === 'paid') return -1
+    return a.customerName.localeCompare(b.customerName, 'pt-BR')
+  })
+  return accounts
+}
+
+export function filterCustomerAccounts(
+  accounts: CustomerReceivableAccount[],
+  search: string,
+): CustomerReceivableAccount[] {
+  const q = search.trim().toLowerCase()
+  if (!q) return accounts
+  return accounts.filter((account) => {
+    if (account.customerName.toLowerCase().includes(q)) return true
+    return account.charges.some((charge) => {
+      const hay = [charge.receivable.description, charge.receivable.saleId]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return hay.includes(q)
+    })
+  })
+}
+
+/** Baixa FIFO na conta do cliente (vários lançamentos, um recebimento). */
+export async function receiveAccountPayment(input: {
+  organizationId: OrganizationId
+  customerId: string
+  userId: UserId
+  userName: string
+  operatorId: string
+  deviceId: string
+  data: ReceivePaymentInput
+}): Promise<void> {
+  const amount = Math.round(input.data.amountCents)
+  if (amount <= 0) throw new Error('Informe o valor recebido.')
+
+  const all = await listReceivables(input.organizationId, { includePaid: false })
+  const open = all
+    .filter(
+      (item) =>
+        item.customerId === input.customerId &&
+        (item.status === RECEIVABLE_STATUS.OPEN ||
+          item.status === RECEIVABLE_STATUS.PARTIAL),
+    )
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+
+  if (open.length === 0) throw new Error('Este cliente não tem fiado em aberto.')
+
+  const openTotal = open.reduce((sum, item) => sum + remainingCents(item), 0)
+  if (amount > openTotal) {
+    throw new Error(`Valor maior que o saldo em aberto (${openTotal} centavos).`)
+  }
+
+  const isCash = input.data.method === PAYMENT_METHODS.CASH
+  let openCashId: string | null = null
+  if (isCash) {
+    const cashSession = await getOpenCashSession(input.organizationId)
+    if (!cashSession) {
+      throw new Error(
+        'Abra o caixa para receber fiado em dinheiro. Assim o valor entra na gaveta.',
+      )
+    }
+    openCashId = cashSession.id
+  }
+
+  let remaining = amount
+  const customerName = open[0]?.customerName ?? 'Cliente'
+  for (const item of open) {
+    if (remaining <= 0) break
+    const slice = Math.min(remainingCents(item), remaining)
+    if (slice <= 0) continue
+    await receivePayment({
+      organizationId: input.organizationId,
+      receivableId: item.id,
+      userId: input.userId,
+      userName: input.userName,
+      operatorId: input.operatorId,
+      deviceId: input.deviceId,
+      data: {
+        amountCents: slice,
+        method: input.data.method,
+        note: input.data.note,
+      },
+      skipCashMovement: true,
+    })
+    remaining -= slice
+  }
+
+  if (isCash && openCashId) {
+    await addCashMovement({
+      organizationId: input.organizationId,
+      sessionId: openCashId,
+      type: CASH_MOVEMENT_TYPES.SUPRIMENTO,
+      amountCents: amount,
+      reason: `Recebimento fiado — ${customerName}`,
+      userId: input.userId,
+      userName: input.userName,
+      operatorId: input.operatorId,
+      deviceId: input.deviceId,
+    })
+  }
 }
 
 export type { PaymentMethod }

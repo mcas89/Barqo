@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   DEFAULT_PLAN_ID,
   PLAN_FEATURES,
@@ -9,16 +9,19 @@ import { resolvePersonName } from '../../../shared/lib/person-name'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { useDeviceSession } from '../../devices'
 import { listCustomers, type Customer } from '../../customers'
+import { getSale } from '../../pos/services/sale-service'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import {
+  buildCustomerAccounts,
   createReceivable,
-  filterReceivables,
+  filterCustomerAccounts,
   listReceivables,
-  receivePayment,
+  receiveAccountPayment,
   sumOpenCents,
 } from '../services/receivable-service'
 import type {
   CreateReceivableInput,
+  CustomerReceivableAccount,
   ReceivePaymentInput,
   Receivable,
 } from '../types'
@@ -60,7 +63,7 @@ export function useReceivables() {
     setError(null)
     try {
       const [receivables, customerList] = await Promise.all([
-        listReceivables(organizationId, { includePaid }),
+        listReceivables(organizationId, { includePaid: true }),
         listCustomers(organizationId),
       ])
       setItems(receivables)
@@ -71,7 +74,7 @@ export function useReceivables() {
     } finally {
       setLoading(false)
     }
-  }, [organizationId, includePaid, hasReceivables])
+  }, [organizationId, hasReceivables])
 
   useEffect(() => {
     void refresh()
@@ -96,10 +99,40 @@ export function useReceivables() {
     }
   }
 
-  const filtered = filterReceivables(items, search)
+  const accounts = useMemo(() => {
+    const built = buildCustomerAccounts(items, { includePaid })
+    return filterCustomerAccounts(built, search)
+  }, [items, includePaid, search])
+
   const openTotalCents = sumOpenCents(
     items.filter((item) => item.status === 'open' || item.status === 'partial'),
   )
+
+  async function loadAccountSaleItems(
+    account: CustomerReceivableAccount,
+  ): Promise<CustomerReceivableAccount> {
+    if (!organizationId) return account
+    const charges = await Promise.all(
+      account.charges.map(async (charge) => {
+        if (charge.saleItems || !charge.receivable.saleId) return charge
+        try {
+          const sale = await getSale(organizationId, charge.receivable.saleId)
+          if (!sale) return charge
+          return {
+            ...charge,
+            saleItems: sale.items.map((item) => ({
+              name: item.name,
+              quantity: item.quantity,
+              totalCents: item.totalCents,
+            })),
+          }
+        } catch {
+          return charge
+        }
+      }),
+    )
+    return { ...account, charges }
+  }
 
   async function addReceivable(data: CreateReceivableInput) {
     const actor = requireActor()
@@ -128,15 +161,15 @@ export function useReceivables() {
     }
   }
 
-  async function payReceivable(receivableId: string, data: ReceivePaymentInput) {
+  async function payAccount(customerId: string, data: ReceivePaymentInput) {
     const actor = requireActor()
 
     setSaving(true)
     setError(null)
     try {
-      await receivePayment({
+      await receiveAccountPayment({
         organizationId: actor.organizationId,
-        receivableId,
+        customerId,
         userId: actor.user.id,
         userName: actor.actorName,
         operatorId: actor.operator.id,
@@ -160,7 +193,7 @@ export function useReceivables() {
     hasReceivables,
     upgradeHint,
     planId,
-    items: filtered,
+    accounts,
     openTotalCents,
     customers,
     loading,
@@ -172,6 +205,7 @@ export function useReceivables() {
     setIncludePaid,
     refresh,
     addReceivable,
-    payReceivable,
+    payAccount,
+    loadAccountSaleItems,
   }
 }
