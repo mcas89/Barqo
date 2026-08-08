@@ -142,7 +142,7 @@ export function SalesCancelPage() {
                     <span>
                       <strong>{formatDateTime(sale.createdAt)}</strong>
                       <em>
-                        {sale.customerName || 'Caixa livre'}
+                        {sale.customerName || '-'}
                         {sale.status === 'canceled' ? ' · cancelada' : ''}
                       </em>
                     </span>
@@ -173,7 +173,7 @@ export function SalesCancelPage() {
                 </li>
                 <li>
                   <span>Cliente</span>
-                  <strong>{selected.customerName || 'Caixa livre'}</strong>
+                  <strong>{selected.customerName || '-'}</strong>
                 </li>
                 <li>
                   <span>Operador</span>

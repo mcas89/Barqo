@@ -845,7 +845,7 @@ export function PosPage() {
             <div>
               {cart.length > 0 && (
                 <p className="pos-page__sale-mode">
-                  {customer ? customer.name : 'Caixa livre'}
+                  {customer ? customer.name : '-'}
                 </p>
               )}
               <span>

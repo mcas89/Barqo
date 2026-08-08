@@ -36,7 +36,7 @@ export function renderReceiptText(payload: SaleReceiptPayload): string {
   rows.push(`Venda ${payload.saleId.slice(-8).toUpperCase()}`)
   rows.push(formatDateTime(payload.createdAt))
   rows.push(...wrap(`Operador: ${payload.soldByName}`, width))
-  rows.push(...wrap(`Cliente: ${payload.customerName || 'Caixa livre'}`, width))
+  rows.push(...wrap(`Cliente: ${payload.customerName?.trim() || '-'}`, width))
   rows.push(line(width))
 
   for (const item of payload.items) {

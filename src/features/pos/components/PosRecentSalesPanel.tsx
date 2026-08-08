@@ -47,7 +47,7 @@ export function PosRecentSalesPanel({
                   <strong>{formatMoney(sale.totalCents)}</strong>
                   <span>
                     {formatDateTime(sale.createdAt)}
-                    {sale.customerName ? ` · ${sale.customerName}` : ' · Caixa livre'}
+                    {sale.customerName ? ` · ${sale.customerName}` : ' · -'}
                   </span>
                 </div>
                 <div className="pos-recent-sales__actions">

@@ -24,7 +24,7 @@ export function buildWhatsappReceiptMessage(input: {
   if (input.copy === 'segunda_via') lines.push('_2ª via do comprovante_')
   lines.push(`Venda ${sale.id.slice(-8).toUpperCase()}`)
   lines.push(formatDateTime(sale.createdAt))
-  lines.push(`Cliente: ${sale.customerName || 'Caixa livre'}`)
+  lines.push(`Cliente: ${sale.customerName?.trim() || '-'}`)
   lines.push('')
 
   const shown = sale.items.slice(0, MAX_ITEMS_IN_MESSAGE)

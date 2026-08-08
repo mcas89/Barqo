@@ -632,7 +632,7 @@ export function usePos() {
         customerId: customer?.id,
         customerName: customer?.name,
         customerPhone: customer?.phone,
-        note: customer ? `Cliente: ${customer.name}` : 'Caixa livre',
+        note: customer ? `Cliente: ${customer.name}` : undefined,
       })
       setLastSale(sale)
       clearCart()
@@ -676,7 +676,7 @@ export function usePos() {
     clearLastSale,
     customer,
     setCustomer,
-    customerLabel: customer?.name.trim() || 'Caixa livre',
+    customerLabel: customer?.name.trim() || '-',
     addProduct,
     addBySearchEnter,
     addByBarcode,

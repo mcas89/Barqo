@@ -83,7 +83,7 @@ export function renderReceiptHtml(payload: SaleReceiptPayload): string {
       <p><strong>Venda</strong> ${escapeHtml(payload.saleId.slice(-8).toUpperCase())}</p>
       <p>${escapeHtml(formatDateTime(payload.createdAt))}</p>
       <p>Operador: ${escapeHtml(payload.soldByName)}</p>
-      ${payload.customerName ? `<p>Cliente: ${escapeHtml(payload.customerName)}</p>` : '<p>Cliente: caixa livre</p>'}
+      ${payload.customerName?.trim() ? `<p>Cliente: ${escapeHtml(payload.customerName)}</p>` : '<p>Cliente: -</p>'}
       <hr />
       <table>${items}</table>
       <hr />

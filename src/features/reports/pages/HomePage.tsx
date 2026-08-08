@@ -155,7 +155,7 @@ export function HomePage() {
                     <li key={sale.id}>
                       <span>
                         {formatDateTime(sale.createdAt)}
-                        <em>{sale.soldByName || sale.customerName || 'Caixa livre'}</em>
+                        <em>{sale.soldByName || sale.customerName || '-'}</em>
                       </span>
                       <strong className="home-page__sale-total">
                         {formatMoney(sale.totalCents)}
