@@ -153,6 +153,12 @@ export const TARGET_PLAN_ID: PlanId = PLAN_IDS.ESSENCIAL
 /** Amostra grátis do plano Solo / ID entrada (dias) */
 export const ENTRADA_TRIAL_DAYS = 10
 
+/** Dias de uso após o vencimento antes de bloquear */
+export const PAYMENT_GRACE_DAYS = 3
+
+/** Aviso amarelo no Início quando faltam estes dias */
+export const PAYMENT_WARNING_DAYS = 3
+
 export const CORE_FEATURES_ALL_PLANS: PlanFeature[] = [
   PLAN_FEATURES.POS,
   PLAN_FEATURES.PRODUCTS,

@@ -95,6 +95,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       'No PDV, selecione o cliente — aí aparece o botão Fiado.',
       'A venda gera uma conta em Fiado / Contas a receber.',
       'Quando o cliente pagar, baixe o valor na tela Fiado (pode ser parcial).',
+      'Fiado em dinheiro exige caixa aberto e entra na gaveta (suprimento).',
       'Fiado não aumenta o dinheiro da gaveta até a baixa.',
     ],
     link: { to: '/app/receivables', label: 'Ver fiado' },

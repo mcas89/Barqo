@@ -13,7 +13,12 @@ import { createId } from '../../../shared/lib/ids'
 import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
 import type { OrganizationId, UserId } from '../../../shared/types'
-import type { PaymentMethod } from '../../pos/types'
+import {
+  addCashMovement,
+  getOpenCashSession,
+} from '../../cash-register/services/cash-service'
+import { CASH_MOVEMENT_TYPES } from '../../cash-register/types'
+import { PAYMENT_METHODS, type PaymentMethod } from '../../pos/types'
 import {
   RECEIVABLE_STATUS,
   remainingCents,
@@ -177,10 +182,25 @@ export async function receivePayment(input: {
     throw new Error(`Valor maior que o saldo em aberto (${open} centavos).`)
   }
 
+  const method = input.data.method
+  const isCash = method === PAYMENT_METHODS.CASH
+
+  /** Dinheiro na gaveta: exige caixa aberto e vira suprimento. */
+  let openCashId: string | null = null
+  if (isCash) {
+    const cashSession = await getOpenCashSession(input.organizationId)
+    if (!cashSession) {
+      throw new Error(
+        'Abra o caixa para receber fiado em dinheiro. Assim o valor entra na gaveta.',
+      )
+    }
+    openCashId = cashSession.id
+  }
+
   const payment: ReceivablePayment = {
     id: createId('rpay'),
     amountCents: amount,
-    method: input.data.method,
+    method,
     paidAt: nowIso(),
     paidByUserId: input.userId,
     paidByName: input.userName,
@@ -210,6 +230,27 @@ export async function receivePayment(input: {
       updatedAt,
     },
   )
+
+  if (isCash && openCashId) {
+    try {
+      await addCashMovement({
+        organizationId: input.organizationId,
+        sessionId: openCashId,
+        type: CASH_MOVEMENT_TYPES.SUPRIMENTO,
+        amountCents: amount,
+        reason: `Recebimento fiado — ${existing.customerName}`,
+        userId: input.userId,
+        userName: input.userName,
+        operatorId: input.operatorId,
+        deviceId: input.deviceId,
+      })
+    } catch (err) {
+      console.error('Fiado quitado, mas falhou ao lançar no caixa', err)
+      throw new Error(
+        'Recebimento salvo no fiado, mas não entrou no caixa. Registre um suprimento manual com o mesmo valor ou tente de novo.',
+      )
+    }
+  }
 
   return {
     ...existing,

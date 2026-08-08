@@ -21,6 +21,12 @@
   font-size: 0.9rem;
 }
 
+.receive-pay-form__hint {
+  margin-top: 0.55rem !important;
+  font-size: 0.82rem !important;
+  line-height: 1.35;
+}
+
 .receive-pay-form label {
   display: flex;
   flex-direction: column;

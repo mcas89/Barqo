@@ -63,6 +63,10 @@ export function ReceivePaymentForm({
       <header>
         <h2>Receber de {receivable.customerName}</h2>
         <p>Em aberto: {formatMoney(open)}</p>
+        <p className="receive-pay-form__hint">
+          Dinheiro exige caixa aberto e entra na gaveta como suprimento. PIX e cartão
+          não alteram o dinheiro esperado.
+        </p>
       </header>
 
       <label>
