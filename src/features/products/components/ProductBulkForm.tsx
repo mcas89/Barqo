@@ -72,6 +72,7 @@ export function ProductBulkForm({
   const [markupPercent, setMarkupPercent] = useState(readStoredMarkup)
   const [category, setCategory] = useState('')
   const [unit, setUnit] = useState<ProductUnit>('UN')
+  const [minStock, setMinStock] = useState('3')
   const [categories, setCategories] = useState<ProductCategory[]>([])
 
   const [barcode, setBarcode] = useState('')
@@ -206,7 +207,7 @@ export function ProductBulkForm({
       priceCents: salePriceCents,
       costCents,
       stock: stockQty,
-      minStock: 0,
+      minStock: Math.max(0, Number(minStock.replace(',', '.')) || 0),
       active: true,
     }
 
@@ -330,6 +331,16 @@ export function ProductBulkForm({
                 </option>
               ))}
             </select>
+          </label>
+          <label>
+            Estoque mínimo
+            <input
+              inputMode="decimal"
+              value={minStock}
+              onChange={(e) => setMinStock(e.target.value)}
+              disabled={saving}
+              placeholder="3"
+            />
           </label>
         </div>
       </section>
