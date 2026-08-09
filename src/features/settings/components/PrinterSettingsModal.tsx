@@ -173,25 +173,42 @@ export function PrinterSettingsModal({
             <>
               <ol className="printer-modal__steps">
                 <li>
-                  Baixe e instale o{' '}
+                  <strong>Baixe o QZ Tray</strong> no site oficial (
                   <a href={QZ_DOWNLOAD_URL} target="_blank" rel="noreferrer">
-                    QZ Tray
-                  </a>{' '}
-                  (arquivo <strong>.exe</strong> do site oficial — não use script).
+                    qz.io/download
+                  </a>
+                  ) — use o arquivo <strong>.exe</strong>, não o comando PowerShell.
                 </li>
-                <li>Deixe o QZ Tray aberto (ícone perto do relógio do Windows).</li>
                 <li>
-                  Baixe o <strong>certificado BALQO</strong> e copie para a pasta do QZ Tray,
-                  por exemplo:{' '}
-                  <code>C:\Program Files\QZ Tray\override.crt</code>
+                  Instale e deixe o QZ aberto (ícone perto do relógio do Windows).
                 </li>
-                <li>Feche e abra o QZ Tray de novo.</li>
                 <li>
-                  Volte aqui, clique em <strong>Verificar conexão</strong>. Se pedir autorização
-                  do site, escolha <strong>Allow</strong>.
+                  Clique em <strong>Baixar certificado BALQO</strong> abaixo
+                  (arquivo <code>override.crt</code>).
                 </li>
-                <li>Escolha a impressora, teste e salve.</li>
+                <li>
+                  Abra a pasta do QZ Tray (em geral{' '}
+                  <code>C:\Program Files\QZ Tray\</code>
+                  ). Dica: botão direito no ícone do QZ → Advanced → Open File Location.
+                </li>
+                <li>
+                  Cole o <code>override.crt</code> nessa pasta (substitua se já existir um
+                  antigo). Aceite a permissão de administrador se o Windows pedir.
+                </li>
+                <li>
+                  Feche o QZ por completo (Exit) e abra de novo.
+                </li>
+                <li>
+                  Volte aqui → <strong>Verificar conexão</strong> → escolha a impressora →
+                  <strong>Testar impressão</strong> → Salvar.
+                </li>
               </ol>
+
+              <p className="printer-modal__cert-note">
+                O certificado BALQO é a “chave de confiança” da loja. Sem ele, o QZ pode
+                pedir autorização a cada cupom. Com ele instalado uma vez, a impressão fica
+                silenciosa.
+              </p>
 
               <div className="printer-modal__downloads">
                 <a
@@ -200,17 +217,21 @@ export function PrinterSettingsModal({
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Baixar QZ Tray
+                  1. Baixar QZ Tray
                 </a>
-                <a className="printer-modal__ghost-link" href={QZ_OVERRIDE_URL} download="override.crt">
-                  Baixar certificado BALQO
+                <a
+                  className="printer-modal__primary printer-modal__primary-link"
+                  href={QZ_OVERRIDE_URL}
+                  download="override.crt"
+                >
+                  2. Baixar certificado BALQO
                 </a>
                 <a
                   className="printer-modal__ghost-link"
                   href={QZ_INSTALL_GUIDE_URL}
                   download
                 >
-                  Guia em texto
+                  Guia completo (.txt)
                 </a>
               </div>
             </>

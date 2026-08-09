@@ -176,11 +176,15 @@
   margin-bottom: 0.45rem;
 }
 
-.printer-modal__steps code {
-  font-size: 0.78rem;
-  background: #f1f5f9;
-  padding: 0.1rem 0.3rem;
-  border-radius: 0.3rem;
+.printer-modal__cert-note {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.55rem;
+  background: #eff6ff;
+  color: #1e3a5f;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .printer-modal__primary-link {

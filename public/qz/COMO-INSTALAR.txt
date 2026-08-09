@@ -1,30 +1,61 @@
 BALQO + QZ Tray — instalação no PC do caixa
 ============================================
 
-1) Baixe e instale o QZ Tray (Windows):
-   https://qz.io/download/
-   Arquivo típico: qz-tray-*-x86_64.exe
-   Instale com as opções padrão.
+Objetivo: imprimir cupom sem a mensagem chata a cada venda.
 
-2) Confirme que o ícone do QZ Tray aparece perto do relógio do Windows.
-   Deixe o QZ Tray aberto (bandeja).
+PASSO 1 — Instalar o QZ Tray
+----------------------------
+1. Abra: https://qz.io/download/
+2. Baixe o arquivo Windows (.exe), exemplo: qz-tray-2.2.6-x86_64.exe
+   NÃO use o comando PowerShell (irm pwsh.sh).
+3. Instale com as opções padrão (Next / Avançar).
+4. Confira o ícone do QZ Tray perto do relógio do Windows.
+5. Deixe o QZ Tray aberto.
 
-3) Instale o certificado BALQO (remove avisos de confiança):
-   - Baixe o arquivo override.crt desta pasta do BALQO
-     (Configurações → Impressora → "Baixar certificado BALQO")
-   - Copie override.crt para a pasta de instalação do QZ Tray, por exemplo:
-     C:\Program Files\QZ Tray\override.crt
-   - Se pedir permissão de administrador, aceite.
-   - Feche e abra o QZ Tray de novo.
+PASSO 2 — Instalar o certificado BALQO (CA)
+-------------------------------------------
+Isso faz o QZ confiar no site balqo.vercel.app.
 
-4) No BALQO (https://balqo.vercel.app):
-   - Abra Configurações → Impressora
-   - Clique em "Verificar conexão"
-   - Se o QZ pedir autorizar o site, clique em Allow / Sempre
-   - Escolha a impressora térmica
-   - Clique em "Testar impressão"
-   - Salve
+1. No BALQO: Configurações → Impressora → "Baixar certificado BALQO"
+   (arquivo: override.crt)
 
-Pronto. Nas vendas, o cupom sai pela impressora escolhida.
+2. Abra a pasta do QZ Tray. Em geral:
+   C:\Program Files\QZ Tray\
+
+   Dica: clique com o botão direito no ícone do QZ na bandeja
+   → Advanced → Open File Location (ou "Abrir local do arquivo").
+
+3. Se já existir um override.crt antigo, apague ou substitua.
+
+4. Cole o arquivo baixado nesta pasta com o nome EXATO:
+   override.crt
+
+   Se o Windows pedir permissão de administrador, aceite.
+   Se não deixar colar: copie o arquivo para a Área de Trabalho,
+   depois copie de novo para a pasta do QZ como administrador.
+
+5. Feche o QZ Tray por completo:
+   botão direito no ícone → Exit / Sair
+   Abra de novo pelo menu Iniciar ("QZ Tray").
+
+PASSO 3 — Conectar no BALQO
+---------------------------
+1. Abra https://balqo.vercel.app
+2. Configurações → Impressora
+3. Clique em "Verificar conexão"
+4. Se ainda pedir autorização uma vez, clique em Allow / Permitir
+   (depois do certificado, não deve repetir a cada cupom)
+5. Escolha a impressora térmica
+6. Clique em "Testar impressão"
+7. Salve
+
+Pronto.
+
+Se ainda aparecer aviso em toda impressão
+----------------------------------------
+- Confirme que override.crt está em C:\Program Files\QZ Tray\
+- Confirme que reiniciou o QZ depois de colar o arquivo
+- Apague override.crt antigo inválido e use o novo download do BALQO
+- Rode "Verificar conexão" de novo
 
 Suporte BALQO: WhatsApp (11) 94059-9561
