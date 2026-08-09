@@ -205,9 +205,11 @@ export function PrinterSettingsModal({
               </ol>
 
               <p className="printer-modal__cert-note">
-                O certificado BALQO é a “chave de confiança” da loja. Sem ele, o QZ pode
-                pedir autorização a cada cupom. Com ele instalado uma vez, a impressão fica
-                silenciosa.
+                O certificado BALQO é a “chave de confiança” da loja. Com o{' '}
+                <code>override.crt</code> instalado e o site atualizado, marque{' '}
+                <strong>Remember this decision</strong> e clique em <strong>Allow</strong>{' '}
+                uma vez — depois a impressão fica silenciosa. Se o Allow sumir ao marcar
+                Remember, atualize a página (Ctrl+F5) e tente de novo.
               </p>
 
               <div className="printer-modal__downloads">

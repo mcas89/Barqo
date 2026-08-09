@@ -14,17 +14,15 @@ declare module 'jsrsasign' {
   export const KEYUTIL: {
     getKey: (pem: string) => unknown
   }
-  export const KJUR: {
-    crypto: {
-      Signature: new (params: { alg: string }) => {
-        init: (key: unknown) => void
-        updateString: (data: string) => void
-        sign: () => string
-      }
-    }
+  export class Signature {
+    constructor(params: { alg: string })
+    init: (key: unknown) => void
+    updateString: (data: string) => void
+    sign: () => string
   }
   export function hextorstr(hex: string): string
   export function stob64(str: string): string
+  export function hextob64(hex: string): string
 }
 
 interface ImportMetaEnv {

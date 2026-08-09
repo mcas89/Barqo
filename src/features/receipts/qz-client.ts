@@ -1,5 +1,5 @@
 import qz from 'qz-tray'
-import { KEYUTIL, KJUR, hextorstr, stob64 } from 'jsrsasign'
+import { KEYUTIL, Signature, hextob64 } from 'jsrsasign'
 import privateKeyPem from './qz-private-key.pem?raw'
 
 export const QZ_DOWNLOAD_URL = 'https://qz.io/download/'
@@ -17,6 +17,18 @@ export const BROWSER_PRINT_VALUE = '__browser__'
 
 let securityConfigured = false
 
+function normalizePem(pem: string): string {
+  return pem.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').trim() + '\n'
+}
+
+function signPayload(toSign: string): string {
+  const pk = KEYUTIL.getKey(normalizePem(privateKeyPem))
+  const sig = new Signature({ alg: 'SHA512withRSA' })
+  sig.init(pk)
+  sig.updateString(toSign)
+  return hextob64(sig.sign())
+}
+
 function ensureSecurity() {
   if (securityConfigured) return
   securityConfigured = true
@@ -30,22 +42,20 @@ function ensureSecurity() {
         if (!response.ok) throw new Error(`Certificado QZ HTTP ${response.status}`)
         return response.text()
       })
-      .then(resolve)
+      .then((text) => resolve(normalizePem(text)))
       .catch(reject)
   })
 
   qz.security.setSignatureAlgorithm('SHA512')
-  qz.security.setSignaturePromise((toSign) => {
-    return (resolve, reject) => {
+  // Classic factory: returns (resolve, reject) => void — works even if the bundler
+  // rewrites async functions (QZ only treats native AsyncFunction specially).
+  qz.security.setSignaturePromise((toSign: string) => {
+    return (resolve: (signature: string) => void, reject: (reason?: unknown) => void) => {
       try {
-        const pk = KEYUTIL.getKey(privateKeyPem)
-        const sig = new KJUR.crypto.Signature({ alg: 'SHA512withRSA' })
-        sig.init(pk)
-        sig.updateString(toSign)
-        const hex = sig.sign()
-        resolve(stob64(hextorstr(hex)))
+        resolve(signPayload(toSign))
       } catch (err) {
-        reject(err instanceof Error ? err.message : String(err))
+        console.error('QZ signature failed', err)
+        reject(err)
       }
     }
   })

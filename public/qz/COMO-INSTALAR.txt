@@ -43,13 +43,20 @@ PASSO 3 — Conectar no BALQO
 1. Abra https://balqo.vercel.app
 2. Configurações → Impressora
 3. Clique em "Verificar conexão"
-4. Se ainda pedir autorização uma vez, clique em Allow / Permitir
-   (depois do certificado, não deve repetir a cada cupom)
+4. Na primeira autorização do QZ:
+   - marque "Remember this decision" / Lembrar
+   - clique em Allow / Permitir
+   (depois disso, não deve repetir a cada cupom)
 5. Escolha a impressora térmica
 6. Clique em "Testar impressão"
 7. Salve
 
 Pronto.
+
+Se o botão Allow sumir ao marcar Remember
+-----------------------------------------
+Atualize a página do BALQO com Ctrl+F5 e tente de novo
+(isso indica versão antiga do site sem assinatura válida).
 
 Se ainda aparecer aviso em toda impressão
 ----------------------------------------
@@ -57,5 +64,5 @@ Se ainda aparecer aviso em toda impressão
 - Confirme que reiniciou o QZ depois de colar o arquivo
 - Apague override.crt antigo inválido e use o novo download do BALQO
 - Rode "Verificar conexão" de novo
-
+- Na caixa do QZ, marque Remember e Allow (uma vez)
 Suporte BALQO: WhatsApp (11) 94059-9561
