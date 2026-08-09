@@ -50,12 +50,12 @@ function ensureSecurity() {
   // Classic factory: returns (resolve, reject) => void — works even if the bundler
   // rewrites async functions (QZ only treats native AsyncFunction specially).
   qz.security.setSignaturePromise((toSign: string) => {
-    return (resolve: (signature: string) => void, reject: (reason?: unknown) => void) => {
+    return (resolve, reject) => {
       try {
         resolve(signPayload(toSign))
       } catch (err) {
         console.error('QZ signature failed', err)
-        reject(err)
+        reject(err instanceof Error ? err.message : String(err))
       }
     }
   })
