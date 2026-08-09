@@ -5,6 +5,7 @@ import { useAuth } from '../../../shared/hooks/useAuth'
 import { useDeviceSession } from '../../devices'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import { PERMISSIONS } from '../../users/permissions'
+import { ProductBulkForm } from '../components/ProductBulkForm'
 import { ProductForm } from '../components/ProductForm'
 import { ProductList } from '../components/ProductList'
 import { useProducts } from '../hooks/useProducts'
@@ -42,7 +43,7 @@ export function ProductsPage() {
     setErrorMessage,
   } = useProducts()
 
-  const [mode, setMode] = useState<'list' | 'form'>('list')
+  const [mode, setMode] = useState<'list' | 'form' | 'bulk'>('list')
   const [editing, setEditing] = useState<Product | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [batchNotice, setBatchNotice] = useState<string | null>(null)
@@ -66,6 +67,17 @@ export function ProductsPage() {
     }
     setEditing(null)
     setMode('form')
+  }
+
+  function openBulk() {
+    if (!canAddProduct) {
+      setErrorMessage(
+        `Limite de produtos do plano ${planName} atingido (${activeCount}/${maxProducts}).`,
+      )
+      return
+    }
+    setEditing(null)
+    setMode('bulk')
   }
 
   function openEdit(product: Product) {
@@ -99,6 +111,10 @@ export function ProductsPage() {
       })
     }
     closeForm()
+  }
+
+  async function handleBulkSubmit(input: ProductInput) {
+    await saveProduct(input)
   }
 
   function toggleSelect(productId: string) {
@@ -214,6 +230,8 @@ export function ProductsPage() {
     return <p className="products-page__empty">Nenhuma loja ativa.</p>
   }
 
+  const planLimitMessage = `Limite de produtos do plano ${planName} atingido (${activeCount}/${maxProducts}).`
+
   return (
     <section className="products-page">
       <header className="products-page__header">
@@ -222,30 +240,47 @@ export function ProductsPage() {
           <p>
             {mode === 'form'
               ? 'Identificação, código de barras e preço do item.'
-              : (
-                <>
-                  Catálogo de <strong>{organization.name}</strong>
-                  {` · ${activeCount}/${maxProducts} ativos`}
-                  {totalCount !== activeCount ? ` · ${totalCount} na lista` : ''}
-                  {` · plano ${planName}`}
-                </>
-              )}
+              : mode === 'bulk'
+                ? 'Cadastro contínuo com preço e margem pré-definidos.'
+                : (
+                  <>
+                    Catálogo de <strong>{organization.name}</strong>
+                    {` · ${activeCount}/${maxProducts} ativos`}
+                    {totalCount !== activeCount ? ` · ${totalCount} na lista` : ''}
+                    {` · plano ${planName}`}
+                  </>
+                )}
           </p>
         </div>
         {mode === 'list' && (
-          <button
-            type="button"
-            className="products-page__cta"
-            onClick={openCreate}
-            disabled={!canAddProduct}
-            title={
-              canAddProduct
-                ? undefined
-                : `Limite do plano ${planName}: ${maxProducts} produtos ativos`
-            }
-          >
-            Cadastrar / atualizar
-          </button>
+          <div className="products-page__header-actions">
+            <button
+              type="button"
+              className="products-page__cta products-page__cta--secondary"
+              onClick={openBulk}
+              disabled={!canAddProduct}
+              title={
+                canAddProduct
+                  ? undefined
+                  : `Limite do plano ${planName}: ${maxProducts} produtos ativos`
+              }
+            >
+              Cadastro em massa
+            </button>
+            <button
+              type="button"
+              className="products-page__cta"
+              onClick={openCreate}
+              disabled={!canAddProduct}
+              title={
+                canAddProduct
+                  ? undefined
+                  : `Limite do plano ${planName}: ${maxProducts} produtos ativos`
+              }
+            >
+              Cadastrar / atualizar
+            </button>
+          </div>
         )}
       </header>
 
@@ -277,6 +312,15 @@ export function ProductsPage() {
               : undefined
           }
           onPrintLabel={editing ? () => void openLabelAfterGenerate(editing) : undefined}
+        />
+      ) : mode === 'bulk' ? (
+        <ProductBulkForm
+          saving={saving}
+          findByBarcode={findByBarcode}
+          onSubmit={handleBulkSubmit}
+          onCancel={closeForm}
+          canAddProduct={canAddProduct}
+          planLimitMessage={planLimitMessage}
         />
       ) : (
         <>

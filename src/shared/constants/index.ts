@@ -13,7 +13,7 @@ export const BALQO_LOGO_SRC = '/logo.png'
 const LEGACY_THEME_COLORS = new Set(['#0f3d2e', '#14532d', '#1f6b52'])
 
 /** WhatsApp do suporte BALQO (DDI+DDD+número, só dígitos). */
-export const BALQO_SUPPORT_WHATSAPP = '5531983919015'
+export const BALQO_SUPPORT_WHATSAPP = '5511940599561'
 
 export const THEME_PRESETS = [
   { id: 'navy', name: 'Marinho', color: '#0b1f3a', bg: '#f4f6fa', soft: '#dbe4f0' },

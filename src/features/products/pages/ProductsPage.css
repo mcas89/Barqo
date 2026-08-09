@@ -36,6 +36,24 @@
   white-space: nowrap;
 }
 
+.products-page__cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.products-page__cta--secondary {
+  background: #fff;
+  color: #0b1f3a;
+  border: 1px solid rgba(11, 31, 58, 0.2);
+}
+
+.products-page__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .products-page__toolbar {
   display: flex;
   flex-wrap: wrap;

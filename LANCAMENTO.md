@@ -7,7 +7,7 @@ Trava operacional de cobrança (rules, domínio, InfinitePay, termos/LGPD, aviso
 - App: https://balqo.vercel.app
 - Repo: https://github.com/mcas89/Barqo
 - Versão: `1.0.13`
-- Suporte: WhatsApp `5531983919015`
+- Suporte: WhatsApp `5511940599561`
 - Atualizado: 7 ago 2026
 
 Marque com `[x]` o que for concluído.

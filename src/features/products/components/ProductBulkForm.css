@@ -1,0 +1,175 @@
+.product-bulk {
+  background: #fff;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  border-radius: 0.95rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.product-bulk__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.product-bulk__header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #0b1f3a;
+}
+
+.product-bulk__header p {
+  margin: 0.35rem 0 0;
+  color: #5b6b80;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  max-width: 40rem;
+}
+
+.product-bulk__defaults,
+.product-bulk__line {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(11, 31, 58, 0.1);
+  background: #f8fafc;
+}
+
+.product-bulk__line {
+  background: #fff;
+  border-color: color-mix(in srgb, var(--balqo-brand, #0b1f3a) 18%, transparent);
+}
+
+.product-bulk__defaults h3,
+.product-bulk__line h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #0b1f3a;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+}
+
+.product-bulk__count {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #15803d;
+}
+
+.product-bulk__defaults-grid,
+.product-bulk__line-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.product-bulk__line-grid {
+  grid-template-columns: minmax(140px, 0.9fr) minmax(180px, 1.4fr) minmax(110px, 0.6fr);
+}
+
+.product-bulk label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0b1f3a;
+}
+
+.product-bulk input,
+.product-bulk select {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  border-radius: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #fff;
+  color: #0b1f3a;
+}
+
+.product-bulk__line input {
+  min-height: 3rem;
+  font-size: 1.05rem;
+}
+
+.product-bulk__hint {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5b6b80;
+}
+
+.product-bulk__price-banner {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, #15803d 10%, #fff);
+  color: #0b1f3a;
+  font-size: 0.9rem;
+}
+
+.product-bulk__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.product-bulk__actions button[type='submit'] {
+  border: none;
+  border-radius: 0.55rem;
+  padding: 0.8rem 1.15rem;
+  background: #0b1f3a;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.product-bulk__actions button[type='submit']:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.product-bulk__ghost {
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  background: #fff;
+  color: #0b1f3a;
+  border-radius: 0.55rem;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.product-bulk__ghost:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.product-bulk__error {
+  margin: 0;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.product-bulk__ok {
+  margin: 0;
+  color: #15803d;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .product-bulk__line-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-bulk__header {
+    flex-direction: column;
+  }
+}
