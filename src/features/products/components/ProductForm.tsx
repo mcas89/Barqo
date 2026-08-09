@@ -518,7 +518,7 @@ export function ProductForm({
                 />
                 <button
                   type="button"
-                  className="product-form__scan-btn"
+                  className="product-form__scan-btn product-form__phone-only"
                   title="Ler código com a câmera"
                   aria-label="Ler código com a câmera"
                   disabled={saving}
@@ -529,7 +529,12 @@ export function ProductForm({
               </div>
             </label>
             <div className="product-form__barcode-actions">
-              <button type="button" onClick={openBarcodeScanner} disabled={saving}>
+              <button
+                type="button"
+                className="product-form__phone-only"
+                onClick={openBarcodeScanner}
+                disabled={saving}
+              >
                 <ScanLine size={15} strokeWidth={2} aria-hidden />
                 Ler código
               </button>

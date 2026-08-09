@@ -324,6 +324,20 @@
   cursor: wait;
 }
 
+.product-form__phone-only {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  .product-form__scan-btn.product-form__phone-only {
+    display: grid !important;
+  }
+
+  .product-form__barcode-actions > .product-form__phone-only {
+    display: inline-flex !important;
+  }
+}
+
 @media (max-width: 640px) {
   .product-form__grid {
     grid-template-columns: 1fr;

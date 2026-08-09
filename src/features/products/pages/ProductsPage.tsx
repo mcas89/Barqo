@@ -321,6 +321,7 @@ export function ProductsPage() {
           onCancel={closeForm}
           canAddProduct={canAddProduct}
           planLimitMessage={planLimitMessage}
+          canGenerate={canGenerate}
         />
       ) : (
         <>

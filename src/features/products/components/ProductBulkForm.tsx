@@ -9,10 +9,14 @@ import {
   formatProductTextInput,
   normalizeProductText,
   type Product,
+  type ProductBarcodeMeta,
   type ProductInput,
   type ProductUnit,
 } from '../types'
-import { buildBarcodeMeta } from '../services/barcode-service'
+import {
+  buildBarcodeMeta,
+  generateBalqoInternalBarcode,
+} from '../services/barcode-service'
 import './ProductBulkForm.css'
 
 const MARKUP_STORAGE_KEY = 'balqo.product.markupPercent'
@@ -24,6 +28,7 @@ interface ProductBulkFormProps {
   onCancel: () => void
   canAddProduct: boolean
   planLimitMessage?: string
+  canGenerate?: boolean
 }
 
 function readStoredMarkup(): string {
@@ -54,6 +59,7 @@ export function ProductBulkForm({
   onCancel,
   canAddProduct,
   planLimitMessage,
+  canGenerate = true,
 }: ProductBulkFormProps) {
   const { organization } = useAuth()
   const barcodeRef = useRef<HTMLInputElement>(null)
@@ -67,6 +73,7 @@ export function ProductBulkForm({
   const [categories, setCategories] = useState<ProductCategory[]>([])
 
   const [barcode, setBarcode] = useState('')
+  const [barcodeMeta, setBarcodeMeta] = useState<ProductBarcodeMeta | undefined>()
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [stock, setStock] = useState('0')
@@ -105,11 +112,30 @@ export function ProductBulkForm({
 
   function resetLine() {
     setBarcode('')
+    setBarcodeMeta(undefined)
     setName('')
     setPrice('')
     setStock('0')
     setLocalError(null)
     requestAnimationFrame(() => barcodeRef.current?.focus())
+  }
+
+  function handleGenerateCode() {
+    if (!canGenerate) {
+      setLocalError('Sem permissão para gerar código de barras.')
+      return
+    }
+    const value = generateBalqoInternalBarcode()
+    setBarcode(value)
+    setBarcodeMeta(
+      buildBarcodeMeta({
+        value,
+        type: 'code128_internal',
+        source: 'balqo_generated',
+      }),
+    )
+    setLocalError(null)
+    requestAnimationFrame(() => nameRef.current?.focus())
   }
 
   async function handleSave() {
@@ -162,7 +188,11 @@ export function ProductBulkForm({
     const input: ProductInput = {
       name: trimmedName,
       barcode: code || undefined,
-      barcodeMeta: code ? buildBarcodeMeta({ value: code }) : undefined,
+      barcodeMeta: code
+        ? barcodeMeta && barcodeMeta.value === code
+          ? barcodeMeta
+          : buildBarcodeMeta({ value: code })
+        : undefined,
       category: category ? normalizeProductText(category) : undefined,
       unit,
       type: PRODUCT_TYPES.PRODUCT,
@@ -313,17 +343,33 @@ export function ProductBulkForm({
         </h3>
 
         <div className="product-bulk__line-grid product-bulk__line-grid--four">
-          <label>
+          <label className="product-bulk__code-field">
             Código
-            <input
-              ref={barcodeRef}
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              onKeyDown={onBarcodeKeyDown}
-              disabled={saving}
-              autoComplete="off"
-              placeholder="Leia ou digite e Enter"
-            />
+            <div className="product-bulk__code-row">
+              <input
+                ref={barcodeRef}
+                value={barcode}
+                onChange={(e) => {
+                  setBarcode(e.target.value)
+                  setBarcodeMeta(undefined)
+                }}
+                onKeyDown={onBarcodeKeyDown}
+                disabled={saving}
+                autoComplete="off"
+                placeholder="Leia, digite ou gere"
+              />
+              {canGenerate && (
+                <button
+                  type="button"
+                  className="product-bulk__gen-btn"
+                  onClick={handleGenerateCode}
+                  disabled={saving}
+                  title="Gerar código BALQO"
+                >
+                  Gerar
+                </button>
+              )}
+            </div>
           </label>
           <label>
             Nome
@@ -373,6 +419,16 @@ export function ProductBulkForm({
           <button type="submit" disabled={saving || !canAddProduct}>
             {saving ? 'Salvando…' : 'Salvar e próximo (Enter)'}
           </button>
+          {canGenerate && (
+            <button
+              type="button"
+              className="product-bulk__ghost"
+              onClick={handleGenerateCode}
+              disabled={saving}
+            >
+              Gerar código BALQO
+            </button>
+          )}
           <button
             type="button"
             className="product-bulk__ghost"
