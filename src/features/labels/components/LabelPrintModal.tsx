@@ -2,11 +2,16 @@ import { useMemo, useState, type CSSProperties } from 'react'
 import { formatMoney } from '../../../shared/lib/money'
 import { BarcodeSvg } from './BarcodeSvg'
 import {
+  A4_PAGE,
   DEFAULT_LABEL_DISPLAY,
-  LABEL_MODELS,
+  LABEL_PAPERS,
+  LABEL_SIZES,
+  a4GridForSize,
+  buildPrintModelId,
   type LabelDisplayOptions,
-  type LabelModelId,
+  type LabelPaperId,
   type LabelPrintItem,
+  type LabelSizeId,
 } from '../types'
 import './LabelPrintModal.css'
 
@@ -16,7 +21,18 @@ interface LabelPrintModalProps {
   onChangeQuantity: (productId: string, quantity: number) => void
   onUseStockQuantities?: () => void
   onClose: () => void
-  onPrinted?: (info: { modelId: LabelModelId; totalLabels: number }) => void
+  onPrinted?: (info: { modelId: string; totalLabels: number }) => void
+}
+
+function expandLabels(items: LabelPrintItem[]) {
+  return items
+    .filter((item) => item.barcode.trim() && item.quantity > 0)
+    .flatMap((item) =>
+      Array.from({ length: item.quantity }, (_, index) => ({
+        ...item,
+        key: `${item.productId}-${index}`,
+      })),
+    )
 }
 
 export function LabelPrintModal({
@@ -27,25 +43,45 @@ export function LabelPrintModal({
   onClose,
   onPrinted,
 }: LabelPrintModalProps) {
-  const [modelId, setModelId] = useState<LabelModelId>('50x30')
+  const [sizeId, setSizeId] = useState<LabelSizeId>('50x30')
+  const [paperId, setPaperId] = useState<LabelPaperId>('a4')
   const [display, setDisplay] = useState<LabelDisplayOptions>({ ...DEFAULT_LABEL_DISPLAY })
   const [step, setStep] = useState<'config' | 'preview'>('config')
 
-  const model = LABEL_MODELS[modelId]
+  const size = LABEL_SIZES[sizeId]
+  const a4Grid = useMemo(() => a4GridForSize(sizeId), [sizeId])
   const totalLabels = items.reduce((sum, item) => sum + Math.max(0, item.quantity), 0)
-  const printable = useMemo(
-    () => items.filter((item) => item.barcode.trim() && item.quantity > 0),
-    [items],
-  )
+  const printable = useMemo(() => expandLabels(items), [items])
+  const a4Pages = useMemo(() => {
+    if (paperId !== 'a4') return [printable]
+    const pages: (typeof printable)[] = []
+    for (let i = 0; i < printable.length; i += a4Grid.perPage) {
+      pages.push(printable.slice(i, i + a4Grid.perPage))
+    }
+    return pages.length > 0 ? pages : [[]]
+  }, [printable, paperId, a4Grid.perPage])
 
   function toggle(key: keyof LabelDisplayOptions) {
     setDisplay((current) => ({ ...current, [key]: !current[key] }))
   }
 
   function handlePrint() {
-    onPrinted?.({ modelId, totalLabels })
+    onPrinted?.({
+      modelId: buildPrintModelId(paperId, sizeId),
+      totalLabels,
+    })
     window.print()
   }
+
+  const sheetStyle = {
+    '--label-w': `${size.widthMm}mm`,
+    '--label-h': `${size.heightMm}mm`,
+    '--a4-cols': String(a4Grid.columns),
+    '--a4-rows': String(a4Grid.rows),
+    '--a4-gap-x': `${a4Grid.gapXMm}mm`,
+    '--a4-gap-y': `${a4Grid.gapYMm}mm`,
+    '--a4-margin': `${A4_PAGE.marginMm}mm`,
+  } as CSSProperties
 
   return (
     <div className="label-print-modal" role="dialog" aria-modal="true">
@@ -55,7 +91,10 @@ export function LabelPrintModal({
           <div>
             <h2>{step === 'config' ? 'Imprimir etiquetas' : 'Pré-visualização'}</h2>
             <p>
-              {totalLabels} etiqueta(s) · gerar código e imprimir são ações separadas
+              {totalLabels} etiqueta(s)
+              {paperId === 'a4'
+                ? ` · ~${a4Grid.perPage}/folha A4 (${a4Grid.columns}×${a4Grid.rows})`
+                : ` · ${size.label}`}
             </p>
           </div>
           <button type="button" className="label-print-modal__close" onClick={onClose}>
@@ -65,6 +104,11 @@ export function LabelPrintModal({
 
         {step === 'config' ? (
           <>
+            <p className="label-print-modal__hint">
+              Em <strong>Qtd.</strong>, informe quantas cópias de cada produto. Ex.: estoque 10 →
+              digite 10, ou use o botão abaixo.
+            </p>
+
             <div className="label-print-modal__items">
               {items.map((item) => (
                 <div key={item.productId} className="label-print-modal__row">
@@ -73,7 +117,7 @@ export function LabelPrintModal({
                     <span>{item.barcode || 'Sem código'}</span>
                   </div>
                   <label>
-                    Qtd.
+                    Qtd. de etiquetas
                     <input
                       type="number"
                       min={0}
@@ -83,6 +127,7 @@ export function LabelPrintModal({
                         onChangeQuantity(item.productId, Math.max(0, Number(e.target.value) || 0))
                       }
                       disabled={!item.barcode}
+                      aria-label={`Quantidade de etiquetas de ${item.name}`}
                     />
                   </label>
                 </div>
@@ -100,16 +145,34 @@ export function LabelPrintModal({
             )}
 
             <fieldset className="label-print-modal__fieldset">
-              <legend>Modelo</legend>
-              {(Object.keys(LABEL_MODELS) as LabelModelId[]).map((id) => (
+              <legend>Papel</legend>
+              {(Object.keys(LABEL_PAPERS) as LabelPaperId[]).map((id) => (
+                <label key={id} className="label-print-modal__choice">
+                  <input
+                    type="radio"
+                    name="label-paper"
+                    checked={paperId === id}
+                    onChange={() => setPaperId(id)}
+                  />
+                  <span>
+                    <strong>{LABEL_PAPERS[id].label}</strong>
+                    <small>{LABEL_PAPERS[id].hint}</small>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+
+            <fieldset className="label-print-modal__fieldset">
+              <legend>Tamanho da etiqueta</legend>
+              {(Object.keys(LABEL_SIZES) as LabelSizeId[]).map((id) => (
                 <label key={id}>
                   <input
                     type="radio"
-                    name="label-model"
-                    checked={modelId === id}
-                    onChange={() => setModelId(id)}
+                    name="label-size"
+                    checked={sizeId === id}
+                    onChange={() => setSizeId(id)}
                   />
-                  {LABEL_MODELS[id].label}
+                  {LABEL_SIZES[id].label}
                 </label>
               ))}
             </fieldset>
@@ -179,18 +242,16 @@ export function LabelPrintModal({
         ) : (
           <>
             <div className="label-print-modal__preview-wrap">
-              <div
-                className={`label-print-sheet label-print-sheet--${modelId}`}
-                style={
-                  {
-                    '--label-w': `${model.widthMm}mm`,
-                    '--label-h': `${model.heightMm}mm`,
-                  } as CSSProperties
-                }
-              >
-                {printable.flatMap((item) =>
-                  Array.from({ length: item.quantity }, (_, index) => (
-                    <article key={`${item.productId}-${index}`} className="label-print-card">
+              {a4Pages.map((page, pageIndex) => (
+                <div
+                  key={`page-${pageIndex}`}
+                  className={`label-print-sheet label-print-sheet--${paperId} ${
+                    pageIndex > 0 ? 'label-print-sheet--break' : ''
+                  }`}
+                  style={sheetStyle}
+                >
+                  {page.map((item) => (
+                    <article key={item.key} className="label-print-card">
                       {display.showStoreName && storeName ? (
                         <p className="label-print-card__store">{storeName}</p>
                       ) : null}
@@ -207,7 +268,7 @@ export function LabelPrintModal({
                         <div className="label-print-card__barcode">
                           <BarcodeSvg
                             value={item.barcode}
-                            height={modelId === '40x25' ? 28 : 40}
+                            height={size.barcodeHeight}
                             displayValue={false}
                           />
                         </div>
@@ -221,9 +282,9 @@ export function LabelPrintModal({
                         </p>
                       ) : null}
                     </article>
-                  )),
-                )}
-              </div>
+                  ))}
+                </div>
+              ))}
             </div>
 
             <div className="label-print-modal__actions">
