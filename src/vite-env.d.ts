@@ -5,6 +5,28 @@ interface Navigator {
   standalone?: boolean
 }
 
+declare module '*.pem?raw' {
+  const content: string
+  export default content
+}
+
+declare module 'jsrsasign' {
+  export const KEYUTIL: {
+    getKey: (pem: string) => unknown
+  }
+  export const KJUR: {
+    crypto: {
+      Signature: new (params: { alg: string }) => {
+        init: (key: unknown) => void
+        updateString: (data: string) => void
+        sign: () => string
+      }
+    }
+  }
+  export function hextorstr(hex: string): string
+  export function stob64(str: string): string
+}
+
 interface ImportMetaEnv {
   readonly VITE_FIREBASE_API_KEY: string
   readonly VITE_FIREBASE_AUTH_DOMAIN: string

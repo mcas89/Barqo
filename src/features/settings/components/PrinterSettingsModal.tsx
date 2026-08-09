@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import {
+  BROWSER_PRINT_VALUE,
   listSystemPrinters,
+  QZ_DOWNLOAD_URL,
+  QZ_INSTALL_GUIDE_URL,
+  QZ_OVERRIDE_URL,
   type SystemPrinter,
-} from '../../receipts/print-agent'
+} from '../../receipts/qz-client'
 import {
   normalizePaperWidth,
   type ReceiptPaperWidth,
 } from '../../receipts'
 import './PrinterSettingsModal.css'
-
-const AGENT_BAT_URL = '/print-agent/iniciar-impressora-balqo.bat'
-const AGENT_PS1_URL = '/print-agent/balqo-print-agent.ps1'
 
 export interface PrinterSettingsValue {
   printOnSale: boolean
@@ -40,8 +41,9 @@ export function PrinterSettingsModal({
   const [printerPath, setPrinterPath] = useState(initial.printerPath)
   const [paperWidth, setPaperWidth] = useState(initial.paperWidth)
   const [printers, setPrinters] = useState<SystemPrinter[]>([])
-  const [agentOnline, setAgentOnline] = useState(false)
-  const [checkingAgent, setCheckingAgent] = useState(true)
+  const [qzOnline, setQzOnline] = useState(false)
+  const [checking, setChecking] = useState(true)
+  const [stepsOpen, setStepsOpen] = useState(true)
   const [localError, setLocalError] = useState<string | null>(null)
   const [localOk, setLocalOk] = useState<string | null>(null)
 
@@ -52,44 +54,36 @@ export function PrinterSettingsModal({
     paperWidth,
   }
 
-  async function refreshAgent() {
-    setCheckingAgent(true)
+  async function refreshQz() {
+    setChecking(true)
     setLocalError(null)
     try {
       const listed = await listSystemPrinters()
-      setAgentOnline(listed.agentOnline)
+      setQzOnline(listed.agentOnline)
       setPrinters(listed.printers)
-      if (
-        listed.agentOnline &&
-        !printerPath.trim() &&
-        listed.printers.some((printer) => printer.isDefault)
-      ) {
-        const preferred = listed.printers.find((printer) => printer.isDefault)
-        if (preferred) setPrinterPath(preferred.name)
+      if (listed.agentOnline && !printerPath.trim() && listed.printers[0]) {
+        setPrinterPath(listed.printers[0].name)
       }
+      if (listed.agentOnline) {
+        setLocalOk('QZ Tray conectado. Escolha a impressora e teste.')
+        setStepsOpen(false)
+      }
+    } catch (err) {
+      setQzOnline(false)
+      setPrinters([])
+      setLocalError(
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível falar com o QZ Tray. Confira se ele está aberto.',
+      )
     } finally {
-      setCheckingAgent(false)
+      setChecking(false)
     }
   }
 
   useEffect(() => {
-    void refreshAgent()
+    void refreshQz()
   }, [])
-
-  function downloadAgentFiles() {
-    setLocalOk(null)
-    const linkBat = document.createElement('a')
-    linkBat.href = AGENT_BAT_URL
-    linkBat.download = 'iniciar-impressora-balqo.bat'
-    linkBat.click()
-    window.setTimeout(() => {
-      const linkPs1 = document.createElement('a')
-      linkPs1.href = AGENT_PS1_URL
-      linkPs1.download = 'balqo-print-agent.ps1'
-      linkPs1.click()
-    }, 400)
-    setLocalOk('Download iniciado. Guarde os dois arquivos na mesma pasta no PC do caixa.')
-  }
 
   async function handleSave() {
     setLocalError(null)
@@ -107,7 +101,7 @@ export function PrinterSettingsModal({
     setLocalOk(null)
     try {
       await onTestPrint(value)
-      setLocalOk('Teste enviado. Confira a impressora ou a janela do Windows.')
+      setLocalOk('Teste enviado. Confira a impressora.')
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Falha ao testar a impressora.')
     }
@@ -127,7 +121,12 @@ export function PrinterSettingsModal({
         aria-label="Fechar"
         onClick={onClose}
       />
-      <div className="printer-modal__card" role="dialog" aria-modal="true" aria-labelledby="printer-modal-title">
+      <div
+        className="printer-modal__card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="printer-modal-title"
+      >
         <header>
           <h2 id="printer-modal-title">Configurar impressora</h2>
           <button type="button" onClick={onClose}>
@@ -137,55 +136,85 @@ export function PrinterSettingsModal({
 
         <div
           className={
-            agentOnline
+            qzOnline
               ? 'printer-modal__status printer-modal__status--ok'
               : 'printer-modal__status printer-modal__status--off'
           }
         >
           <strong>
-            {checkingAgent
-              ? 'Verificando agente…'
-              : agentOnline
-                ? 'Agente conectado'
-                : 'Agente desconectado'}
+            {checking
+              ? 'Verificando QZ Tray…'
+              : qzOnline
+                ? 'QZ Tray conectado'
+                : 'QZ Tray não detectado'}
           </strong>
           <span>
-            {agentOnline
-              ? 'Impressão silenciosa disponível neste PC.'
-              : 'Sem o agente, o Windows abre a janela de impressão.'}
+            {qzOnline
+              ? 'Impressão silenciosa pronta neste PC.'
+              : 'Instale o QZ Tray e o certificado BALQO (passos abaixo).'}
           </span>
-          <button type="button" onClick={() => void refreshAgent()} disabled={checkingAgent}>
-            {checkingAgent ? 'Verificando…' : 'Atualizar status'}
+          <button type="button" onClick={() => void refreshQz()} disabled={checking}>
+            {checking ? 'Verificando…' : 'Verificar conexão'}
           </button>
         </div>
 
         <section className="printer-modal__block">
-          <h3>Agente local (Windows)</h3>
-          <p>
-            O PWA sozinho não imprime em silêncio. Baixe o agente, coloque os dois arquivos na
-            mesma pasta no PC do caixa e rode <strong>iniciar-impressora-balqo.bat</strong>.
-            Deixe a janela aberta enquanto vende.
-          </p>
-          <ol>
-            <li>Baixe os dois arquivos e salve juntos (ex.: pasta BALQO no Desktop).</li>
-            <li>Dê dois cliques no .bat e deixe a janela aberta.</li>
-            <li>Volte aqui, atualize o status e escolha a impressora.</li>
-            <li>
-              Se o Windows bloquear: clique direito → Propriedades → Desbloquear, ou “Executar
-              assim mesmo”.
-            </li>
-          </ol>
-          <div className="printer-modal__downloads">
-            <button type="button" className="printer-modal__primary" onClick={downloadAgentFiles}>
-              Baixar agente (bat + ps1)
-            </button>
-            <a href={AGENT_BAT_URL} download>
-              Só o .bat
-            </a>
-            <a href={AGENT_PS1_URL} download>
-              Só o .ps1
-            </a>
-          </div>
+          <button
+            type="button"
+            className="printer-modal__steps-toggle"
+            aria-expanded={stepsOpen}
+            onClick={() => setStepsOpen((open) => !open)}
+          >
+            <h3>Como instalar (loja / técnico)</h3>
+            <span>{stepsOpen ? 'Ocultar' : 'Mostrar'}</span>
+          </button>
+
+          {stepsOpen && (
+            <>
+              <ol className="printer-modal__steps">
+                <li>
+                  Baixe e instale o{' '}
+                  <a href={QZ_DOWNLOAD_URL} target="_blank" rel="noreferrer">
+                    QZ Tray
+                  </a>{' '}
+                  (arquivo <strong>.exe</strong> do site oficial — não use script).
+                </li>
+                <li>Deixe o QZ Tray aberto (ícone perto do relógio do Windows).</li>
+                <li>
+                  Baixe o <strong>certificado BALQO</strong> e copie para a pasta do QZ Tray,
+                  por exemplo:{' '}
+                  <code>C:\Program Files\QZ Tray\override.crt</code>
+                </li>
+                <li>Feche e abra o QZ Tray de novo.</li>
+                <li>
+                  Volte aqui, clique em <strong>Verificar conexão</strong>. Se pedir autorização
+                  do site, escolha <strong>Allow</strong>.
+                </li>
+                <li>Escolha a impressora, teste e salve.</li>
+              </ol>
+
+              <div className="printer-modal__downloads">
+                <a
+                  className="printer-modal__primary printer-modal__primary-link"
+                  href={QZ_DOWNLOAD_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Baixar QZ Tray
+                </a>
+                <a className="printer-modal__ghost-link" href={QZ_OVERRIDE_URL} download="override.crt">
+                  Baixar certificado BALQO
+                </a>
+                <a
+                  className="printer-modal__ghost-link"
+                  href={QZ_INSTALL_GUIDE_URL}
+                  download
+                >
+                  Guia em texto
+                </a>
+              </div>
+            </>
+          )}
         </section>
 
         <section className="printer-modal__block">
@@ -200,13 +229,12 @@ export function PrinterSettingsModal({
             <span>Imprimir cupom ao finalizar a venda</span>
           </label>
           <p className="printer-modal__hint">
-            Cupom interno da loja (não é NF-e). Envio automático por e-mail ou WhatsApp
-            ainda não está disponível.
+            Cupom interno da loja (não é NF-e).
           </p>
 
           <label>
             Impressora
-            {agentOnline && printers.length > 0 ? (
+            {qzOnline && printers.length > 0 ? (
               <select
                 value={selectValue}
                 onChange={(event) => setPrinterPath(event.target.value)}
@@ -216,10 +244,11 @@ export function PrinterSettingsModal({
                 {printers.map((printer) => (
                   <option key={printer.name} value={printer.name}>
                     {printer.name}
-                    {printer.isDefault ? ' (padrão)' : ''}
                   </option>
                 ))}
-                {printerPath && !printers.some((printer) => printer.name === printerPath) ? (
+                {printerPath &&
+                printerPath !== BROWSER_PRINT_VALUE &&
+                !printers.some((printer) => printer.name === printerPath) ? (
                   <option value={printerPath}>{printerPath} (atual)</option>
                 ) : null}
               </select>
@@ -228,21 +257,14 @@ export function PrinterSettingsModal({
                 value={printerPath}
                 onChange={(event) => setPrinterPath(event.target.value)}
                 disabled={!canEdit || saving}
-                placeholder="Nome exato no Windows, ex.: ELGIN i9"
+                placeholder="Conecte o QZ Tray para listar"
               />
             )}
           </label>
 
-          {!agentOnline && (
+          {!qzOnline && (
             <p className="printer-modal__hint">
-              Com o agente desligado, digite o nome da impressora para guardar. A lista aparece
-              quando o agente estiver conectado.
-            </p>
-          )}
-
-          {agentOnline && printers.length === 0 && (
-            <p className="printer-modal__hint">
-              Agente online, mas nenhuma impressora foi listada. Confira o driver no Windows.
+              Sem QZ Tray, o Windows abre a janela de impressão ao vender.
             </p>
           )}
 

@@ -139,6 +139,72 @@
   font-weight: 800;
 }
 
+.printer-modal__steps-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.printer-modal__steps-toggle h3 {
+  margin: 0;
+}
+
+.printer-modal__steps-toggle span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #5b6b80;
+}
+
+.printer-modal__steps {
+  margin: 0.65rem 0 0;
+  padding-left: 1.2rem;
+  color: #334155;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.printer-modal__steps li {
+  margin-bottom: 0.45rem;
+}
+
+.printer-modal__steps code {
+  font-size: 0.78rem;
+  background: #f1f5f9;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.3rem;
+}
+
+.printer-modal__primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #f8fafc !important;
+}
+
+.printer-modal__ghost-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(11, 31, 58, 0.18);
+  background: #fff;
+  color: #0b1f3a !important;
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.75rem;
+  font: inherit;
+  font-size: 0.84rem !important;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .printer-modal__switch {
   display: flex;
   align-items: flex-start;

@@ -1,6 +1,6 @@
 import { buildSaleReceipt } from './build-receipt'
 import { enqueueReceiptDelivery, flushReceiptOutbox } from './outbox'
-import { resolvePrintAgentUrl } from './print-agent'
+import { BROWSER_PRINT_VALUE, printRawText } from './qz-client'
 import { renderReceiptHtml } from './render-receipt-html'
 import { renderReceiptText } from './render-receipt-text'
 import { resolveReceiptSettings } from './settings'
@@ -46,29 +46,13 @@ function printViaBrowser(html: string) {
   }, 250)
 }
 
-async function printViaAgent(
+async function printViaQz(
   payload: SaleReceiptPayload,
   settings: ReceiptSettings,
 ): Promise<boolean> {
   const printerPath = (settings.printerPath || payload.printerPath || '').trim()
-  if (!printerPath) return false
-
-  const response = await fetch(`${resolvePrintAgentUrl()}/print`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(8000),
-    body: JSON.stringify({
-      printerPath,
-      paperWidth: settings.paperWidth,
-      receipt: payload,
-      text: renderReceiptText(payload),
-      html: renderReceiptHtml(payload),
-    }),
-  })
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '')
-    throw new Error(detail || `HTTP ${response.status}`)
-  }
+  if (!printerPath || printerPath === BROWSER_PRINT_VALUE) return false
+  await printRawText(printerPath, renderReceiptText(payload))
   return true
 }
 
@@ -77,12 +61,12 @@ export async function dispatchPrint(
   settings: ReceiptSettings,
 ): Promise<ReceiptDeliveryResult> {
   const printerPath = (settings.printerPath || payload.printerPath || '').trim()
-  if (printerPath) {
+  if (printerPath && printerPath !== BROWSER_PRINT_VALUE) {
     try {
-      await printViaAgent(payload, settings)
+      await printViaQz(payload, settings)
       return { channel: 'print', status: 'sent' }
     } catch (err) {
-      console.warn('Agente de impressão indisponível, usando a janela do Windows.', err)
+      console.warn('QZ Tray indisponível, usando a janela do Windows.', err)
     }
   }
 

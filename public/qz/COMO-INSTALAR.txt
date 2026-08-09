@@ -1,0 +1,30 @@
+BALQO + QZ Tray — instalação no PC do caixa
+============================================
+
+1) Baixe e instale o QZ Tray (Windows):
+   https://qz.io/download/
+   Arquivo típico: qz-tray-*-x86_64.exe
+   Instale com as opções padrão.
+
+2) Confirme que o ícone do QZ Tray aparece perto do relógio do Windows.
+   Deixe o QZ Tray aberto (bandeja).
+
+3) Instale o certificado BALQO (remove avisos de confiança):
+   - Baixe o arquivo override.crt desta pasta do BALQO
+     (Configurações → Impressora → "Baixar certificado BALQO")
+   - Copie override.crt para a pasta de instalação do QZ Tray, por exemplo:
+     C:\Program Files\QZ Tray\override.crt
+   - Se pedir permissão de administrador, aceite.
+   - Feche e abra o QZ Tray de novo.
+
+4) No BALQO (https://balqo.vercel.app):
+   - Abra Configurações → Impressora
+   - Clique em "Verificar conexão"
+   - Se o QZ pedir autorizar o site, clique em Allow / Sempre
+   - Escolha a impressora térmica
+   - Clique em "Testar impressão"
+   - Salve
+
+Pronto. Nas vendas, o cupom sai pela impressora escolhida.
+
+Suporte BALQO: WhatsApp (11) 94059-9561
