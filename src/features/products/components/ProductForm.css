@@ -246,6 +246,12 @@
   grid-column: 1 / -1;
 }
 
+.product-form__field-hint {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5b6b80;
+}
+
 .product-form__stock input {
   font-size: 1.15rem !important;
   font-weight: 700;

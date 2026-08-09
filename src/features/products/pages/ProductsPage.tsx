@@ -241,7 +241,7 @@ export function ProductsPage() {
             {mode === 'form'
               ? 'Identificação, código de barras e preço do item.'
               : mode === 'bulk'
-                ? 'Cadastro contínuo com preço e margem pré-definidos.'
+                ? 'Cadastro contínuo: preço por item, com margem e categoria fixas.'
                 : (
                   <>
                     Catálogo de <strong>{organization.name}</strong>

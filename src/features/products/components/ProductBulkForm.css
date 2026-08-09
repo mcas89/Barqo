@@ -73,6 +73,14 @@
   grid-template-columns: minmax(140px, 0.9fr) minmax(180px, 1.4fr) minmax(110px, 0.6fr);
 }
 
+.product-bulk__line-grid--four {
+  grid-template-columns:
+    minmax(120px, 0.85fr)
+    minmax(160px, 1.3fr)
+    minmax(110px, 0.7fr)
+    minmax(100px, 0.55fr);
+}
+
 .product-bulk label {
   display: flex;
   flex-direction: column;

@@ -27,6 +27,8 @@ import {
 } from '../services/barcode-service'
 import './ProductForm.css'
 
+const MARKUP_STORAGE_KEY = 'balqo.product.markupPercent'
+
 interface ProductFormProps {
   initial?: Product | null
   saving: boolean
@@ -45,6 +47,43 @@ function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2).replace('.', ',')
 }
 
+function readStoredMarkup(): string {
+  try {
+    const raw = localStorage.getItem(MARKUP_STORAGE_KEY)
+    if (!raw) return '40'
+    const n = Number(raw.replace(',', '.'))
+    if (!Number.isFinite(n) || n < 0) return '40'
+    return String(n).replace('.', ',')
+  } catch {
+    return '40'
+  }
+}
+
+function persistMarkup(value: string) {
+  try {
+    const n = Number(value.replace(',', '.'))
+    if (Number.isFinite(n) && n >= 0) {
+      localStorage.setItem(MARKUP_STORAGE_KEY, String(n))
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function suggestedPriceFromCost(costCents: number, markupPercent: number): number {
+  if (costCents <= 0) return 0
+  if (!Number.isFinite(markupPercent) || markupPercent < 0) return 0
+  return Math.round(costCents * (1 + markupPercent / 100))
+}
+
+function markupFromCostAndPrice(costCents: number, priceCents: number): string {
+  if (costCents <= 0 || priceCents <= 0) return readStoredMarkup()
+  const pct = (priceCents / costCents - 1) * 100
+  if (!Number.isFinite(pct) || pct < 0) return readStoredMarkup()
+  const rounded = Math.round(pct * 100) / 100
+  return String(rounded).replace('.', ',')
+}
+
 function fillFromProduct(
   product: Product | null,
   setters: {
@@ -56,6 +95,7 @@ function fillFromProduct(
     setType: (v: Product['type']) => void
     setPrice: (v: string) => void
     setCost: (v: string) => void
+    setMarkupPercent: (v: string) => void
     setStock: (v: string) => void
     setMinStock: (v: string) => void
     setActive: (v: boolean) => void
@@ -73,6 +113,7 @@ function fillFromProduct(
     setters.setType(PRODUCT_TYPES.PRODUCT)
     setters.setPrice('')
     setters.setCost('')
+    setters.setMarkupPercent(readStoredMarkup())
     setters.setStock('0')
     setters.setMinStock('0')
     setters.setActive(true)
@@ -87,6 +128,9 @@ function fillFromProduct(
   setters.setType(product.type)
   setters.setPrice(centsToInput(product.priceCents))
   setters.setCost(centsToInput(product.costCents))
+  setters.setMarkupPercent(
+    markupFromCostAndPrice(product.costCents, product.priceCents),
+  )
   setters.setStock(String(product.stock ?? 0))
   setters.setMinStock(String(product.minStock ?? 0))
   setters.setActive(product.active)
@@ -119,6 +163,11 @@ export function ProductForm({
   const [type, setType] = useState(initial?.type ?? PRODUCT_TYPES.PRODUCT)
   const [price, setPrice] = useState(initial ? centsToInput(initial.priceCents) : '')
   const [cost, setCost] = useState(initial ? centsToInput(initial.costCents) : '')
+  const [markupPercent, setMarkupPercent] = useState(() =>
+    initial
+      ? markupFromCostAndPrice(initial.costCents, initial.priceCents)
+      : readStoredMarkup(),
+  )
   const [stock, setStock] = useState(String(initial?.stock ?? 0))
   const [minStock, setMinStock] = useState(String(initial?.minStock ?? 0))
   const [active, setActive] = useState(initial?.active ?? true)
@@ -143,9 +192,29 @@ export function ProductForm({
     setType,
     setPrice,
     setCost,
+    setMarkupPercent,
     setStock,
     setMinStock,
     setActive,
+  }
+
+  function applySuggestedPrice(nextCost: string, nextMarkup: string) {
+    const costCents = parseMoneyToCents(nextCost)
+    const markup = Number(nextMarkup.replace(',', '.'))
+    if (!Number.isFinite(markup) || costCents <= 0) return
+    const suggested = suggestedPriceFromCost(costCents, markup)
+    if (suggested > 0) setPrice(centsToInput(suggested))
+  }
+
+  function onCostChange(value: string) {
+    setCost(value)
+    applySuggestedPrice(value, markupPercent)
+  }
+
+  function onMarkupChange(value: string) {
+    setMarkupPercent(value)
+    persistMarkup(value)
+    applySuggestedPrice(cost, value)
   }
 
   useEffect(() => {
@@ -158,6 +227,7 @@ export function ProductForm({
       setType(initial.type)
       setPrice(centsToInput(initial.priceCents))
       setCost(centsToInput(initial.costCents))
+      setMarkupPercent(markupFromCostAndPrice(initial.costCents, initial.priceCents))
       setStock(String(initial.stock ?? 0))
       setMinStock(String(initial.minStock ?? 0))
       setActive(initial.active)
@@ -172,6 +242,7 @@ export function ProductForm({
       setType(PRODUCT_TYPES.PRODUCT)
       setPrice('')
       setCost('')
+      setMarkupPercent(readStoredMarkup())
       setStock('0')
       setMinStock('0')
       setActive(true)
@@ -389,7 +460,7 @@ export function ProductForm({
         <div>
           <h2>{title}</h2>
           <p className="product-form__lead">
-            Identificação e código de barras. Gerar código e imprimir etiqueta são ações separadas.
+            Código, nome e demais dados. Informe o custo e a margem para calcular o preço.
           </p>
         </div>
         {initial && (
@@ -490,22 +561,7 @@ export function ProductForm({
       )}
 
       <div className="product-form__grid">
-        {!isService && (
-          <label className="product-form__stock">
-            Quantidade / estoque
-            <input
-              ref={stockRef}
-              type="number"
-              min={0}
-              step="any"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-              disabled={saving}
-            />
-          </label>
-        )}
-
-        <label className={isService ? 'product-form__full' : undefined}>
+        <label className="product-form__full">
           Nome
           <input
             ref={nameRef}
@@ -517,6 +573,28 @@ export function ProductForm({
         </label>
 
         <label>
+          Custo (R$)
+          <input
+            value={cost}
+            onChange={(e) => onCostChange(e.target.value)}
+            disabled={saving}
+            placeholder="0,00"
+          />
+        </label>
+
+        <label>
+          Margem %
+          <input
+            inputMode="decimal"
+            value={markupPercent}
+            onChange={(e) => onMarkupChange(e.target.value)}
+            disabled={saving}
+            placeholder="40"
+            aria-label="Margem percentual sobre o custo"
+          />
+        </label>
+
+        <label className="product-form__full">
           Preço de venda (R$)
           <input
             value={price}
@@ -525,16 +603,11 @@ export function ProductForm({
             placeholder="0,00"
             required
           />
-        </label>
-
-        <label>
-          Custo (R$)
-          <input
-            value={cost}
-            onChange={(e) => setCost(e.target.value)}
-            disabled={saving}
-            placeholder="0,00"
-          />
+          {parseMoneyToCents(cost) > 0 && (
+            <span className="product-form__field-hint">
+              Calculado pelo custo + margem (pode editar)
+            </span>
+          )}
         </label>
 
         <label>
@@ -627,6 +700,21 @@ export function ProductForm({
             </div>
           )}
         </div>
+
+        {!isService && (
+          <label className="product-form__stock">
+            Quantidade / estoque
+            <input
+              ref={stockRef}
+              type="number"
+              min={0}
+              step="any"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              disabled={saving}
+            />
+          </label>
+        )}
 
         {!isService && (
           <label>
