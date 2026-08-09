@@ -31,6 +31,10 @@ interface ProductBulkFormProps {
   canGenerate?: boolean
 }
 
+function centsToInput(cents: number): string {
+  return (cents / 100).toFixed(2).replace('.', ',')
+}
+
 function readStoredMarkup(): string {
   try {
     const raw = localStorage.getItem(MARKUP_STORAGE_KEY)
@@ -43,13 +47,11 @@ function readStoredMarkup(): string {
   }
 }
 
-/** Custo implícito a partir do preço de venda e da margem %. */
-function costFromPriceAndMarkup(priceCents: number, markupPercent: number): number {
-  if (priceCents <= 0) return 0
+/** Preço de venda = custo × (1 + margem%). */
+function salePriceFromCost(costCents: number, markupPercent: number): number {
+  if (costCents <= 0) return 0
   if (!Number.isFinite(markupPercent) || markupPercent < 0) return 0
-  const divisor = 1 + markupPercent / 100
-  if (divisor <= 0) return 0
-  return Math.round(priceCents / divisor)
+  return Math.round(costCents * (1 + markupPercent / 100))
 }
 
 export function ProductBulkForm({
@@ -64,7 +66,7 @@ export function ProductBulkForm({
   const { organization } = useAuth()
   const barcodeRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
-  const priceRef = useRef<HTMLInputElement>(null)
+  const costRef = useRef<HTMLInputElement>(null)
   const stockRef = useRef<HTMLInputElement>(null)
 
   const [markupPercent, setMarkupPercent] = useState(readStoredMarkup)
@@ -75,12 +77,19 @@ export function ProductBulkForm({
   const [barcode, setBarcode] = useState('')
   const [barcodeMeta, setBarcodeMeta] = useState<ProductBarcodeMeta | undefined>()
   const [name, setName] = useState('')
-  const [price, setPrice] = useState('')
+  const [cost, setCost] = useState('')
   const [stock, setStock] = useState('0')
 
   const [localError, setLocalError] = useState<string | null>(null)
   const [lastSaved, setLastSaved] = useState<string | null>(null)
   const [savedCount, setSavedCount] = useState(0)
+
+  const markup = Number(markupPercent.replace(',', '.'))
+  const costCents = parseMoneyToCents(cost)
+  const salePriceCents =
+    costCents > 0 && Number.isFinite(markup) && markup >= 0
+      ? salePriceFromCost(costCents, markup)
+      : 0
 
   useEffect(() => {
     barcodeRef.current?.focus()
@@ -114,7 +123,7 @@ export function ProductBulkForm({
     setBarcode('')
     setBarcodeMeta(undefined)
     setName('')
-    setPrice('')
+    setCost('')
     setStock('0')
     setLocalError(null)
     requestAnimationFrame(() => barcodeRef.current?.focus())
@@ -154,10 +163,14 @@ export function ProductBulkForm({
       return
     }
 
-    const priceCents = parseMoneyToCents(price)
-    if (priceCents <= 0) {
-      setLocalError('Informe o preço de venda.')
-      priceRef.current?.focus()
+    if (costCents <= 0) {
+      setLocalError('Informe o preço de custo.')
+      costRef.current?.focus()
+      return
+    }
+
+    if (salePriceCents <= 0) {
+      setLocalError('Defina a margem % para calcular o preço de venda.')
       return
     }
 
@@ -179,12 +192,6 @@ export function ProductBulkForm({
       }
     }
 
-    const markup = Number(markupPercent.replace(',', '.'))
-    const costCents = costFromPriceAndMarkup(
-      priceCents,
-      Number.isFinite(markup) ? markup : 0,
-    )
-
     const input: ProductInput = {
       name: trimmedName,
       barcode: code || undefined,
@@ -196,7 +203,7 @@ export function ProductBulkForm({
       category: category ? normalizeProductText(category) : undefined,
       unit,
       type: PRODUCT_TYPES.PRODUCT,
-      priceCents,
+      priceCents: salePriceCents,
       costCents,
       stock: stockQty,
       minStock: 0,
@@ -206,7 +213,7 @@ export function ProductBulkForm({
     try {
       await onSubmit(input)
       setSavedCount((n) => n + 1)
-      setLastSaved(trimmedName)
+      setLastSaved(`${trimmedName} · venda ${formatMoney(salePriceCents)}`)
       resetLine()
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Falha ao salvar produto.')
@@ -237,15 +244,15 @@ export function ProductBulkForm({
       return
     }
     setLocalError(null)
-    priceRef.current?.focus()
-    priceRef.current?.select()
+    costRef.current?.focus()
+    costRef.current?.select()
   }
 
-  function onPriceKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  function onCostKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== 'Enter') return
     event.preventDefault()
-    if (parseMoneyToCents(price) <= 0) {
-      setLocalError('Informe o preço de venda.')
+    if (parseMoneyToCents(cost) <= 0) {
+      setLocalError('Informe o preço de custo.')
       return
     }
     setLocalError(null)
@@ -266,21 +273,14 @@ export function ProductBulkForm({
     void handleSave()
   }
 
-  const priceCents = parseMoneyToCents(price)
-  const markup = Number(markupPercent.replace(',', '.'))
-  const impliedCost =
-    priceCents > 0 && Number.isFinite(markup) && markup >= 0
-      ? costFromPriceAndMarkup(priceCents, markup)
-      : 0
-
   return (
     <form className="product-bulk" onSubmit={onFormSubmit}>
       <header className="product-bulk__header">
         <div>
           <h2>Cadastro em massa</h2>
           <p>
-            Margem, categoria e unidade ficam fixos. Em cada item: código, nome, preço e
-            estoque — Enter salva e volta ao início.
+            Margem, categoria e unidade ficam fixos. Digite o custo — o preço de venda
+            calcula sozinho. Ordem: código, nome, custo, estoque.
           </p>
         </div>
         <button type="button" className="product-bulk__ghost" onClick={onCancel} disabled={saving}>
@@ -298,9 +298,9 @@ export function ProductBulkForm({
               value={markupPercent}
               onChange={(e) => setMarkupPercent(e.target.value)}
               disabled={saving}
-              aria-label="Margem percentual para estimar o custo"
+              aria-label="Margem percentual sobre o custo"
             />
-            <span className="product-bulk__hint">Usada para gravar o custo a partir do preço</span>
+            <span className="product-bulk__hint">Preço de venda = custo + esta margem</span>
           </label>
           <label>
             Categoria
@@ -384,21 +384,24 @@ export function ProductBulkForm({
             />
           </label>
           <label>
-            Preço (R$)
+            Custo (R$)
             <input
-              ref={priceRef}
+              ref={costRef}
               inputMode="decimal"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              onKeyDown={onPriceKeyDown}
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              onKeyDown={onCostKeyDown}
               disabled={saving}
               autoComplete="off"
               placeholder="0,00"
             />
-            {impliedCost > 0 && (
-              <span className="product-bulk__hint">
-                Custo est. {formatMoney(impliedCost)} ({markupPercent}% margem)
+            {salePriceCents > 0 ? (
+              <span className="product-bulk__hint product-bulk__hint--sale">
+                Venda: {formatMoney(salePriceCents)}
+                {costCents > 0 ? ` (${centsToInput(costCents)} + ${markupPercent}%)` : ''}
               </span>
+            ) : (
+              <span className="product-bulk__hint">Preço de venda aparece aqui</span>
             )}
           </label>
           <label>

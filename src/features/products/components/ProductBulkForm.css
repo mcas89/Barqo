@@ -137,10 +137,9 @@
   cursor: not-allowed;
 }
 
-.product-bulk__hint {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #5b6b80;
+.product-bulk__hint--sale {
+  color: #15803d;
+  font-weight: 800;
 }
 
 .product-bulk__price-banner {
