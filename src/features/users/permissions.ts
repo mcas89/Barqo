@@ -33,7 +33,7 @@ export type PermissionMap = Record<PermissionKey, boolean>
 export type PermissionOverrides = Partial<PermissionMap>
 
 export const PERMISSION_LABELS: Record<PermissionKey, string> = {
-  [PERMISSIONS.BACK_OFFICE]: 'Acessar menu (além do PDV)',
+  [PERMISSIONS.BACK_OFFICE]: 'Acessar menu inicial (além do PDV)',
   [PERMISSIONS.MANAGE_PRODUCTS]: 'Produtos',
   [PERMISSIONS.MANAGE_INVENTORY]: 'Estoque',
   [PERMISSIONS.MANAGE_CASH]: 'Caixa',

@@ -34,7 +34,6 @@ import {
   writeOperatorSession,
 } from '../services/operator-service'
 import {
-  canAccessBackOffice,
   canRemoveCartItem,
   sessionCan,
   type PosOperator,
@@ -42,8 +41,10 @@ import {
 } from '../types/operator'
 import {
   PERMISSIONS,
+  planSupportsFinePermissions,
   type PermissionKey,
 } from '../../users/permissions'
+import { USER_ROLES } from '../../../shared/constants'
 
 interface PosOperatorContextValue {
   operators: PosOperator[]
@@ -351,21 +352,20 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PosOperatorContextValue>(() => {
     const can = (key: PermissionKey) => {
       if (!pinRequired) return true
-      if (elevatedPath) return true
+      // Elevação por PIN libera só a rota (isElevatedFor), não todas as permissões.
       return sessionCan(operator, key)
     }
     const backOffice = !pinRequired
       ? true
-      : operator
-        ? sessionCan(operator, PERMISSIONS.BACK_OFFICE) ||
-          canAccessBackOffice(operator.role)
-        : false
+      : sessionCan(operator, PERMISSIONS.BACK_OFFICE)
     const removeCart = !pinRequired
       ? true
       : operator
         ? sessionCan(operator, PERMISSIONS.REMOVE_CART) ||
-          canRemoveCartItem(operator.role)
+          (!planSupportsFinePermissions(planId) && canRemoveCartItem(operator.role))
         : false
+    const isOwner =
+      operator?.kind === 'owner' || operator?.role === USER_ROLES.OWNER
 
     return {
       operators,
@@ -386,14 +386,8 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
       can,
       canAccessBackOffice: backOffice,
       canRemoveCartItem: removeCart,
-      hasPrivilegedAccess: !pinRequired
-        ? true
-        : Boolean(elevatedPath) ||
-          Boolean(
-            operator &&
-              (sessionCan(operator, PERMISSIONS.BACK_OFFICE) ||
-                canAccessBackOffice(operator.role)),
-          ),
+      // Dono / Solo / elevação temporária. Gerente e demais seguem permissões finas.
+      hasPrivilegedAccess: !pinRequired || Boolean(elevatedPath) || Boolean(isOwner),
     }
   }, [
     operators,
@@ -410,6 +404,7 @@ export function PosOperatorProvider({ children }: { children: ReactNode }) {
     elevateForPath,
     clearElevation,
     isElevatedFor,
+    planId,
   ])
 
   return (

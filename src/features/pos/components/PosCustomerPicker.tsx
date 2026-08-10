@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { CustomerForm } from '../../customers/components/CustomerForm'
 import { usePosOperator } from '../hooks/usePosOperator'
+import { PERMISSIONS } from '../../users/permissions'
 import { PinAuthorizeModal } from './PinAuthorizeModal'
 import './PosCustomerPicker.css'
 
@@ -23,7 +24,7 @@ export function PosCustomerPicker({
   onClose,
 }: PosCustomerPickerProps) {
   const { organization } = useAuth()
-  const { pinRequired, canAccessBackOffice, authorizePrivileged } = usePosOperator()
+  const { pinRequired, can, authorizePrivileged } = usePosOperator()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -60,7 +61,7 @@ export function PosCustomerPicker({
 
   function requestCreate() {
     setCreateError(null)
-    if (!pinRequired || canAccessBackOffice) {
+    if (!pinRequired || can(PERMISSIONS.CREATE_CUSTOMER)) {
       setMode('create')
       return
     }

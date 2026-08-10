@@ -4,6 +4,10 @@ export { useDayDashboard } from './hooks/useDayDashboard'
 export { usePeriodReport } from './hooks/usePeriodReport'
 export { buildDaySummary } from './services/day-summary'
 export { buildPeriodSummary, periodSummaryToCsv } from './services/period-summary'
+export {
+  buildActorNameMap,
+  resolveActorDisplayName,
+} from './services/actor-names'
 export type {
   DaySummary,
   DayPaymentBreakdown,
@@ -16,3 +20,4 @@ export type {
   PeriodProductRow,
   PeriodOperatorRow,
 } from './services/period-summary'
+export type { ActorNameMap } from './services/actor-names'

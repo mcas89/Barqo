@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import { startOfLocalDayIso } from '../../../shared/lib/dates'
+import { pickPersonName } from '../../../shared/lib/person-name'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import {
   getOpenCashSession,
   listSalesSince,
 } from '../../cash-register'
 import { listProducts } from '../../products'
+import { listEmployees } from '../../users'
 import { buildDaySummary, type DaySummary } from '../services/day-summary'
+import {
+  buildActorNameMap,
+  resolveActorDisplayName,
+} from '../services/actor-names'
 
 export function useDayDashboard() {
-  const { organization } = useAuth()
+  const { organization, user } = useAuth()
   const [summary, setSummary] = useState<DaySummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -30,11 +36,27 @@ export function useDayDashboard() {
 
     try {
       const fromIso = startOfLocalDayIso()
-      const [sales, products, cash] = await Promise.all([
+      const [sales, products, cash, employees] = await Promise.all([
         listSalesSince(organizationId, fromIso),
         listProducts(organizationId, { includeInactive: false }),
         getOpenCashSession(organizationId),
+        listEmployees(organizationId, { includeInactive: true }),
       ])
+
+      const actors = employees.map((employee) => ({
+        id: employee.id,
+        displayName: employee.displayName,
+      }))
+      if (user?.id) {
+        actors.push({
+          id: user.id,
+          displayName:
+            pickPersonName([user.displayName, organization?.ownerName]) ||
+            user.displayName ||
+            'Proprietário',
+        })
+      }
+      const actorNames = buildActorNameMap(actors)
 
       setSummary(
         buildDaySummary({
@@ -42,7 +64,13 @@ export function useDayDashboard() {
           sales,
           products,
           cashOpen: Boolean(cash),
-          cashOpenedByName: cash?.openedByName,
+          cashOpenedByName: resolveActorDisplayName(
+            [cash?.openedByOperatorId, cash?.openedByUserId],
+            cash?.openedByName,
+            actorNames,
+            '—',
+          ),
+          actorNames,
         }),
       )
     } catch (err) {
@@ -52,7 +80,7 @@ export function useDayDashboard() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [organizationId])
+  }, [organizationId, user?.id, user?.displayName, organization?.ownerName])
 
   useEffect(() => {
     void refresh()

@@ -1,6 +1,7 @@
 import type { PaymentMethod, Sale } from '../../pos/types'
 import { PAYMENT_METHODS } from '../../pos/types'
 import type { Product } from '../../products'
+import type { ActorNameMap } from './actor-names'
 
 export interface DayPaymentBreakdown {
   method: PaymentMethod
@@ -37,6 +38,7 @@ export interface DaySummary {
   lowStock: LowStockAlert[]
   cashOpen: boolean
   cashOpenedByName?: string
+  actorNames?: ActorNameMap
 }
 
 function emptyPayments(): Record<PaymentMethod, number> {
@@ -55,6 +57,7 @@ export function buildDaySummary(input: {
   products: Product[]
   cashOpen: boolean
   cashOpenedByName?: string
+  actorNames?: ActorNameMap
 }): DaySummary {
   const paymentsMap = emptyPayments()
   let salesTotalCents = 0
@@ -140,5 +143,6 @@ export function buildDaySummary(input: {
     lowStock,
     cashOpen: input.cashOpen,
     cashOpenedByName: input.cashOpenedByName,
+    actorNames: input.actorNames,
   }
 }

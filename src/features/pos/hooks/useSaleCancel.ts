@@ -11,8 +11,7 @@ import { usePosOperator } from './usePosOperator'
 export function useSaleCancel() {
   const { organization, user } = useAuth()
   const { deviceId } = useDeviceSession()
-  const { operator, authorizePrivileged, can, pinRequired, canAccessBackOffice } =
-    usePosOperator()
+  const { operator, authorizePrivileged, can, pinRequired } = usePosOperator()
 
   const [sales, setSales] = useState<Sale[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,8 +20,7 @@ export function useSaleCancel() {
   const [search, setSearch] = useState('')
   const [includeCanceled, setIncludeCanceled] = useState(true)
 
-  const needsPrivilegedPin =
-    pinRequired && !canAccessBackOffice && !can(PERMISSIONS.CANCEL_SALE)
+  const needsPrivilegedPin = pinRequired && !can(PERMISSIONS.CANCEL_SALE)
 
   const refresh = useCallback(async () => {
     if (!organization?.id) {

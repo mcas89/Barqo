@@ -11,12 +11,15 @@ import {
   startOfLocalDayIso,
   toLocalDateInput,
 } from '../../../shared/lib/dates'
+import { pickPersonName } from '../../../shared/lib/person-name'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { listSalesSince } from '../../cash-register'
+import { listEmployees } from '../../users'
 import {
   buildPeriodSummary,
   type PeriodSummary,
 } from '../services/period-summary'
+import { buildActorNameMap } from '../services/actor-names'
 
 export type ReportPreset = 'today' | '7d' | '30d' | 'custom'
 
@@ -54,7 +57,7 @@ function rangeFromPreset(preset: ReportPreset, fromInput: string, toInput: strin
 }
 
 export function usePeriodReport() {
-  const { organization, subscription } = useAuth()
+  const { organization, subscription, user } = useAuth()
   const today = toLocalDateInput()
   const [preset, setPreset] = useState<ReportPreset>('today')
   const [fromInput, setFromInput] = useState(today)
@@ -89,12 +92,29 @@ export function usePeriodReport() {
     setLoading(true)
     setError(null)
     try {
-      const sales = await listSalesSince(organizationId, range.fromIso, range.toIso)
+      const [sales, employees] = await Promise.all([
+        listSalesSince(organizationId, range.fromIso, range.toIso),
+        listEmployees(organizationId, { includeInactive: true }),
+      ])
+      const actors = employees.map((employee) => ({
+        id: employee.id,
+        displayName: employee.displayName,
+      }))
+      if (user?.id) {
+        actors.push({
+          id: user.id,
+          displayName:
+            pickPersonName([user.displayName, organization?.ownerName]) ||
+            user.displayName ||
+            'Proprietário',
+        })
+      }
       setSummary(
         buildPeriodSummary({
           fromIso: range.fromIso,
           toIso: range.toIso,
           sales,
+          actorNames: buildActorNameMap(actors),
         }),
       )
     } catch (err) {
@@ -103,7 +123,16 @@ export function usePeriodReport() {
     } finally {
       setLoading(false)
     }
-  }, [organizationId, canUsePeriod, preset, fromInput, toInput])
+  }, [
+    organizationId,
+    canUsePeriod,
+    preset,
+    fromInput,
+    toInput,
+    user?.id,
+    user?.displayName,
+    organization?.ownerName,
+  ])
 
   useEffect(() => {
     void refresh()

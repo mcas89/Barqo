@@ -79,8 +79,7 @@ function pathMatches(pathname: string, to: string, end?: boolean) {
 
 export function AppLayout() {
   const { user, organization, subscription, logout } = useAuth()
-  const { operator, pinRequired, lock, can, canAccessBackOffice, hasPrivilegedAccess } =
-    usePosOperator()
+  const { operator, pinRequired, lock, can } = usePosOperator()
   const location = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
   const planName = subscription
@@ -111,7 +110,7 @@ export function AppLayout() {
 
   const visibleNav = NAV.filter((item) => {
     if (item.permission == null) return true
-    if (!pinRequired || hasPrivilegedAccess || canAccessBackOffice) return true
+    if (!pinRequired) return true
     return can(item.permission)
   })
   const primaryNav = PRIMARY_NAV.map((item) => {

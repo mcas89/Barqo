@@ -1,5 +1,9 @@
 import type { PaymentMethod, Sale } from '../../pos/types'
 import { PAYMENT_METHODS } from '../../pos/types'
+import {
+  resolveActorDisplayName,
+  type ActorNameMap,
+} from './actor-names'
 
 export interface PeriodPaymentBreakdown {
   method: PaymentMethod
@@ -32,6 +36,8 @@ export interface PeriodSummary {
   products: PeriodProductRow[]
   operators: PeriodOperatorRow[]
   sales: Sale[]
+  /** Nomes atuais por operador — para listagens de vendas. */
+  actorNames?: ActorNameMap
 }
 
 function emptyPayments(): Record<PaymentMethod, number> {
@@ -48,12 +54,14 @@ export function buildPeriodSummary(input: {
   fromIso: string
   toIso: string
   sales: Sale[]
+  actorNames?: ActorNameMap
 }): PeriodSummary {
   const paymentsMap = emptyPayments()
   let salesTotalCents = 0
   let changeTotalCents = 0
   const productMap = new Map<string, PeriodProductRow>()
   const operatorMap = new Map<string, PeriodOperatorRow>()
+  const actorNames = input.actorNames
 
   for (const sale of input.sales) {
     salesTotalCents += sale.totalCents ?? 0
@@ -81,11 +89,16 @@ export function buildPeriodSummary(input: {
     }
 
     const operatorKey = sale.operatorId || sale.soldByUserId || 'sem-operador'
-    const operatorName = sale.soldByName || 'Sem operador'
+    const operatorName = resolveActorDisplayName(
+      [sale.operatorId, sale.soldByUserId],
+      sale.soldByName,
+      actorNames,
+    )
     const operator = operatorMap.get(operatorKey)
     if (operator) {
       operator.salesCount += 1
       operator.totalCents += sale.totalCents ?? 0
+      operator.name = operatorName
     } else {
       operatorMap.set(operatorKey, {
         key: operatorKey,
@@ -118,6 +131,7 @@ export function buildPeriodSummary(input: {
       (a, b) => b.totalCents - a.totalCents,
     ),
     sales: [...input.sales].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    actorNames,
   }
 }
 

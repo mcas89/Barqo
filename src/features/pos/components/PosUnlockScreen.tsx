@@ -5,10 +5,11 @@ import { useAuth } from '../../../shared/hooks/useAuth'
 import { listLiveOperatorPresences, OperatorInUseError } from '../../devices'
 import { usePosOperator } from '../hooks/usePosOperator'
 import {
-  canAccessBackOffice,
   POS_ROLE_LABELS,
+  sessionCan,
   type PosOperator,
 } from '../types/operator'
+import { PERMISSIONS } from '../../users/permissions'
 import { getPinLockRemainingMs } from '../../users/services/pin-lock'
 import './PosUnlockScreen.css'
 
@@ -129,14 +130,14 @@ export function PosUnlockScreen() {
         }
         await setupOwnerPin(pin)
         const session = await unlock(selected.id, pin)
-        if (!canAccessBackOffice(session.role)) {
+        if (!sessionCan(session, PERMISSIONS.BACK_OFFICE)) {
           navigate('/app/pos', { replace: true })
         }
         return
       }
 
       const session = await unlock(selected.id, pin)
-      if (!canAccessBackOffice(session.role)) {
+      if (!sessionCan(session, PERMISSIONS.BACK_OFFICE)) {
         navigate('/app/pos', { replace: true })
       }
     } catch (err) {

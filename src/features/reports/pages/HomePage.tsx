@@ -5,6 +5,7 @@ import { HomePlanNotice } from '../../billing/components/HomePlanNotice'
 import { PAYMENT_METHOD_LABELS } from '../../pos'
 import { ReprintSaleButton } from '../../receipts'
 import { useDayDashboard } from '../hooks/useDayDashboard'
+import { resolveActorDisplayName } from '../services/actor-names'
 import './HomePage.css'
 
 export function HomePage() {
@@ -155,7 +156,16 @@ export function HomePage() {
                     <li key={sale.id}>
                       <span>
                         {formatDateTime(sale.createdAt)}
-                        <em>{sale.soldByName || sale.customerName || '-'}</em>
+                        <em>
+                          {resolveActorDisplayName(
+                            [sale.operatorId, sale.soldByUserId],
+                            sale.soldByName,
+                            summary.actorNames,
+                            '',
+                          ) ||
+                            sale.customerName ||
+                            '-'}
+                        </em>
                       </span>
                       <strong className="home-page__sale-total">
                         {formatMoney(sale.totalCents)}

@@ -6,6 +6,7 @@ import { PAYMENT_METHOD_LABELS } from '../../pos'
 import { ReprintSaleButton } from '../../receipts'
 import { usePeriodReport } from '../hooks/usePeriodReport'
 import { periodSummaryToCsv } from '../services/period-summary'
+import { resolveActorDisplayName } from '../services/actor-names'
 import './ReportsPage.css'
 
 export function ReportsPage() {
@@ -233,7 +234,11 @@ export function ReportsPage() {
                       <span>
                         {formatDateTime(sale.createdAt)}
                         <em>
-                          {sale.soldByName}
+                          {resolveActorDisplayName(
+                            [sale.operatorId, sale.soldByUserId],
+                            sale.soldByName,
+                            summary.actorNames,
+                          )}
                           {sale.customerName ? ` · ${sale.customerName}` : ''}
                         </em>
                       </span>

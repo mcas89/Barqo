@@ -9,7 +9,6 @@ export function RequireBackOffice({ children }: { children: ReactNode }) {
   const location = useLocation()
   const {
     operator,
-    canAccessBackOffice,
     can,
     loading,
     isElevatedFor,
@@ -32,8 +31,9 @@ export function RequireBackOffice({ children }: { children: ReactNode }) {
   }
 
   const needed = permissionForPath(location.pathname)
+  // Respeita permissões finas por página. Não usar canAccessBackOffice como
+  // “libera tudo” — senão os checkboxes da Equipe não têm efeito.
   const allowed =
-    canAccessBackOffice ||
     needed === null ||
     (needed ? can(needed) : false) ||
     isElevatedFor(location.pathname)
