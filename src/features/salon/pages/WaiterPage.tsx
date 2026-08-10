@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatMoney } from '../../../shared/lib/money'
+import { getOpenCashSession } from '../../cash-register'
+import { useDeviceSession } from '../../devices'
+import { completeSale } from '../../pos/services/sale-service'
+import type { SalePayment } from '../../pos/types'
+import { fulfillSaleReceipt, resolveReceiptSettings } from '../../receipts'
+import { CloseTicketModal } from '../components/CloseTicketModal'
 import { TicketPanel } from '../components/TicketPanel'
 import { useSalon } from '../hooks/useSalon'
 import {
+  PREP_STATUSES,
   ticketItemCount,
   ticketTotalCents,
   type SalonTable,
@@ -11,10 +18,13 @@ import {
 } from '../types'
 import './SalonShared.css'
 
-/** Visão mobile-first do garçom: abrir mesa e lançar itens. */
+/** Visão mobile-first do garçom: abrir mesa, lançar itens e fechar conta. */
 export function WaiterPage() {
   const salon = useSalon()
+  const { deviceId } = useDeviceSession()
   const [activeTicket, setActiveTicket] = useState<SalonTicket | null>(null)
+  const [closing, setClosing] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   const tables = useMemo(
     () =>
@@ -38,6 +48,69 @@ export function WaiterPage() {
   async function handleOpenTable(table: SalonTable) {
     const ticket = await salon.openOrGetTicket(table)
     setActiveTicket(ticket)
+  }
+
+  async function handleCloseConfirm(input: {
+    payments: SalePayment[]
+    discountCents: number
+    note?: string
+  }) {
+    if (!activeTicket || !salon.organization || !salon.operator || !salon.user) {
+      throw new Error('Sessão incompleta.')
+    }
+    if (!deviceId) throw new Error('Dispositivo não identificado.')
+
+    const cash = await getOpenCashSession(salon.organization.id)
+    if (!cash) {
+      throw new Error('Abra o caixa antes de fechar a comanda.')
+    }
+
+    const items = activeTicket.items
+      .filter((item) => item.prepStatus !== PREP_STATUSES.CANCELED)
+      .map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        unitPriceCents: item.unitPriceCents,
+        costCents: item.costCents,
+        quantity: item.quantity,
+        type: item.type,
+      }))
+
+    if (items.length === 0) throw new Error('Comanda sem itens.')
+
+    await salon.applyDiscount(activeTicket.id, input.discountCents)
+
+    const sale = await completeSale({
+      organizationId: salon.organization.id,
+      items,
+      discountCents: input.discountCents,
+      payments: input.payments,
+      soldByUserId: salon.user.id,
+      soldByName: salon.operator.displayName,
+      cashSessionId: cash.id,
+      operatorId: salon.operator.id,
+      deviceId,
+      operatorRole: salon.operator.role,
+      note: input.note,
+    })
+
+    await salon.closeTicketAfterSale(activeTicket.id, sale.id)
+    try {
+      const settings = resolveReceiptSettings({ organization: salon.organization })
+      if (settings.printOnSale || settings.sendReceiptOnSale) {
+        await fulfillSaleReceipt({
+          organization: salon.organization,
+          sale,
+          settings,
+        })
+      }
+    } catch {
+      // cupom é best-effort
+    }
+
+    setToast(`Conta da ${activeTicket.tableName} fechada.`)
+    setClosing(false)
+    setActiveTicket(null)
   }
 
   if (!salon.hasSalon) {
@@ -80,6 +153,7 @@ export function WaiterPage() {
       )}
 
       {salon.error && <p className="salon-ticket__error">{salon.error}</p>}
+      {toast && <p className="salon-page__toast">{toast}</p>}
 
       {salon.loading ? (
         <p className="salon-page__empty">Carregando mesas…</p>
@@ -89,7 +163,7 @@ export function WaiterPage() {
           products={salon.products}
           busy={salon.busy}
           canAdd
-          canClose={false}
+          canClose={salon.canClose}
           orderEntry
           onBack={() => setActiveTicket(null)}
           onSendOrder={async (lines) => {
@@ -103,6 +177,7 @@ export function WaiterPage() {
             const updated = await salon.removeTicketItem(liveTicket.id, itemId)
             if (updated) setActiveTicket(updated)
           }}
+          onCloseRequest={() => setClosing(true)}
         />
       ) : tables.length === 0 ? (
         <p className="salon-page__empty">
@@ -136,6 +211,15 @@ export function WaiterPage() {
             )
           })}
         </div>
+      )}
+
+      {closing && liveTicket && (
+        <CloseTicketModal
+          ticket={liveTicket}
+          busy={salon.busy}
+          onCancel={() => setClosing(false)}
+          onConfirm={handleCloseConfirm}
+        />
       )}
     </section>
   )

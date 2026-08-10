@@ -122,6 +122,7 @@ const WAITER_DEFAULTS: PermissionMap = {
   [PERMISSIONS.MANAGE_RECEIVABLES]: false,
   [PERMISSIONS.LABELS_PRINT]: false,
   [PERMISSIONS.SALON_WAITER]: true,
+  [PERMISSIONS.SALON_CLOSE]: true,
 }
 
 const COOK_DEFAULTS: PermissionMap = {
@@ -172,6 +173,7 @@ export function resolvePermissions(input: {
     return {
       ...map,
       [PERMISSIONS.SALON_WAITER]: true,
+      [PERMISSIONS.SALON_CLOSE]: true,
       [PERMISSIONS.SALON_KITCHEN]: false,
       [PERMISSIONS.BACK_OFFICE]: false,
     }

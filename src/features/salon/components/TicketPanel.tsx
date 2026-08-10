@@ -243,6 +243,16 @@ export function TicketPanel({
               {count} na comanda · {formatMoney(total)}
             </p>
           </div>
+          {canClose && onCloseRequest && activeItems.length > 0 && (
+            <button
+              type="button"
+              className="waiter-ticket__close"
+              disabled={busy}
+              onClick={onCloseRequest}
+            >
+              Fechar conta
+            </button>
+          )}
         </header>
 
         {localError && <p className="salon-ticket__error">{localError}</p>}
