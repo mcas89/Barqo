@@ -22,6 +22,7 @@ import {
   DEFAULT_PLAN_ID,
   PLAN_FEATURES,
   planHasFeature,
+  resolvePlanId,
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { useDeviceSession } from '../../devices'
@@ -84,8 +85,7 @@ export function PosPage() {
 
   const { subscription, organization: authOrg } = useAuth()
   const { devices, deviceId } = useDeviceSession()
-  const planId =
-    subscription?.planId ?? authOrg?.planId ?? DEFAULT_PLAN_ID
+  const planId = resolvePlanId(subscription?.planId ?? authOrg?.planId ?? DEFAULT_PLAN_ID)
   const canUseFiado = planHasFeature(planId, PLAN_FEATURES.RECEIVABLES)
   const hasSalon = planHasFeature(planId, PLAN_FEATURES.SALON)
 

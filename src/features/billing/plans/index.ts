@@ -30,6 +30,7 @@ export {
 
 export {
   getPlan,
+  resolvePlanId,
   planHasFeature,
   lowestPlanWithFeature,
   getLimitValue,

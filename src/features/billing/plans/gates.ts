@@ -12,11 +12,24 @@ import {
   type SubscriptionStatus,
 } from './types'
 
-export function getPlan(planId: PlanId = DEFAULT_PLAN_ID): PlanDefinition {
-  return PLAN_CATALOG[planId]
+const KNOWN_PLAN_IDS = new Set<string>(Object.values(PLAN_IDS))
+
+/** Aceita id sujo do Firestore (vazio, typo) e devolve um PlanId válido. */
+export function resolvePlanId(planId: string | null | undefined): PlanId {
+  const trimmed = planId?.trim()
+  if (trimmed && KNOWN_PLAN_IDS.has(trimmed)) return trimmed as PlanId
+  return DEFAULT_PLAN_ID
 }
 
-export function planHasFeature(planId: PlanId, feature: PlanFeature): boolean {
+export function getPlan(planId: PlanId | string | null | undefined = DEFAULT_PLAN_ID): PlanDefinition {
+  const id = resolvePlanId(planId)
+  return PLAN_CATALOG[id] ?? PLAN_CATALOG[DEFAULT_PLAN_ID]
+}
+
+export function planHasFeature(
+  planId: PlanId | string | null | undefined,
+  feature: PlanFeature,
+): boolean {
   return getPlan(planId).features.includes(feature)
 }
 

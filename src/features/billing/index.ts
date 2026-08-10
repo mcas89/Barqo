@@ -17,6 +17,7 @@ export {
   BILLING_CYCLE_MONTHS,
   BILLING_CYCLE_LABELS,
   getPlan,
+  resolvePlanId,
   planHasFeature,
   lowestPlanWithFeature,
   getLimitValue,
