@@ -36,6 +36,8 @@ export const POS_ROLE_LABELS: Record<UserRole, string> = {
   [USER_ROLES.MANAGER]: 'Gerente',
   [USER_ROLES.CASHIER]: 'Caixa',
   [USER_ROLES.ATTENDANT]: 'Atendente',
+  [USER_ROLES.WAITER]: 'Garçom',
+  [USER_ROLES.COOK]: 'Cozinheiro',
 }
 
 export function isPrivilegedPosRole(role: UserRole): boolean {

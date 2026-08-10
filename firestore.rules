@@ -104,6 +104,14 @@ service cloud.firestore {
         allow read, write: if canAccessOrg(orgId);
       }
 
+      match /salon_tables/{tableId} {
+        allow read, write: if canAccessOrg(orgId);
+      }
+
+      match /salon_tickets/{ticketId} {
+        allow read, write: if canAccessOrg(orgId);
+      }
+
       match /devices/{deviceId} {
         allow read: if canAccessOrg(orgId) || isPlatformAdmin();
         allow write: if canAccessOrg(orgId);

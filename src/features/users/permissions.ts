@@ -25,6 +25,10 @@ export const PERMISSIONS = {
   LABELS_PRINT: 'labels.print',
   GENERATE_BARCODE: 'products.generate_barcode',
   CHANGE_BARCODE: 'products.change_barcode',
+  SALON_TABLES: 'salon.tables',
+  SALON_WAITER: 'salon.waiter',
+  SALON_KITCHEN: 'salon.kitchen',
+  SALON_CLOSE: 'salon.close',
 } as const
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -51,6 +55,10 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   [PERMISSIONS.LABELS_PRINT]: 'Imprimir etiquetas',
   [PERMISSIONS.GENERATE_BARCODE]: 'Gerar código de barras BALQO',
   [PERMISSIONS.CHANGE_BARCODE]: 'Alterar código de barras',
+  [PERMISSIONS.SALON_TABLES]: 'Salão · mesas e comandas',
+  [PERMISSIONS.SALON_WAITER]: 'Salão · garçom',
+  [PERMISSIONS.SALON_KITCHEN]: 'Salão · cozinha',
+  [PERMISSIONS.SALON_CLOSE]: 'Salão · fechar conta',
 }
 
 /** Permissões que o Gestão pode ajustar por funcionário. */
@@ -73,6 +81,10 @@ export const EDITABLE_PERMISSIONS: PermissionKey[] = [
   PERMISSIONS.LABELS_PRINT,
   PERMISSIONS.GENERATE_BARCODE,
   PERMISSIONS.CHANGE_BARCODE,
+  PERMISSIONS.SALON_TABLES,
+  PERMISSIONS.SALON_WAITER,
+  PERMISSIONS.SALON_KITCHEN,
+  PERMISSIONS.SALON_CLOSE,
 ]
 
 const ALL_TRUE = Object.fromEntries(
@@ -99,12 +111,32 @@ const FLOOR_DEFAULTS: PermissionMap = {
   [PERMISSIONS.LABELS_PRINT]: true,
   [PERMISSIONS.GENERATE_BARCODE]: false,
   [PERMISSIONS.CHANGE_BARCODE]: false,
+  [PERMISSIONS.SALON_TABLES]: false,
+  [PERMISSIONS.SALON_WAITER]: false,
+  [PERMISSIONS.SALON_KITCHEN]: false,
+  [PERMISSIONS.SALON_CLOSE]: false,
 } as PermissionMap
+
+const WAITER_DEFAULTS: PermissionMap = {
+  ...FLOOR_DEFAULTS,
+  [PERMISSIONS.MANAGE_RECEIVABLES]: false,
+  [PERMISSIONS.LABELS_PRINT]: false,
+  [PERMISSIONS.SALON_WAITER]: true,
+}
+
+const COOK_DEFAULTS: PermissionMap = {
+  ...FLOOR_DEFAULTS,
+  [PERMISSIONS.MANAGE_RECEIVABLES]: false,
+  [PERMISSIONS.LABELS_PRINT]: false,
+  [PERMISSIONS.SALON_KITCHEN]: true,
+}
 
 export function defaultPermissionsForRole(role: UserRole): PermissionMap {
   if (role === USER_ROLES.OWNER || role === USER_ROLES.MANAGER) {
     return { ...ALL_TRUE }
   }
+  if (role === USER_ROLES.WAITER) return { ...WAITER_DEFAULTS }
+  if (role === USER_ROLES.COOK) return { ...COOK_DEFAULTS }
   return { ...FLOOR_DEFAULTS }
 }
 
@@ -128,7 +160,29 @@ export function resolvePermissions(input: {
     input.role === USER_ROLES.CASHIER ||
     input.role === USER_ROLES.ATTENDANT
   ) {
-    return { ...map, [PERMISSIONS.MANAGE_RECEIVABLES]: true }
+    return {
+      ...map,
+      [PERMISSIONS.MANAGE_RECEIVABLES]: true,
+      // Caixa recebe conta de mesa no PDV.
+      [PERMISSIONS.SALON_CLOSE]: true,
+    }
+  }
+  // Garçom / cozinheiro: papel manda — só a página deles (salvo override fino).
+  if (input.role === USER_ROLES.WAITER) {
+    return {
+      ...map,
+      [PERMISSIONS.SALON_WAITER]: true,
+      [PERMISSIONS.SALON_KITCHEN]: false,
+      [PERMISSIONS.BACK_OFFICE]: false,
+    }
+  }
+  if (input.role === USER_ROLES.COOK) {
+    return {
+      ...map,
+      [PERMISSIONS.SALON_KITCHEN]: true,
+      [PERMISSIONS.SALON_WAITER]: false,
+      [PERMISSIONS.BACK_OFFICE]: false,
+    }
   }
   return map
 }
@@ -157,5 +211,8 @@ export function permissionForPath(pathname: string): PermissionKey | null {
   if (pathname.startsWith('/app/reports')) return PERMISSIONS.VIEW_REPORTS
   if (pathname.startsWith('/app/team')) return PERMISSIONS.MANAGE_TEAM
   if (pathname.startsWith('/app/settings')) return PERMISSIONS.MANAGE_SETTINGS
+  if (pathname.startsWith('/app/salon/kitchen')) return PERMISSIONS.SALON_KITCHEN
+  if (pathname.startsWith('/app/salon/waiter')) return PERMISSIONS.SALON_WAITER
+  if (pathname.startsWith('/app/salon')) return PERMISSIONS.SALON_TABLES
   return PERMISSIONS.BACK_OFFICE
 }

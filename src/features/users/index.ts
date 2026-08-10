@@ -14,6 +14,9 @@ export {
   EMPLOYEE_ROLES,
   EMPLOYEE_ROLE_LABELS,
   isEmployeeRole,
+  employeeRolesForPlan,
+  CORE_EMPLOYEE_ROLES,
+  SALON_EMPLOYEE_ROLES,
 } from './types'
 export {
   PERMISSIONS,

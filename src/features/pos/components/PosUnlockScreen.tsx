@@ -8,10 +8,28 @@ import {
   POS_ROLE_LABELS,
   sessionCan,
   type PosOperator,
+  type PosOperatorSession,
 } from '../types/operator'
 import { PERMISSIONS } from '../../users/permissions'
 import { getPinLockRemainingMs } from '../../users/services/pin-lock'
 import './PosUnlockScreen.css'
+
+function navigateAfterUnlock(
+  session: PosOperatorSession,
+  navigate: ReturnType<typeof useNavigate>,
+) {
+  if (sessionCan(session, PERMISSIONS.SALON_WAITER) && !sessionCan(session, PERMISSIONS.BACK_OFFICE)) {
+    navigate('/app/salon/waiter', { replace: true })
+    return
+  }
+  if (sessionCan(session, PERMISSIONS.SALON_KITCHEN) && !sessionCan(session, PERMISSIONS.BACK_OFFICE)) {
+    navigate('/app/salon/kitchen', { replace: true })
+    return
+  }
+  if (!sessionCan(session, PERMISSIONS.BACK_OFFICE)) {
+    navigate('/app/pos', { replace: true })
+  }
+}
 
 function notifyBusy(message: string) {
   try {
@@ -130,16 +148,12 @@ export function PosUnlockScreen() {
         }
         await setupOwnerPin(pin)
         const session = await unlock(selected.id, pin)
-        if (!sessionCan(session, PERMISSIONS.BACK_OFFICE)) {
-          navigate('/app/pos', { replace: true })
-        }
+        navigateAfterUnlock(session, navigate)
         return
       }
 
       const session = await unlock(selected.id, pin)
-      if (!sessionCan(session, PERMISSIONS.BACK_OFFICE)) {
-        navigate('/app/pos', { replace: true })
-      }
+      navigateAfterUnlock(session, navigate)
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Não foi possível entrar com este PIN.'

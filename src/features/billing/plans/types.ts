@@ -51,6 +51,8 @@ export const PLAN_FEATURES = {
   FINE_PERMISSIONS: 'fine_permissions',
   EXPORT_REPORTS: 'export_reports',
   PRIORITY_SUPPORT: 'priority_support',
+  /** Mesas, comandas, cozinha e garçom — só plano Salão */
+  SALON: 'salon',
 } as const
 
 export type PlanFeature = (typeof PLAN_FEATURES)[keyof typeof PLAN_FEATURES]

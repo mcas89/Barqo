@@ -11,6 +11,7 @@ import {
   Tag,
   Trash2,
   UserRound,
+  UtensilsCrossed,
   Wallet,
 } from 'lucide-react'
 import { BALQO_LOGO_SRC } from '../../../shared/constants'
@@ -31,6 +32,7 @@ import { PosCustomerPicker } from '../components/PosCustomerPicker'
 import { PosQuickItemPanel, type QuickItemMode } from '../components/PosQuickItemPanel'
 import { PosRemainingPaymentModal } from '../components/PosRemainingPaymentModal'
 import { PosRecentSalesPanel } from '../components/PosRecentSalesPanel'
+import { PosTablesPanel } from '../components/PosTablesPanel'
 import { PosUnlockScreen } from '../components/PosUnlockScreen'
 import { usePos } from '../hooks/usePos'
 import { usePosOperator } from '../hooks/usePosOperator'
@@ -62,6 +64,7 @@ export function PosPage() {
   const [authBusy, setAuthBusy] = useState(false)
   const [showCustomerPicker, setShowCustomerPicker] = useState(false)
   const [showRecentSales, setShowRecentSales] = useState(false)
+  const [showTables, setShowTables] = useState(false)
   const [recentSales, setRecentSales] = useState<Sale[]>([])
   const [loadingRecentSales, setLoadingRecentSales] = useState(false)
   const [quickOpen, setQuickOpen] = useState(false)
@@ -83,6 +86,7 @@ export function PosPage() {
   const planId =
     subscription?.planId ?? authOrg?.planId ?? DEFAULT_PLAN_ID
   const canUseFiado = planHasFeature(planId, PLAN_FEATURES.RECEIVABLES)
+  const hasSalon = planHasFeature(planId, PLAN_FEATURES.SALON)
 
   const {
     operator,
@@ -98,6 +102,10 @@ export function PosPage() {
   const canOpenFiados =
     canUseFiado &&
     (canAccessBackOffice || can(PERMISSIONS.MANAGE_RECEIVABLES))
+
+  const canOpenTables =
+    hasSalon &&
+    (can(PERMISSIONS.SALON_CLOSE) || can(PERMISSIONS.SALON_TABLES))
 
   const {
     organization,
@@ -119,6 +127,8 @@ export function PosPage() {
     clearLastSale,
     customer,
     setCustomer,
+    salonTicket,
+    loadSalonTicket,
     addProduct,
     addBySearchEnter,
     addByBarcode,
@@ -314,11 +324,15 @@ export function PosPage() {
     if (hasFiado && !customer) return
 
     const customerPhoneSnapshot = customer?.phone
+    const tableNameSnapshot = salonTicket?.tableName
     const sale = await finishSale(finalPayments)
     if (!sale || !organization) return
 
     setSplitPayments(null)
     setCompletedSale(sale)
+    if (tableNameSnapshot) {
+      setToast(`Conta da ${tableNameSnapshot} recebida`)
+    }
     setRecentSales((current) =>
       [sale, ...current.filter((item) => item.id !== sale.id)].slice(0, 5),
     )
@@ -621,6 +635,17 @@ export function PosPage() {
           <Tag size={16} strokeWidth={2} aria-hidden />
           Avulsa
         </button>
+        {canOpenTables && (
+          <button
+            type="button"
+            className="pos-page__ghost pos-page__desk-only"
+            title="Receber conta de mesa"
+            onClick={() => setShowTables(true)}
+          >
+            <UtensilsCrossed size={16} strokeWidth={2} aria-hidden />
+            Mesas
+          </button>
+        )}
         <button
           type="button"
           className="pos-page__ghost pos-page__desk-only"
@@ -712,6 +737,21 @@ export function PosPage() {
                     2ª via
                   </button>
                 </li>
+                {canOpenTables && (
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setShowMobileMore(false)
+                        setShowTables(true)
+                      }}
+                    >
+                      <UtensilsCrossed size={16} strokeWidth={2} aria-hidden />
+                      Mesas
+                    </button>
+                  </li>
+                )}
                 {canOpenFiados && (
                   <li role="none">
                     <Link
@@ -790,6 +830,22 @@ export function PosPage() {
             })
           }}
           onClose={() => setShowRecentSales(false)}
+        />
+      )}
+
+      {showTables && (
+        <PosTablesPanel
+          onClose={() => setShowTables(false)}
+          onSelect={(ticket) => {
+            const ok = loadSalonTicket(ticket)
+            if (!ok) return
+            setShowTables(false)
+            setSelectedMethod(null)
+            setPaymentAmountDraft('')
+            setShowDiscount(ticket.discountCents > 0)
+            setToast(`${ticket.tableName} carregada no caixa`)
+            searchRef.current?.focus()
+          }}
         />
       )}
 
@@ -877,12 +933,26 @@ export function PosPage() {
           <header className="pos-page__cart-header">
             <div>
               {cart.length > 0 && (
-                <p className="pos-page__sale-mode">
-                  {customer ? customer.name : 'Caixa livre'}
+                <p
+                  className={
+                    salonTicket
+                      ? 'pos-page__sale-mode pos-page__sale-mode--table'
+                      : 'pos-page__sale-mode'
+                  }
+                >
+                  {salonTicket
+                    ? salonTicket.tableName
+                    : customer
+                      ? customer.name
+                      : 'Caixa livre'}
                 </p>
               )}
               <span>
-                {itemCount === 0 ? 'Nenhum item ainda' : `${itemCount} item(ns)`}
+                {salonTicket
+                  ? `Conta de mesa · ${itemCount} item(ns)`
+                  : itemCount === 0
+                    ? 'Nenhum item ainda'
+                    : `${itemCount} item(ns)`}
               </span>
             </div>
             {cart.length > 0 && (
@@ -891,9 +961,11 @@ export function PosPage() {
                   type="button"
                   className="pos-page__ghost pos-page__desk-only"
                   onClick={() => void handleHoldSale()}
-                  disabled={busy || heldSales.length >= maxHeldSales}
+                  disabled={busy || Boolean(salonTicket) || heldSales.length >= maxHeldSales}
                   title={
-                    heldSales.length >= maxHeldSales
+                    salonTicket
+                      ? 'Finalize a mesa no caixa (não usa espera)'
+                      : heldSales.length >= maxHeldSales
                       ? `Limite de ${maxHeldSales} esperas neste aparelho`
                       : 'Colocar venda em espera'
                   }

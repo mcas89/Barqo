@@ -71,6 +71,9 @@ function mapProduct(id: string, data: Record<string, unknown>): Product {
   if (barcode) product.barcode = barcode
   if (barcodeMeta) product.barcodeMeta = barcodeMeta
   if (data.category) product.category = normalizeProductText(String(data.category))
+  if (data.prepStation === 'kitchen' || data.prepStation === 'bar' || data.prepStation === 'none') {
+    product.prepStation = data.prepStation
+  }
   return product
 }
 
@@ -176,6 +179,7 @@ export async function createProduct(
   if (barcode) product.barcode = barcode
   if (barcodeMeta) product.barcodeMeta = barcodeMeta
   if (category) product.category = category
+  if (input.prepStation) product.prepStation = input.prepStation
 
   await setDoc(
     doc(requireDb(), 'organizations', organizationId, 'products', id),
@@ -229,6 +233,8 @@ export async function updateProduct(
   }
   if (category) updated.category = category
   else delete updated.category
+  if (input.prepStation) updated.prepStation = input.prepStation
+  else delete updated.prepStation
 
   await setDoc(
     doc(requireDb(), 'organizations', organizationId, 'products', productId),

@@ -21,6 +21,7 @@ import { SuppliersPage } from '../features/suppliers'
 import { TeamPage } from '../features/users'
 import { SyncPendingPage } from '../features/sync'
 import { HelpPage } from '../features/help'
+import { SalonTablesPage, KitchenPage, WaiterPage } from '../features/salon'
 
 export function AppRouter() {
   return (
@@ -83,6 +84,9 @@ export function AppRouter() {
         <Route path="billing" element={<BillingPage />} />
         <Route path="sync" element={<SyncPendingPage />} />
         <Route path="help" element={<HelpPage />} />
+        <Route path="salon" element={<SalonTablesPage />} />
+        <Route path="salon/kitchen" element={<KitchenPage />} />
+        <Route path="salon/waiter" element={<WaiterPage />} />
       </Route>
 
       <Route

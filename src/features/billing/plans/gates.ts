@@ -21,7 +21,12 @@ export function planHasFeature(planId: PlanId, feature: PlanFeature): boolean {
 }
 
 export function lowestPlanWithFeature(feature: PlanFeature): PlanDefinition | null {
-  const order: PlanId[] = [PLAN_IDS.ENTRADA, PLAN_IDS.ESSENCIAL, PLAN_IDS.CONTROLE]
+  const order: PlanId[] = [
+    PLAN_IDS.ENTRADA,
+    PLAN_IDS.ESSENCIAL,
+    PLAN_IDS.CONTROLE,
+    PLAN_IDS.SALAO,
+  ]
   for (const id of order) {
     if (planHasFeature(id, feature)) return getPlan(id)
   }

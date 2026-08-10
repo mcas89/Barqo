@@ -36,6 +36,17 @@ import {
 import type { CartItem, PaymentMethod, Sale, SalePayment } from '../types'
 import { PAYMENT_METHODS } from '../types'
 import { usePosOperator } from './usePosOperator'
+import { markTicketClosed } from '../../salon/services/salon-service'
+import {
+  PREP_STATUSES,
+  type SalonTicket,
+} from '../../salon/types'
+
+export type PosSalonTicketLink = {
+  id: string
+  tableId: string
+  tableName: string
+}
 
 export function usePos() {
   const { organization, user, subscription } = useAuth()
@@ -59,6 +70,8 @@ export function usePos() {
     phone?: string
   } | null>(null)
   const [heldSales, setHeldSales] = useState<HeldSale[]>([])
+  /** Comanda de mesa carregada no PDV para receber no caixa. */
+  const [salonTicket, setSalonTicket] = useState<PosSalonTicketLink | null>(null)
 
   const organizationId = organization?.id
   const cashOpen = Boolean(cashSession)
@@ -415,12 +428,73 @@ export function usePos() {
     setCart([])
     setDiscountCents(0)
     setPayments([])
+    setSalonTicket(null)
     setError(null)
+  }
+
+  /** Carrega a comanda da mesa no carrinho do PDV. */
+  function loadSalonTicket(ticket: SalonTicket): boolean {
+    const items = ticket.items.filter(
+      (item) => item.prepStatus !== PREP_STATUSES.CANCELED,
+    )
+    if (items.length === 0) {
+      setError('Comanda sem itens para receber.')
+      return false
+    }
+    if (cart.length > 0 && !salonTicket) {
+      const ok = window.confirm(
+        'Já existe uma venda no carrinho.\n\nSubstituir pelos itens da mesa?',
+      )
+      if (!ok) return false
+    }
+    if (cart.length > 0 && salonTicket && salonTicket.id !== ticket.id) {
+      const ok = window.confirm(
+        `Trocar ${salonTicket.tableName} por ${ticket.tableName}?`,
+      )
+      if (!ok) return false
+    }
+
+    setCart(
+      items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        unitPriceCents: item.unitPriceCents,
+        costCents: item.costCents,
+        quantity: item.quantity,
+        type: item.type,
+      })),
+    )
+    setDiscountCents(Math.max(0, ticket.discountCents || 0))
+    setPayments([])
+    setSalonTicket({
+      id: ticket.id,
+      tableId: ticket.tableId,
+      tableName: ticket.tableName,
+    })
+    if (ticket.customerId && ticket.customerName) {
+      setCustomer({
+        id: ticket.customerId,
+        name: ticket.customerName,
+        phone: ticket.customerPhone,
+      })
+    } else {
+      setCustomer(null)
+    }
+    setError(null)
+    return true
+  }
+
+  function clearSalonTicket() {
+    setSalonTicket(null)
   }
 
   async function holdSale(label?: string): Promise<HeldSale | undefined> {
     if (!organizationId || !deviceId) {
       setError('Sessão inválida.')
+      return
+    }
+    if (salonTicket) {
+      setError('Finalize ou limpe a mesa antes de colocar em espera.')
       return
     }
     if (cart.length === 0) {
@@ -480,6 +554,7 @@ export function usePos() {
     setDiscountCents(held.discountCents)
     setCustomer(held.customer)
     setPayments([])
+    setSalonTicket(null)
     setError(null)
     await removeHeldSale(held.id)
     await refreshHeldSales()
@@ -618,6 +693,12 @@ export function usePos() {
     setBusy(true)
     setError(null)
     try {
+      const saleNote = salonTicket
+        ? salonTicket.tableName
+        : customer
+          ? `Cliente: ${customer.name}`
+          : undefined
+      const linkedTicket = salonTicket
       const sale = await completeSale({
         organizationId,
         items: cart,
@@ -632,8 +713,17 @@ export function usePos() {
         customerId: customer?.id,
         customerName: customer?.name,
         customerPhone: customer?.phone,
-        note: customer ? `Cliente: ${customer.name}` : undefined,
+        note: saleNote,
       })
+      if (linkedTicket) {
+        await markTicketClosed({
+          organizationId,
+          ticketId: linkedTicket.id,
+          saleId: sale.id,
+          operatorId: operator.id,
+          operatorName: operator.displayName,
+        })
+      }
       setLastSale(sale)
       clearCart()
       setCustomer(null)
@@ -677,6 +767,9 @@ export function usePos() {
     customer,
     setCustomer,
     customerLabel: customer?.name.trim() || '-',
+    salonTicket,
+    loadSalonTicket,
+    clearSalonTicket,
     addProduct,
     addBySearchEnter,
     addByBarcode,

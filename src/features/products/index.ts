@@ -7,8 +7,15 @@ export type {
   ProductBarcodeMeta,
   BarcodeType,
   BarcodeSource,
+  PrepStation,
 } from './types'
-export { normalizeProductText, BARCODE_TYPES, BARCODE_SOURCES } from './types'
+export {
+  normalizeProductText,
+  BARCODE_TYPES,
+  BARCODE_SOURCES,
+  PREP_STATIONS,
+  PREP_STATION_LABELS,
+} from './types'
 export {
   listProducts,
   getProduct,

@@ -7,6 +7,7 @@ import {
   Boxes,
   CreditCard,
   CircleHelp,
+  ChefHat,
   Home,
   LogOut,
   MoreHorizontal,
@@ -19,6 +20,7 @@ import {
   UserCog,
   UserRound,
   Users,
+  UtensilsCrossed,
   Wallet,
 } from 'lucide-react'
 import { themeCssVars } from '../../shared/constants'
@@ -26,7 +28,8 @@ import { BrandMark } from '../../shared/components/BrandMark'
 import { ConnectionStatus } from '../../shared/components/ConnectionStatus'
 import { useAuth } from '../../shared/hooks/useAuth'
 import { useDocumentTheme } from '../../shared/hooks/useDocumentTheme'
-import { getPlan } from '../../features/billing'
+import { USER_ROLES } from '../../shared/constants'
+import { getPlan, PLAN_FEATURES, planHasFeature } from '../../features/billing'
 import { PendingCheckoutBanner } from '../../features/billing/components/PendingCheckoutBanner'
 import { AccessNoticeBanner } from '../../features/devices'
 import { usePosOperator } from '../../features/pos/hooks/usePosOperator'
@@ -47,6 +50,9 @@ const NAV: Array<{
 }> = [
   { to: '/app', label: 'Início', end: true, permission: PERMISSIONS.BACK_OFFICE, icon: Home },
   { to: '/app/pos', label: 'PDV', permission: null, icon: Store },
+  { to: '/app/salon', label: 'Mesas', permission: PERMISSIONS.SALON_TABLES, icon: UtensilsCrossed },
+  { to: '/app/salon/waiter', label: 'Garçom', permission: PERMISSIONS.SALON_WAITER, icon: UserRound },
+  { to: '/app/salon/kitchen', label: 'Cozinha', permission: PERMISSIONS.SALON_KITCHEN, icon: ChefHat },
   { to: '/app/products', label: 'Produtos', permission: PERMISSIONS.MANAGE_PRODUCTS, icon: Package },
   { to: '/app/customers', label: 'Clientes', permission: PERMISSIONS.MANAGE_CUSTOMERS, icon: Users },
   { to: '/app/receivables', label: 'Fiado', permission: PERMISSIONS.MANAGE_RECEIVABLES, icon: Wallet },
@@ -82,6 +88,8 @@ export function AppLayout() {
   const { operator, pinRequired, lock, can } = usePosOperator()
   const location = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
+  const planId = subscription?.planId ?? organization?.planId
+  const hasSalon = planId ? planHasFeature(planId, PLAN_FEATURES.SALON) : false
   const planName = subscription
     ? getPlan(subscription.planId).name
     : organization?.planId
@@ -109,6 +117,17 @@ export function AppLayout() {
   }, [moreOpen])
 
   const visibleNav = NAV.filter((item) => {
+    if (!hasSalon && item.to.startsWith('/app/salon')) {
+      return false
+    }
+    // Garçom: só a página Garçom (+ trocar usuário no rodapé).
+    if (operator?.role === USER_ROLES.WAITER) {
+      return item.to === '/app/salon/waiter'
+    }
+    // Cozinheiro: só a Cozinha.
+    if (operator?.role === USER_ROLES.COOK) {
+      return item.to === '/app/salon/kitchen'
+    }
     if (item.permission == null) return true
     if (!pinRequired) return true
     return can(item.permission)

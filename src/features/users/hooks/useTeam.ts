@@ -20,6 +20,7 @@ import {
   updateEmployee,
 } from '../services/employee-service'
 import type { Employee, EmployeeInput } from '../types'
+import { employeeRolesForPlan } from '../types'
 
 export function useTeam() {
   const { organization, subscription } = useAuth()
@@ -37,6 +38,8 @@ export function useTeam() {
 
   const canManage = hasPrivilegedAccess || can(PERMISSIONS.MANAGE_TEAM)
   const hasFinePermissions = planHasFeature(planId, PLAN_FEATURES.FINE_PERMISSIONS)
+  const hasSalon = planHasFeature(planId, PLAN_FEATURES.SALON)
+  const availableRoles = employeeRolesForPlan(hasSalon)
 
   const hasMultiUser = planHasFeature(planId, PLAN_FEATURES.MULTI_USER)
   const maxUsers = getLimitValue(planId, 'users')
@@ -155,6 +158,8 @@ export function useTeam() {
     planId,
     hasMultiUser,
     hasFinePermissions,
+    hasSalon,
+    availableRoles,
     canManage,
     canAddEmployee,
     blockReason,

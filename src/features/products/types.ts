@@ -49,6 +49,20 @@ export const PRODUCT_TYPES = {
 
 export type ProductType = (typeof PRODUCT_TYPES)[keyof typeof PRODUCT_TYPES]
 
+export const PREP_STATIONS = {
+  KITCHEN: 'kitchen',
+  BAR: 'bar',
+  NONE: 'none',
+} as const
+
+export type PrepStation = (typeof PREP_STATIONS)[keyof typeof PREP_STATIONS]
+
+export const PREP_STATION_LABELS: Record<PrepStation, string> = {
+  kitchen: 'Cozinha',
+  bar: 'Bar',
+  none: 'Só na conta (sem fila)',
+}
+
 export interface Product {
   id: string
   organizationId: OrganizationId
@@ -59,6 +73,8 @@ export interface Product {
   category?: string
   unit: ProductUnit
   type: ProductType
+  /** Destino na fila do Salão (cozinha/bar). */
+  prepStation?: PrepStation
   priceCents: number
   costCents: number
   stock: number
@@ -83,6 +99,7 @@ export type ProductInput = {
   category?: string
   unit: ProductUnit
   type: ProductType
+  prepStation?: PrepStation
   priceCents: number
   costCents: number
   stock: number

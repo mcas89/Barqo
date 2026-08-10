@@ -13,12 +13,15 @@ import {
   BARCODE_TYPE_LABELS,
   PRODUCT_TYPES,
   PRODUCT_UNITS,
+  PREP_STATIONS,
+  PREP_STATION_LABELS,
   formatProductTextInput,
   normalizeProductText,
   type Product,
   type ProductBarcodeMeta,
   type ProductInput,
   type ProductUnit,
+  type PrepStation,
 } from '../types'
 import {
   buildBarcodeMeta,
@@ -161,6 +164,10 @@ export function ProductForm({
   const [category, setCategory] = useState(initial?.category ?? '')
   const [unit, setUnit] = useState<ProductUnit>(initial?.unit ?? 'UN')
   const [type, setType] = useState(initial?.type ?? PRODUCT_TYPES.PRODUCT)
+  const [prepStation, setPrepStation] = useState<PrepStation>(
+    initial?.prepStation ??
+      (initial?.type === PRODUCT_TYPES.SERVICE ? PREP_STATIONS.NONE : PREP_STATIONS.KITCHEN),
+  )
   const [price, setPrice] = useState(initial ? centsToInput(initial.priceCents) : '')
   const [cost, setCost] = useState(initial ? centsToInput(initial.costCents) : '')
   const [markupPercent, setMarkupPercent] = useState(() =>
@@ -431,6 +438,7 @@ export function ProductForm({
       category,
       unit,
       type,
+      prepStation,
       priceCents,
       costCents: parseMoneyToCents(cost),
       stock: Number(stock) || 0,
@@ -619,11 +627,31 @@ export function ProductForm({
           Tipo
           <select
             value={type}
-            onChange={(e) => setType(e.target.value as Product['type'])}
+            onChange={(e) => {
+              const next = e.target.value as Product['type']
+              setType(next)
+              if (next === PRODUCT_TYPES.SERVICE) setPrepStation(PREP_STATIONS.NONE)
+              else if (prepStation === PREP_STATIONS.NONE) setPrepStation(PREP_STATIONS.KITCHEN)
+            }}
             disabled={saving}
           >
             <option value={PRODUCT_TYPES.PRODUCT}>Produto</option>
             <option value={PRODUCT_TYPES.SERVICE}>Serviço</option>
+          </select>
+        </label>
+
+        <label>
+          Fila do salão
+          <select
+            value={prepStation}
+            onChange={(e) => setPrepStation(e.target.value as PrepStation)}
+            disabled={saving}
+          >
+            {(Object.keys(PREP_STATION_LABELS) as PrepStation[]).map((key) => (
+              <option key={key} value={key}>
+                {PREP_STATION_LABELS[key]}
+              </option>
+            ))}
           </select>
         </label>
 

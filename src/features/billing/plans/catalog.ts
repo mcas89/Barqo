@@ -135,7 +135,54 @@ export const PLAN_CATALOG: Record<PlanId, PlanDefinition> = {
       'PWA + vendas e caixa offline',
       'Sem NF-e · cupom interno, não é documento fiscal',
     ],
-    growthPain: 'Para lojas que precisam de acessos sob medida e visão gerencial.',
+    growthPain:
+      'Se o negócio tem mesas e cozinha, o Salão adiciona comandas, garçom e fila de preparo.',
+  },
+
+  [PLAN_IDS.SALAO]: {
+    id: PLAN_IDS.SALAO,
+    name: 'Salão',
+    tagline: 'Mesas, comandas, cozinha e garçom',
+    audience: 'Para bar, lanchonete, restaurante e café com atendimento à mesa.',
+    priceMonthlyCents: 9990,
+    priceSemiannualCents: 49950,
+    priceAnnualCents: 99900,
+    currency: 'BRL',
+    limits: {
+      maxUsers: 15,
+      maxDevices: 8,
+      maxOrganizations: 1,
+      maxProducts: 5000,
+    },
+    features: [
+      PLAN_FEATURES.POS,
+      PLAN_FEATURES.PRODUCTS,
+      PLAN_FEATURES.CASH_REGISTER,
+      PLAN_FEATURES.SIMPLE_INVENTORY,
+      PLAN_FEATURES.OFFLINE,
+      PLAN_FEATURES.PWA,
+      PLAN_FEATURES.MULTI_USER,
+      PLAN_FEATURES.RECEIVABLES,
+      PLAN_FEATURES.REPORTS_BASIC,
+      PLAN_FEATURES.REPORTS_PERIOD,
+      PLAN_FEATURES.REPORTS_MANAGERIAL,
+      PLAN_FEATURES.SIMPLE_ROLES,
+      PLAN_FEATURES.FINE_PERMISSIONS,
+      PLAN_FEATURES.EXPORT_REPORTS,
+      PLAN_FEATURES.PRIORITY_SUPPORT,
+      PLAN_FEATURES.SALON,
+    ],
+    includedHighlights: [
+      'Tudo do Gestão',
+      'Mapa de mesas e comandas',
+      'Página da cozinha (fila de preparo)',
+      'Página do garçom',
+      'Até 15 usuários · 8 dispositivos',
+      'Até 5.000 produtos',
+      'PWA + vendas e caixa offline',
+      'Sem NF-e · cupom interno, não é documento fiscal',
+    ],
+    growthPain: 'Para operações com mesa, cozinha e equipe de salão.',
   },
 }
 
@@ -143,6 +190,7 @@ export const PLAN_LIST: PlanDefinition[] = [
   PLAN_CATALOG[PLAN_IDS.ENTRADA],
   PLAN_CATALOG[PLAN_IDS.ESSENCIAL],
   PLAN_CATALOG[PLAN_IDS.CONTROLE],
+  PLAN_CATALOG[PLAN_IDS.SALAO],
 ]
 
 export const DEFAULT_PLAN_ID: PlanId = PLAN_IDS.ENTRADA

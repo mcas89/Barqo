@@ -29,6 +29,7 @@ export interface PlanCheckoutQuote {
 }
 
 export function getPlanRank(planId: PlanId): number {
+  if (planId === 'salao') return 3
   if (planId === 'controle') return 2
   if (planId === 'essencial') return 1
   return 0

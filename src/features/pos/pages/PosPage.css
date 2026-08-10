@@ -440,6 +440,10 @@
   color: var(--balqo-brand, #0b1f3a);
 }
 
+.pos-page__sale-mode--table {
+  color: #9a3412;
+}
+
 .pos-page__cart-header span {
   display: block;
   margin-top: 0.2rem;

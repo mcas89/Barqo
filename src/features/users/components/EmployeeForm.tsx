@@ -19,6 +19,8 @@ interface EmployeeFormProps {
   initial?: Employee | null
   saving: boolean
   finePermissions?: boolean
+  /** Papéis disponíveis conforme o plano. */
+  availableRoles?: EmployeeRole[]
   /** Na edição, PIN vazio = manter o atual. */
   onSubmit: (input: EmployeeInput) => Promise<void>
   onCancel: () => void
@@ -28,10 +30,20 @@ export function EmployeeForm({
   initial,
   saving,
   finePermissions = false,
+  availableRoles,
   onSubmit,
   onCancel,
 }: EmployeeFormProps) {
   const isEdit = Boolean(initial)
+  const roles = (() => {
+    const base = availableRoles?.length
+      ? availableRoles
+      : (Object.values(EMPLOYEE_ROLES) as EmployeeRole[])
+    if (initial?.role && !base.includes(initial.role)) {
+      return [...base, initial.role]
+    }
+    return base
+  })()
   const [displayName, setDisplayName] = useState(initial?.displayName ?? '')
   const [role, setRole] = useState<EmployeeRole>(
     initial?.role ?? EMPLOYEE_ROLES.CASHIER,
@@ -115,13 +127,21 @@ export function EmployeeForm({
           onChange={(e) => setRole(e.target.value as EmployeeRole)}
           disabled={saving}
         >
-          {Object.values(EMPLOYEE_ROLES).map((value) => (
+          {roles.map((value) => (
             <option key={value} value={value}>
               {EMPLOYEE_ROLE_LABELS[value]}
             </option>
           ))}
         </select>
       </label>
+
+      {(role === EMPLOYEE_ROLES.WAITER || role === EMPLOYEE_ROLES.COOK) && (
+        <p className="employee-form__role-hint">
+          {role === EMPLOYEE_ROLES.WAITER
+            ? 'Garçom entra com PIN e acessa só a página Garçom (mesas/lançar pedidos).'
+            : 'Cozinheiro entra com PIN e acessa só a página Cozinha.'}
+        </p>
+      )}
 
       {finePermissions && (
         <fieldset className="employee-form__perms">

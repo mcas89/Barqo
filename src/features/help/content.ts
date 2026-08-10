@@ -10,6 +10,7 @@ import {
   Undo2,
   UserCog,
   Users,
+  UtensilsCrossed,
   Wallet,
 } from 'lucide-react'
 
@@ -55,6 +56,21 @@ export const HELP_TOPICS: HelpTopic[] = [
     ],
     tip: 'O botão Fiado só aparece depois de selecionar um cliente.',
     link: { to: '/app/pos', label: 'Ir ao PDV' },
+  },
+  {
+    id: 'salao',
+    title: 'Salão: mesas, garçom e cozinha',
+    summary: 'Só no plano Salão — comandas e fila de preparo.',
+    icon: UtensilsCrossed,
+    steps: [
+      'Em Mesas, toque numa mesa livre para abrir a comanda.',
+      'No Garçom, lance produtos (com observação se precisar).',
+      'Na Cozinha, avance: Preparar → Pronto → Entregue.',
+      'Para cobrar, use Fechar conta na mesa (caixa precisa estar aberto).',
+      'No produto, defina a fila: Cozinha, Bar ou só na conta.',
+    ],
+    tip: 'Mesas, Garçom e Cozinha só aparecem no plano Salão.',
+    link: { to: '/app/salon', label: 'Abrir mesas' },
   },
   {
     id: 'produtos',
