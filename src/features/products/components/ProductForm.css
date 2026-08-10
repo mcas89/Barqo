@@ -29,6 +29,104 @@
   max-width: 36rem;
 }
 
+.product-form__type {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #0b1f3a;
+}
+
+.product-form__type select {
+  min-height: 2.75rem;
+  border: 1.5px solid rgba(11, 31, 58, 0.18);
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0b1f3a;
+  background: #f8fafc;
+}
+
+.product-form__guide {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #0b1f3a;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.product-form__guide strong {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.product-form__guide ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.product-form__guide-warn {
+  margin: 0.65rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.product-form__dose {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(11, 31, 58, 0.12);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.product-form__dose label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #0b1f3a;
+}
+
+.product-form__dose input,
+.product-form__dose select {
+  min-height: 2.65rem;
+  border: 1px solid rgba(11, 31, 58, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  font-weight: 600;
+}
+
+.product-form__dose-advanced-toggle {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: #5b6b80;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.15rem 0;
+}
+
 .product-form__category {
   display: flex;
   flex-direction: column;

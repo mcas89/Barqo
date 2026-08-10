@@ -11,6 +11,7 @@ export function InventoryPage() {
   const {
     organization,
     products,
+    catalog,
     lowStockCount,
     movements,
     loading,
@@ -97,6 +98,7 @@ export function InventoryPage() {
           product={moving.product}
           mode={moving.mode}
           saving={saving}
+          catalog={catalog}
           onSubmit={handleMoveSubmit}
           onCancel={() => setMoving(null)}
         />
@@ -143,6 +145,7 @@ export function InventoryPage() {
               ) : (
                 <InventoryList
                   products={products}
+                  catalog={catalog}
                   busy={saving}
                   onMove={(product, mode) => setMoving({ product, mode })}
                 />

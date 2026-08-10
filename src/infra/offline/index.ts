@@ -13,6 +13,8 @@ export {
   listCachedProducts,
   getCachedProduct,
   adjustCachedStock,
+  adjustCachedBottleConsume,
+  adjustCachedBottleRestore,
   cachedToProduct,
 } from './product-cache'
 export {

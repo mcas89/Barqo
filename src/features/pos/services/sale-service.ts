@@ -3,7 +3,17 @@ import { getFirestoreDb } from '../../../infra/firebase'
 import { createId } from '../../../shared/lib/ids'
 import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
-import { getProduct } from '../../products'
+import { getProduct, PRODUCT_TYPES } from '../../products'
+import {
+  assertDoseProductReady,
+  applyBottleConsume,
+  applyBottleRestore,
+  doseConsumeMl,
+  formatBottleStockLabel,
+  readBottleStock,
+  totalAvailableMl,
+  usesBottleStockModel,
+} from '../../products/services/dose-service'
 import {
   assertReceivableCancellableForSale,
   cancelReceivableLinkedToSale,
@@ -12,6 +22,8 @@ import {
 } from '../../receivables/services/receivable-service'
 import { recordSaleCanceled } from '../../audit'
 import {
+  adjustCachedBottleConsume,
+  adjustCachedBottleRestore,
   adjustCachedStock,
   enqueueOperation,
   getCachedProduct,
@@ -22,12 +34,140 @@ import {
 import type { CartItem, CompleteSaleInput, Sale, SaleItem } from '../types'
 import { PAYMENT_METHODS } from '../types'
 
+type StockDelta = {
+  productId: string
+  productName: string
+  /** Baixa simples (produto normal). */
+  quantity: number
+  /** Baixa de dose em garrafa (ml efetivos). */
+  consumeMl?: number
+}
+
 function requireDb() {
   const db = getFirestoreDb()
   if (!db) {
     throw new Error('Firestore não configurado. Verifique o arquivo .env.')
   }
   return db
+}
+
+function mergeStockDelta(
+  map: Map<string, StockDelta>,
+  productId: string,
+  productName: string,
+  quantity: number,
+  consumeMl?: number,
+) {
+  const prev = map.get(productId)
+  if (prev) {
+    prev.quantity += quantity
+    if (consumeMl != null) prev.consumeMl = (prev.consumeMl ?? 0) + consumeMl
+    return
+  }
+  map.set(productId, {
+    productId,
+    productName,
+    quantity,
+    consumeMl,
+  })
+}
+
+async function resolveSaleStockDeltas(
+  organizationId: string,
+  items: CartItem[],
+  mode: 'online' | 'offline',
+): Promise<StockDelta[]> {
+  const map = new Map<string, StockDelta>()
+
+  for (const item of items) {
+    if (item.loose) continue
+
+    if (item.type === PRODUCT_TYPES.PRODUCT) {
+      mergeStockDelta(map, item.productId, item.name, item.quantity)
+      continue
+    }
+
+    if (item.type !== PRODUCT_TYPES.DOSE) continue
+
+    const dose =
+      mode === 'online'
+        ? await getProduct(organizationId, item.productId)
+        : await getCachedProduct(organizationId, item.productId)
+    if (!dose) {
+      throw new Error(
+        mode === 'offline'
+          ? `Dose indisponível offline: ${item.name}. Sincronize o catálogo.`
+          : `Dose indisponível: ${item.name}`,
+      )
+    }
+    const base =
+      dose.doseBaseProductId
+        ? mode === 'online'
+          ? await getProduct(organizationId, dose.doseBaseProductId)
+          : await getCachedProduct(organizationId, dose.doseBaseProductId)
+        : null
+    assertDoseProductReady(dose, base)
+    const consumeMl = doseConsumeMl({
+      doseMl: dose.doseMl!,
+      yieldPercent: dose.doseYieldPercent,
+      quantity: item.quantity,
+    })
+    if (usesBottleStockModel(base!)) {
+      const available = totalAvailableMl(readBottleStock(base!))
+      if (available + 1e-6 < consumeMl) {
+        throw new Error(
+          `Estoque insuficiente na garrafa “${base!.name}” (${formatBottleStockLabel(base!)}).`,
+        )
+      }
+      mergeStockDelta(map, base!.id, base!.name, 0, consumeMl)
+    } else {
+      // Legado: estoque em ML/L sem contentMl
+      const units =
+        base!.unit === 'L' ? consumeMl / 1000 : consumeMl
+      if (base!.stock + 1e-9 < units) {
+        throw new Error(
+          `Estoque insuficiente na garrafa “${base!.name}” para a dose “${item.name}”.`,
+        )
+      }
+      mergeStockDelta(map, base!.id, base!.name, units)
+    }
+  }
+
+  return [...map.values()]
+}
+
+async function validateProductStock(
+  organizationId: string,
+  deltas: StockDelta[],
+  mode: 'online' | 'offline',
+) {
+  for (const delta of deltas) {
+    const product =
+      mode === 'online'
+        ? await getProduct(organizationId, delta.productId)
+        : await getCachedProduct(organizationId, delta.productId)
+    if (!product || !product.active) {
+      throw new Error(
+        mode === 'offline'
+          ? `Produto indisponível offline: ${delta.productName}. Sincronize o catálogo online.`
+          : `Produto indisponível: ${delta.productName}`,
+      )
+    }
+    if (delta.consumeMl != null && delta.consumeMl > 0) {
+      const available = totalAvailableMl(readBottleStock(product))
+      if (available + 1e-6 < delta.consumeMl) {
+        throw new Error(
+          `Estoque insuficiente para ${delta.productName} (${formatBottleStockLabel(product)}).`,
+        )
+      }
+      continue
+    }
+    if (product.stock + 1e-9 < delta.quantity) {
+      throw new Error(
+        `Estoque insuficiente para ${delta.productName} (disp.: ${product.stock}).`,
+      )
+    }
+  }
 }
 
 export function cartSubtotalCents(items: CartItem[]): number {
@@ -128,29 +268,13 @@ function buildSaleDraft(input: CompleteSaleInput): {
 }
 
 async function validateStockOnline(input: CompleteSaleInput) {
-  for (const item of input.items) {
-    if (item.loose || item.type !== 'product') continue
-    const product = await getProduct(input.organizationId, item.productId)
-    if (!product || !product.active) {
-      throw new Error(`Produto indisponível: ${item.name}`)
-    }
-    if (product.stock < item.quantity) {
-      throw new Error(`Estoque insuficiente para ${item.name} (disp.: ${product.stock}).`)
-    }
-  }
+  const deltas = await resolveSaleStockDeltas(input.organizationId, input.items, 'online')
+  await validateProductStock(input.organizationId, deltas, 'online')
 }
 
 async function validateStockOffline(input: CompleteSaleInput) {
-  for (const item of input.items) {
-    if (item.loose || item.type !== 'product') continue
-    const product = await getCachedProduct(input.organizationId, item.productId)
-    if (!product || !product.active) {
-      throw new Error(`Produto indisponível offline: ${item.name}. Sincronize o catálogo online.`)
-    }
-    if (product.stock < item.quantity) {
-      throw new Error(`Estoque insuficiente para ${item.name} (disp.: ${product.stock}).`)
-    }
-  }
+  const deltas = await resolveSaleStockDeltas(input.organizationId, input.items, 'offline')
+  await validateProductStock(input.organizationId, deltas, 'offline')
 }
 
 async function persistSaleOnline(
@@ -166,33 +290,64 @@ async function persistSaleOnline(
     omitUndefined({ ...sale }),
   )
 
-  for (const item of input.items) {
-    if (item.loose || item.type !== 'product') continue
-
+  const deltas = await resolveSaleStockDeltas(input.organizationId, input.items, 'online')
+  for (const delta of deltas) {
     const productRef = doc(
       db,
       'organizations',
       input.organizationId,
       'products',
-      item.productId,
+      delta.productId,
     )
-    const product = await getProduct(input.organizationId, item.productId)
+    const product = await getProduct(input.organizationId, delta.productId)
     if (!product) continue
 
-    const nextStock = Math.max(0, product.stock - item.quantity)
+    const movementId = createId('mov')
+    if (delta.consumeMl != null && delta.consumeMl > 0) {
+      const next = applyBottleConsume(product, delta.consumeMl)
+      batch.update(
+        productRef,
+        omitUndefined({
+          stock: next.stock,
+          openBottleMlRemaining: next.openBottleMlRemaining,
+          updatedAt: createdAt,
+        }),
+      )
+      batch.set(doc(db, 'organizations', input.organizationId, 'stock_movements', movementId), {
+        id: movementId,
+        organizationId: input.organizationId,
+        productId: delta.productId,
+        productName: delta.productName,
+        type: 'sale',
+        quantity: -delta.consumeMl,
+        unit: 'ML',
+        stockBefore: product.stock,
+        stockAfter: next.stock,
+        openMlBefore: product.openBottleMlRemaining ?? 0,
+        openMlAfter: next.openBottleMlRemaining,
+        saleId: sale.id,
+        createdAt,
+        createdByUserId: input.soldByUserId,
+        createdByName: input.soldByName,
+        operatorId: input.operatorId,
+        deviceId: input.deviceId,
+        note: `Dose · −${Math.round(delta.consumeMl)} ml`,
+      })
+      continue
+    }
+
+    const nextStock = Math.max(0, product.stock - delta.quantity)
     batch.update(productRef, {
       stock: nextStock,
       updatedAt: createdAt,
     })
-
-    const movementId = createId('mov')
     batch.set(doc(db, 'organizations', input.organizationId, 'stock_movements', movementId), {
       id: movementId,
       organizationId: input.organizationId,
-      productId: item.productId,
-      productName: item.name,
+      productId: delta.productId,
+      productName: delta.productName,
       type: 'sale',
-      quantity: -item.quantity,
+      quantity: -delta.quantity,
       stockBefore: product.stock,
       stockAfter: nextStock,
       saleId: sale.id,
@@ -229,16 +384,22 @@ async function persistSaleOffline(
   sale: Sale,
   onAccountCents: number,
 ): Promise<void> {
-  const stockDeltas = input.items
-    .filter((item) => !item.loose && item.type === 'product')
-    .map((item) => ({
-      productId: item.productId,
-      productName: item.name,
-      quantity: item.quantity,
-    }))
+  const stockDeltas = await resolveSaleStockDeltas(
+    input.organizationId,
+    input.items,
+    'offline',
+  )
 
   for (const delta of stockDeltas) {
-    await adjustCachedStock(input.organizationId, delta.productId, -delta.quantity)
+    if (delta.consumeMl != null && delta.consumeMl > 0) {
+      await adjustCachedBottleConsume(
+        input.organizationId,
+        delta.productId,
+        delta.consumeMl,
+      )
+    } else {
+      await adjustCachedStock(input.organizationId, delta.productId, -delta.quantity)
+    }
   }
 
   const payload: SaleCreateQueuePayload = {
@@ -280,14 +441,49 @@ export async function applyQueuedSaleCreate(
     const movementSnap = await getDoc(movementRef)
     if (movementSnap.exists()) continue
 
+    const product = await getProduct(organizationId, delta.productId)
+    if (!product) continue
     const productRef = doc(db, 'organizations', organizationId, 'products', delta.productId)
-    const productSnap = await getDoc(productRef)
-    if (!productSnap.exists()) continue
-    const stock = Number(productSnap.data().stock ?? 0)
-    const nextStock = Math.max(0, stock - delta.quantity)
+    const updatedAt = nowIso()
+
+    if (delta.consumeMl != null && delta.consumeMl > 0) {
+      const next = applyBottleConsume(product, delta.consumeMl)
+      await updateDoc(
+        productRef,
+        omitUndefined({
+          stock: next.stock,
+          openBottleMlRemaining: next.openBottleMlRemaining,
+          updatedAt,
+        }),
+      )
+      await setDoc(movementRef, {
+        id: movementId,
+        organizationId,
+        productId: delta.productId,
+        productName: delta.productName,
+        type: 'sale',
+        quantity: -delta.consumeMl,
+        unit: 'ML',
+        stockBefore: product.stock,
+        stockAfter: next.stock,
+        openMlBefore: product.openBottleMlRemaining ?? 0,
+        openMlAfter: next.openBottleMlRemaining,
+        saleId: sale.id,
+        createdAt: sale.createdAt,
+        createdByUserId: sale.soldByUserId,
+        createdByName: sale.soldByName,
+        operatorId: sale.operatorId,
+        deviceId: sale.deviceId,
+        offlineSync: true,
+        note: `Dose · −${Math.round(delta.consumeMl)} ml`,
+      })
+      continue
+    }
+
+    const nextStock = Math.max(0, product.stock - delta.quantity)
     await updateDoc(productRef, {
       stock: nextStock,
-      updatedAt: nowIso(),
+      updatedAt,
     })
     await setDoc(movementRef, {
       id: movementId,
@@ -296,7 +492,7 @@ export async function applyQueuedSaleCreate(
       productName: delta.productName,
       type: 'sale',
       quantity: -delta.quantity,
-      stockBefore: stock,
+      stockBefore: product.stock,
       stockAfter: nextStock,
       saleId: sale.id,
       createdAt: sale.createdAt,
@@ -340,11 +536,19 @@ export async function completeSale(input: CompleteSaleInput): Promise<Sale> {
   try {
     await validateStockOnline(input)
     await persistSaleOnline(input, sale, onAccountCents)
-    for (const item of input.items) {
-      if (item.loose || item.type !== 'product') continue
-      await adjustCachedStock(input.organizationId, item.productId, -item.quantity).catch(
-        () => undefined,
-      )
+    const deltas = await resolveSaleStockDeltas(input.organizationId, input.items, 'online')
+    for (const delta of deltas) {
+      if (delta.consumeMl != null && delta.consumeMl > 0) {
+        await adjustCachedBottleConsume(
+          input.organizationId,
+          delta.productId,
+          delta.consumeMl,
+        ).catch(() => undefined)
+      } else {
+        await adjustCachedStock(input.organizationId, delta.productId, -delta.quantity).catch(
+          () => undefined,
+        )
+      }
     }
     await saveLocalSale(sale, true).catch(() => undefined)
     return sale
@@ -449,33 +653,63 @@ export async function cancelSale(input: {
     omitUndefined({ ...canceledSale }),
   )
 
-  const stockRestores = new Map<
-    string,
-    { productId: string; name: string; quantity: number }
-  >()
-  for (const item of sale.items ?? []) {
-    if (item.type !== 'product') continue
-    const qty = Math.max(0, Math.round(item.quantity))
-    if (qty <= 0) continue
-    const current = stockRestores.get(item.productId)
-    if (current) {
-      current.quantity += qty
-    } else {
-      stockRestores.set(item.productId, {
-        productId: item.productId,
-        name: item.name,
-        quantity: qty,
-      })
-    }
-  }
+  const stockRestores = await resolveSaleStockDeltas(
+    input.organizationId,
+    (sale.items ?? []).map((item) => ({
+      productId: item.productId,
+      name: item.name,
+      unitPriceCents: item.unitPriceCents,
+      costCents: item.costCents,
+      quantity: item.quantity,
+      type: item.type,
+    })),
+    'online',
+  )
 
-  for (const restore of stockRestores.values()) {
+  for (const restore of stockRestores) {
     const product = await getProduct(input.organizationId, restore.productId)
-    if (!product || product.type !== 'product') continue
+    if (!product || product.type !== PRODUCT_TYPES.PRODUCT) continue
+
+    const movementId = `mov_cancel_${sale.id}_${restore.productId}`
+
+    if (restore.consumeMl != null && restore.consumeMl > 0) {
+      const next = applyBottleRestore(product, restore.consumeMl)
+      batch.update(
+        doc(db, 'organizations', input.organizationId, 'products', restore.productId),
+        omitUndefined({
+          stock: next.stock,
+          openBottleMlRemaining: next.openBottleMlRemaining,
+          updatedAt: canceledAt,
+        }),
+      )
+      batch.set(
+        doc(db, 'organizations', input.organizationId, 'stock_movements', movementId),
+        omitUndefined({
+          id: movementId,
+          organizationId: input.organizationId,
+          productId: restore.productId,
+          productName: restore.productName,
+          type: 'sale_return',
+          quantity: restore.consumeMl,
+          unit: 'ML',
+          stockBefore: product.stock,
+          stockAfter: next.stock,
+          openMlBefore: product.openBottleMlRemaining ?? 0,
+          openMlAfter: next.openBottleMlRemaining,
+          saleId: sale.id,
+          createdAt: canceledAt,
+          createdByUserId: input.userId,
+          createdByName: input.userName,
+          operatorId: input.operatorId,
+          deviceId: input.deviceId,
+          note: `Cancelamento: ${reason}`,
+        }),
+      )
+      continue
+    }
 
     const stockBefore = product.stock
     const stockAfter = stockBefore + restore.quantity
-    const movementId = `mov_cancel_${sale.id}_${restore.productId}`
 
     batch.update(
       doc(db, 'organizations', input.organizationId, 'products', restore.productId),
@@ -491,7 +725,7 @@ export async function cancelSale(input: {
         id: movementId,
         organizationId: input.organizationId,
         productId: restore.productId,
-        productName: restore.name,
+        productName: restore.productName,
         type: 'sale_return',
         quantity: restore.quantity,
         stockBefore,
@@ -514,12 +748,20 @@ export async function cancelSale(input: {
     saleId: sale.id,
   })
 
-  for (const restore of stockRestores.values()) {
-    await adjustCachedStock(
-      input.organizationId,
-      restore.productId,
-      restore.quantity,
-    ).catch(() => undefined)
+  for (const restore of stockRestores) {
+    if (restore.consumeMl != null && restore.consumeMl > 0) {
+      await adjustCachedBottleRestore(
+        input.organizationId,
+        restore.productId,
+        restore.consumeMl,
+      ).catch(() => undefined)
+    } else {
+      await adjustCachedStock(
+        input.organizationId,
+        restore.productId,
+        restore.quantity,
+      ).catch(() => undefined)
+    }
   }
 
   await saveLocalSale(canceledSale, true).catch(() => undefined)

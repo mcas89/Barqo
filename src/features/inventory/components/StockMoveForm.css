@@ -21,6 +21,12 @@
   font-size: 0.9rem;
 }
 
+.stock-move-form__hint {
+  margin: 0.45rem 0 0 !important;
+  font-size: 0.82rem;
+  color: #5b6b80;
+}
+
 .stock-move-form label {
   display: flex;
   flex-direction: column;

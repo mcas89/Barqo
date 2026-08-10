@@ -15,6 +15,11 @@ import { omitUndefined } from '../../../shared/lib/firestore'
 import type { OrganizationId, UserId } from '../../../shared/types'
 import { getProduct, listProducts, type Product } from '../../products'
 import {
+  formatProductStockLabel,
+  readBottleStock,
+  usesBottleStockModel,
+} from '../../products/services/dose-service'
+import {
   STOCK_MOVEMENT_TYPES,
   type StockAdjustmentInput,
   type StockEntryInput,
@@ -51,10 +56,16 @@ function mapMovement(id: string, data: Record<string, unknown>): StockMovement {
   }
 }
 
+export async function listInventoryCatalog(
+  organizationId: OrganizationId,
+): Promise<Product[]> {
+  return listProducts(organizationId, { includeInactive: false })
+}
+
 export async function listInventoryProducts(
   organizationId: OrganizationId,
 ): Promise<Product[]> {
-  const products = await listProducts(organizationId, { includeInactive: false })
+  const products = await listInventoryCatalog(organizationId)
   return products.filter((product) => product.type === 'product')
 }
 
@@ -194,7 +205,9 @@ export async function registerStockLoss(input: {
   const product = await getProduct(input.organizationId, input.data.productId)
   if (!product) throw new Error('Produto não encontrado.')
   if (qty > product.stock) {
-    throw new Error(`Estoque insuficiente (disponível: ${product.stock}).`)
+    throw new Error(
+      `Estoque insuficiente (disponível: ${formatProductStockLabel(product)}).`,
+    )
   }
 
   return applyStockChange({
@@ -236,11 +249,11 @@ export async function registerStockAdjustment(input: {
 }
 
 export function isLowStock(product: Product): boolean {
-  return (
-    product.type === 'product' &&
-    product.minStock > 0 &&
-    product.stock <= product.minStock
-  )
+  if (product.type !== 'product' || product.minStock <= 0) return false
+  const sealed = usesBottleStockModel(product)
+    ? readBottleStock(product).sealed
+    : product.stock
+  return sealed <= product.minStock
 }
 
 export function filterInventoryProducts(

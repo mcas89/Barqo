@@ -1,4 +1,8 @@
 import type { Product } from '../../features/products/types'
+import {
+  applyBottleConsume,
+  applyBottleRestore,
+} from '../../features/products/services/dose-service'
 import { localDb, type CachedProduct } from './db'
 
 function toCached(product: Product): CachedProduct {
@@ -10,6 +14,12 @@ function toCached(product: Product): CachedProduct {
     category: product.category,
     unit: product.unit,
     type: product.type,
+    prepStation: product.prepStation,
+    contentMl: product.contentMl,
+    openBottleMlRemaining: product.openBottleMlRemaining,
+    doseBaseProductId: product.doseBaseProductId,
+    doseMl: product.doseMl,
+    doseYieldPercent: product.doseYieldPercent,
     priceCents: product.priceCents,
     costCents: product.costCents,
     stock: product.stock,
@@ -39,6 +49,16 @@ export function cachedToProduct(cached: CachedProduct): Product {
     updatedAt: cached.updatedAt,
   }
   if (cached.barcodeMeta) product.barcodeMeta = cached.barcodeMeta
+  if (cached.prepStation) product.prepStation = cached.prepStation
+  if (cached.contentMl != null && cached.contentMl > 0) product.contentMl = cached.contentMl
+  if (cached.openBottleMlRemaining != null && cached.openBottleMlRemaining > 0) {
+    product.openBottleMlRemaining = cached.openBottleMlRemaining
+  }
+  if (cached.doseBaseProductId) product.doseBaseProductId = cached.doseBaseProductId
+  if (cached.doseMl != null && cached.doseMl > 0) product.doseMl = cached.doseMl
+  if (cached.doseYieldPercent != null && cached.doseYieldPercent > 0) {
+    product.doseYieldPercent = cached.doseYieldPercent
+  }
   return product
 }
 
@@ -81,6 +101,38 @@ export async function adjustCachedStock(
   if (!row || row.organizationId !== organizationId) return
   await localDb.products.update(productId, {
     stock: Math.max(0, (row.stock ?? 0) + delta),
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function adjustCachedBottleConsume(
+  organizationId: string,
+  productId: string,
+  consumeMl: number,
+): Promise<void> {
+  const row = await localDb.products.get(productId)
+  if (!row || row.organizationId !== organizationId) return
+  const product = cachedToProduct(row)
+  const next = applyBottleConsume(product, consumeMl)
+  await localDb.products.update(productId, {
+    stock: next.stock,
+    openBottleMlRemaining: next.openBottleMlRemaining,
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function adjustCachedBottleRestore(
+  organizationId: string,
+  productId: string,
+  restoreMl: number,
+): Promise<void> {
+  const row = await localDb.products.get(productId)
+  if (!row || row.organizationId !== organizationId) return
+  const product = cachedToProduct(row)
+  const next = applyBottleRestore(product, restoreMl)
+  await localDb.products.update(productId, {
+    stock: next.stock,
+    openBottleMlRemaining: next.openBottleMlRemaining,
     updatedAt: new Date().toISOString(),
   })
 }

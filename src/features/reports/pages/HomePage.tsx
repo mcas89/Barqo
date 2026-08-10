@@ -190,7 +190,7 @@ export function HomePage() {
                     <li key={item.id}>
                       <span>{item.name}</span>
                       <strong className="home-page__warn">
-                        {item.stock} / mín. {item.minStock}
+                        {item.stockLabel} / mín. {item.minStock}
                       </strong>
                     </li>
                   ))}

@@ -1,6 +1,12 @@
 import { formatMoney } from '../../../shared/lib/money'
 import type { Product } from '../types'
+import { PRODUCT_TYPE_LABELS, productTracksOwnStock } from '../types'
 import { productHasBarcode } from '../services/barcode-service'
+import {
+  formatProductStockLabel,
+  readBottleStock,
+  usesBottleStockModel,
+} from '../services/dose-service'
 import './ProductList.css'
 
 interface ProductListProps {
@@ -63,11 +69,14 @@ export function ProductList({
         </thead>
         <tbody>
           {products.map((product) => {
+            const bottleModel = usesBottleStockModel(product)
+            const sealed = bottleModel ? readBottleStock(product).sealed : product.stock
             const lowStock =
-              product.type === 'product' &&
+              productTracksOwnStock(product.type) &&
               product.minStock > 0 &&
-              product.stock <= product.minStock
+              sealed <= product.minStock
             const hasCode = productHasBarcode(product)
+            const stockLabel = formatProductStockLabel(product, products)
 
             return (
               <tr key={product.id} className={product.active ? undefined : 'product-list__inactive'}>
@@ -85,13 +94,14 @@ export function ProductList({
                 <td data-label="Nome">
                   <strong>{product.name}</strong>
                   <span className="product-list__meta">
-                    {product.type === 'service' ? 'Serviço' : product.unit}
+                    {PRODUCT_TYPE_LABELS[product.type]}
+                    {productTracksOwnStock(product.type) ? ` · ${product.unit}` : ''}
                     {product.category ? ` · ${product.category}` : ''}
                   </span>
                 </td>
                 <td data-label="Preço">{formatMoney(product.priceCents)}</td>
                 <td data-label="Estoque">
-                  {product.type === 'service' ? '—' : product.stock}
+                  {stockLabel}
                   {lowStock && <span className="product-list__warn"> baixo</span>}
                 </td>
                 <td data-label="Status">{product.active ? 'Ativo' : 'Inativo'}</td>

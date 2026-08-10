@@ -7,19 +7,23 @@ import {
   createCategory,
   listCategories,
 } from '../services/category-service'
+import { listProducts } from '../services/product-service'
+import { DEFAULT_YIELD_PERCENT, doseCostCentsFromBase, formatProductStockLabel, usesBottleStockModel } from '../services/dose-service'
 import type { ProductCategory } from '../types/category'
 import {
   BARCODE_SOURCE_LABELS,
   BARCODE_TYPE_LABELS,
   PRODUCT_TYPES,
   PRODUCT_UNITS,
-  PREP_STATIONS,
   PREP_STATION_LABELS,
+  defaultPrepStationForType,
   formatProductTextInput,
   normalizeProductText,
+  productTracksOwnStock,
   type Product,
   type ProductBarcodeMeta,
   type ProductInput,
+  type ProductType,
   type ProductUnit,
   type PrepStation,
 } from '../types'
@@ -96,6 +100,7 @@ function fillFromProduct(
     setCategory: (v: string) => void
     setUnit: (v: ProductUnit) => void
     setType: (v: Product['type']) => void
+    setPrepStation?: (v: PrepStation) => void
     setPrice: (v: string) => void
     setCost: (v: string) => void
     setMarkupPercent: (v: string) => void
@@ -114,6 +119,7 @@ function fillFromProduct(
     setters.setCategory('')
     setters.setUnit('UN')
     setters.setType(PRODUCT_TYPES.PRODUCT)
+    setters.setPrepStation?.(defaultPrepStationForType(PRODUCT_TYPES.PRODUCT))
     setters.setPrice('')
     setters.setCost('')
     setters.setMarkupPercent(readStoredMarkup())
@@ -129,12 +135,21 @@ function fillFromProduct(
   setters.setCategory(product.category ?? '')
   setters.setUnit(product.unit)
   setters.setType(product.type)
+  setters.setPrepStation?.(
+    product.prepStation ?? defaultPrepStationForType(product.type),
+  )
   setters.setPrice(centsToInput(product.priceCents))
   setters.setCost(centsToInput(product.costCents))
   setters.setMarkupPercent(
     markupFromCostAndPrice(product.costCents, product.priceCents),
   )
-  setters.setStock(String(product.stock ?? 0))
+  setters.setStock(
+    String(
+      usesBottleStockModel(product)
+        ? Math.max(0, Math.floor(Number(product.stock) || 0))
+        : (product.stock ?? 0),
+    ),
+  )
   setters.setMinStock(String(product.minStock ?? 0))
   setters.setActive(product.active)
 }
@@ -165,8 +180,7 @@ export function ProductForm({
   const [unit, setUnit] = useState<ProductUnit>(initial?.unit ?? 'UN')
   const [type, setType] = useState(initial?.type ?? PRODUCT_TYPES.PRODUCT)
   const [prepStation, setPrepStation] = useState<PrepStation>(
-    initial?.prepStation ??
-      (initial?.type === PRODUCT_TYPES.SERVICE ? PREP_STATIONS.NONE : PREP_STATIONS.KITCHEN),
+    initial?.prepStation ?? defaultPrepStationForType(initial?.type ?? PRODUCT_TYPES.PRODUCT),
   )
   const [price, setPrice] = useState(initial ? centsToInput(initial.priceCents) : '')
   const [cost, setCost] = useState(initial ? centsToInput(initial.costCents) : '')
@@ -177,6 +191,21 @@ export function ProductForm({
   )
   const [stock, setStock] = useState(String(initial?.stock ?? 0))
   const [minStock, setMinStock] = useState(String(initial?.minStock ?? 0))
+  const [contentMl, setContentMl] = useState(
+    initial?.contentMl != null ? String(initial.contentMl) : '',
+  )
+  const [doseBaseProductId, setDoseBaseProductId] = useState(
+    initial?.doseBaseProductId ?? '',
+  )
+  const [doseMl, setDoseMl] = useState(
+    initial?.doseMl != null ? String(initial.doseMl) : '',
+  )
+  const [doseYieldPercent, setDoseYieldPercent] = useState(
+    String(initial?.doseYieldPercent ?? DEFAULT_YIELD_PERCENT),
+  )
+  const [baseCatalog, setBaseCatalog] = useState<Product[]>([])
+  const [stockCatalog, setStockCatalog] = useState<Product[]>([])
+  const [showDoseAdvanced, setShowDoseAdvanced] = useState(false)
   const [active, setActive] = useState(initial?.active ?? true)
   const [localError, setLocalError] = useState<string | null>(null)
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'found' | 'new'>('idle')
@@ -197,6 +226,7 @@ export function ProductForm({
     setCategory,
     setUnit,
     setType,
+    setPrepStation,
     setPrice,
     setCost,
     setMarkupPercent,
@@ -232,11 +262,22 @@ export function ProductForm({
       setCategory(initial.category ?? '')
       setUnit(initial.unit)
       setType(initial.type)
+      setPrepStation(initial.prepStation ?? defaultPrepStationForType(initial.type))
       setPrice(centsToInput(initial.priceCents))
       setCost(centsToInput(initial.costCents))
       setMarkupPercent(markupFromCostAndPrice(initial.costCents, initial.priceCents))
-      setStock(String(initial.stock ?? 0))
+      setStock(
+        String(
+          usesBottleStockModel(initial)
+            ? Math.max(0, Math.floor(Number(initial.stock) || 0))
+            : (initial.stock ?? 0),
+        ),
+      )
       setMinStock(String(initial.minStock ?? 0))
+      setContentMl(initial.contentMl != null ? String(initial.contentMl) : '')
+      setDoseBaseProductId(initial.doseBaseProductId ?? '')
+      setDoseMl(initial.doseMl != null ? String(initial.doseMl) : '')
+      setDoseYieldPercent(String(initial.doseYieldPercent ?? DEFAULT_YIELD_PERCENT))
       setActive(initial.active)
       setLookupStatus('found')
       setEditingCode(!Boolean(initial.barcode?.trim()))
@@ -247,11 +288,16 @@ export function ProductForm({
       setCategory('')
       setUnit('UN')
       setType(PRODUCT_TYPES.PRODUCT)
+      setPrepStation(defaultPrepStationForType(PRODUCT_TYPES.PRODUCT))
       setPrice('')
       setCost('')
       setMarkupPercent(readStoredMarkup())
       setStock('0')
       setMinStock('0')
+      setContentMl('')
+      setDoseBaseProductId('')
+      setDoseMl('')
+      setDoseYieldPercent(String(DEFAULT_YIELD_PERCENT))
       setActive(true)
       setLookupStatus('idle')
       setEditingCode(true)
@@ -262,6 +308,27 @@ export function ProductForm({
     setShowQuickCategory(false)
     setQuickCategoryName('')
   }, [initial])
+
+  useEffect(() => {
+    if (!organization?.id) return
+    let cancelled = false
+    void listProducts(organization.id, { includeInactive: false })
+      .then((items) => {
+        if (cancelled) return
+        setStockCatalog(items)
+        setBaseCatalog(
+          items.filter(
+            (item) =>
+              item.type === PRODUCT_TYPES.PRODUCT &&
+              item.id !== initial?.id,
+          ),
+        )
+      })
+      .catch((err) => console.error(err))
+    return () => {
+      cancelled = true
+    }
+  }, [organization?.id, initial?.id])
 
   useEffect(() => {
     if (!organization?.id) return
@@ -330,8 +397,12 @@ export function ProductForm({
       setEditingCode(false)
       onResolvedProduct(found)
       requestAnimationFrame(() => {
-        stockRef.current?.focus()
-        stockRef.current?.select()
+        if (productTracksOwnStock(found.type)) {
+          stockRef.current?.focus()
+          stockRef.current?.select()
+        } else {
+          nameRef.current?.focus()
+        }
       })
       return
     }
@@ -426,6 +497,16 @@ export function ProductForm({
       return
     }
 
+    const selectedDoseBase = baseCatalog.find((item) => item.id === doseBaseProductId) ?? null
+    const doseDerivedCostCents =
+      type === PRODUCT_TYPES.DOSE && selectedDoseBase && Number(doseMl) > 0
+        ? doseCostCentsFromBase({
+            doseMl: Number(doseMl),
+            yieldPercent: Number(doseYieldPercent) || DEFAULT_YIELD_PERCENT,
+            base: selectedDoseBase,
+          })
+        : 0
+
     const trimmedBarcode = barcode.trim()
     const input: ProductInput = {
       name,
@@ -440,10 +521,22 @@ export function ProductForm({
       type,
       prepStation,
       priceCents,
-      costCents: parseMoneyToCents(cost),
+      costCents:
+        type === PRODUCT_TYPES.DOSE ? doseDerivedCostCents : parseMoneyToCents(cost),
       stock: Number(stock) || 0,
       minStock: Number(minStock) || 0,
       active,
+      contentMl:
+        type === PRODUCT_TYPES.PRODUCT && Number(contentMl) > 0
+          ? Number(contentMl)
+          : undefined,
+      doseBaseProductId:
+        type === PRODUCT_TYPES.DOSE ? doseBaseProductId || undefined : undefined,
+      doseMl: type === PRODUCT_TYPES.DOSE && Number(doseMl) > 0 ? Number(doseMl) : undefined,
+      doseYieldPercent:
+        type === PRODUCT_TYPES.DOSE
+          ? Number(doseYieldPercent) || DEFAULT_YIELD_PERCENT
+          : undefined,
     }
 
     try {
@@ -453,28 +546,99 @@ export function ProductForm({
     }
   }
 
-  const isService = type === PRODUCT_TYPES.SERVICE
+  const tracksStock = productTracksOwnStock(type)
   const hasCode = Boolean(barcode.trim())
+  const doseBasePreview = baseCatalog.find((item) => item.id === doseBaseProductId) ?? null
+  const doseCostPreview =
+    type === PRODUCT_TYPES.DOSE && doseBasePreview && Number(doseMl) > 0
+      ? doseCostCentsFromBase({
+          doseMl: Number(doseMl),
+          yieldPercent: Number(doseYieldPercent) || DEFAULT_YIELD_PERCENT,
+          base: doseBasePreview,
+        })
+      : 0
   const title =
     lookupStatus === 'found' || initial
-      ? 'Atualizar produto'
+      ? 'Atualizar item'
       : lookupStatus === 'new'
-        ? 'Novo produto'
+        ? 'Novo item'
         : 'Cadastrar / atualizar'
+
+  const leadByType =
+    type === PRODUCT_TYPES.DOSE
+      ? 'Dose = o que você vende no caixa (ex.: taça). A garrafa é outro cadastro.'
+      : type === PRODUCT_TYPES.MEAL
+        ? 'Refeição = prato ou lanche. Sem estoque obrigatório.'
+        : type === PRODUCT_TYPES.SERVICE
+          ? 'Serviço = sem estoque (taxa, entrega, etc.).'
+          : 'Produto = item com estoque (garrafa, refrigerante, utensílio…).'
+
+  function onTypeChange(next: ProductType) {
+    setType(next)
+    setPrepStation(defaultPrepStationForType(next))
+    if (!productTracksOwnStock(next)) {
+      setStock('0')
+      setMinStock('0')
+      setUnit('UN')
+    }
+    if (next !== PRODUCT_TYPES.DOSE) {
+      setDoseBaseProductId('')
+      setDoseMl('')
+      setDoseYieldPercent(String(DEFAULT_YIELD_PERCENT))
+      setShowDoseAdvanced(false)
+    }
+    if (next !== PRODUCT_TYPES.PRODUCT) {
+      setContentMl('')
+    }
+  }
 
   return (
     <form className="product-form" onSubmit={(e) => void handleSubmit(e)}>
       <header className="product-form__header">
         <div>
           <h2>{title}</h2>
-          <p className="product-form__lead">
-            Código, nome e demais dados. Informe o custo e a margem para calcular o preço.
-          </p>
+          <p className="product-form__lead">{leadByType}</p>
         </div>
         {initial && (
           <span className="product-form__price-hint">{formatMoney(initial.priceCents)}</span>
         )}
       </header>
+
+      <label className="product-form__type">
+        O que você está cadastrando?
+        <select
+          value={type}
+          onChange={(e) => onTypeChange(e.target.value as ProductType)}
+          disabled={saving}
+        >
+          <option value={PRODUCT_TYPES.PRODUCT}>Produto (com estoque)</option>
+          <option value={PRODUCT_TYPES.DOSE}>Dose / taça</option>
+          <option value={PRODUCT_TYPES.MEAL}>Refeição / prato</option>
+          <option value={PRODUCT_TYPES.SERVICE}>Serviço</option>
+        </select>
+      </label>
+
+      {type === PRODUCT_TYPES.DOSE && (
+        <div className="product-form__guide" role="note">
+          <strong>Como cadastrar dose (2 passos)</strong>
+          <ol>
+            <li>
+              Cadastre a <em>garrafa</em> como <strong>Produto</strong> (ex.: Vinho 750 ml), com
+              estoque.
+            </li>
+            <li>
+              Depois volte aqui, escolha <strong>Dose / taça</strong>, diga de qual garrafa sai e
+              quantos ml tem cada dose.
+            </li>
+          </ol>
+          {baseCatalog.length === 0 && (
+            <p className="product-form__guide-warn">
+              Ainda não há garrafa cadastrada. Salve esta tela, cadastre o produto da bebida e
+              volte para criar a dose.
+            </p>
+          )}
+        </div>
+      )}
 
       <section className="product-form__barcode-block">
         <h3>Identificação e código de barras</h3>
@@ -564,7 +728,7 @@ export function ProductForm({
 
       {lookupStatus === 'found' && (
         <p className="product-form__banner product-form__banner--found" role="status">
-          Produto encontrado. Altere a quantidade (estoque) se precisar e salve.
+          Item encontrado. Ajuste os dados se precisar e salve.
         </p>
       )}
       {lookupStatus === 'new' && (
@@ -585,27 +749,31 @@ export function ProductForm({
           />
         </label>
 
-        <label>
-          Custo (R$)
-          <input
-            value={cost}
-            onChange={(e) => onCostChange(e.target.value)}
-            disabled={saving}
-            placeholder="0,00"
-          />
-        </label>
+        {type !== PRODUCT_TYPES.DOSE && (
+          <>
+            <label>
+              Custo (R$)
+              <input
+                value={cost}
+                onChange={(e) => onCostChange(e.target.value)}
+                disabled={saving}
+                placeholder="0,00"
+              />
+            </label>
 
-        <label>
-          Margem %
-          <input
-            inputMode="decimal"
-            value={markupPercent}
-            onChange={(e) => onMarkupChange(e.target.value)}
-            disabled={saving}
-            placeholder="40"
-            aria-label="Margem percentual sobre o custo"
-          />
-        </label>
+            <label>
+              Margem %
+              <input
+                inputMode="decimal"
+                value={markupPercent}
+                onChange={(e) => onMarkupChange(e.target.value)}
+                disabled={saving}
+                placeholder="40"
+                aria-label="Margem percentual sobre o custo"
+              />
+            </label>
+          </>
+        )}
 
         <label className="product-form__full">
           Preço de venda (R$)
@@ -616,28 +784,19 @@ export function ProductForm({
             placeholder="0,00"
             required
           />
-          {parseMoneyToCents(cost) > 0 && (
+          {type === PRODUCT_TYPES.DOSE ? (
             <span className="product-form__field-hint">
-              Calculado pelo custo + margem (pode editar)
+              {doseCostPreview > 0
+                ? `Custo estimado pela garrafa: ${formatMoney(doseCostPreview)} (não precisa informar)`
+                : 'O custo sai automaticamente da garrafa (informe o custo nela).'}
             </span>
+          ) : (
+            parseMoneyToCents(cost) > 0 && (
+              <span className="product-form__field-hint">
+                Calculado pelo custo + margem (pode editar)
+              </span>
+            )
           )}
-        </label>
-
-        <label>
-          Tipo
-          <select
-            value={type}
-            onChange={(e) => {
-              const next = e.target.value as Product['type']
-              setType(next)
-              if (next === PRODUCT_TYPES.SERVICE) setPrepStation(PREP_STATIONS.NONE)
-              else if (prepStation === PREP_STATIONS.NONE) setPrepStation(PREP_STATIONS.KITCHEN)
-            }}
-            disabled={saving}
-          >
-            <option value={PRODUCT_TYPES.PRODUCT}>Produto</option>
-            <option value={PRODUCT_TYPES.SERVICE}>Serviço</option>
-          </select>
         </label>
 
         <label>
@@ -669,6 +828,97 @@ export function ProductForm({
             ))}
           </select>
         </label>
+
+        {type === PRODUCT_TYPES.PRODUCT && unit === 'UN' && (
+          <label className="product-form__full">
+            ml por garrafa (só se for vender doses)
+            <input
+              type="number"
+              min={1}
+              step="any"
+              value={contentMl}
+              onChange={(e) => setContentMl(e.target.value)}
+              disabled={saving}
+              placeholder="Ex.: 750"
+            />
+            <span className="product-form__field-hint">
+              Ex.: garrafa de 750 ml. Deixe vazio se não for usar doses.
+            </span>
+          </label>
+        )}
+
+        {type === PRODUCT_TYPES.PRODUCT && unit === 'ML' && (
+          <p className="product-form__field-hint product-form__full">
+            Dica: estoque em ML = ml totais (ex.: 1 garrafa de 750 → estoque 750).
+          </p>
+        )}
+
+        {type === PRODUCT_TYPES.DOSE && (
+          <div className="product-form__dose product-form__full">
+            <label>
+              De qual garrafa sai esta dose?
+              <select
+                value={doseBaseProductId}
+                onChange={(e) => setDoseBaseProductId(e.target.value)}
+                disabled={saving || baseCatalog.length === 0}
+                required
+              >
+                <option value="">
+                  {baseCatalog.length === 0
+                    ? 'Cadastre a garrafa primeiro…'
+                    : 'Escolha a bebida / garrafa'}
+                </option>
+                {baseCatalog.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                    {item.contentMl
+                      ? ` (${item.contentMl} ml)`
+                      : item.unit === 'ML' || item.unit === 'L'
+                        ? ` (${item.unit})`
+                        : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Quantos ml tem esta dose?
+              <input
+                type="number"
+                min={1}
+                step="any"
+                value={doseMl}
+                onChange={(e) => setDoseMl(e.target.value)}
+                disabled={saving}
+                placeholder="Ex.: 50 (dose) ou 150 (taça)"
+                required
+              />
+            </label>
+            <button
+              type="button"
+              className="product-form__dose-advanced-toggle"
+              onClick={() => setShowDoseAdvanced((open) => !open)}
+            >
+              {showDoseAdvanced ? 'Ocultar ajuste fino' : 'Ajuste fino (opcional)'}
+            </button>
+            {showDoseAdvanced && (
+              <label>
+                Rendimento % (padrão 90)
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  step="any"
+                  value={doseYieldPercent}
+                  onChange={(e) => setDoseYieldPercent(e.target.value)}
+                  disabled={saving}
+                />
+                <span className="product-form__field-hint">
+                  Compensa variação na hora de servir. Na dúvida, deixe 90.
+                </span>
+              </label>
+            )}
+          </div>
+        )}
 
         <div className="product-form__category">
           <span className="product-form__category-label">Categoria</span>
@@ -734,22 +984,30 @@ export function ProductForm({
           )}
         </div>
 
-        {!isService && (
+        {tracksStock && (
           <label className="product-form__stock">
-            Quantidade / estoque
+            {Number(contentMl) > 0 && unit === 'UN'
+              ? 'Garrafas cheias'
+              : 'Quantidade / estoque'}
             <input
               ref={stockRef}
               type="number"
               min={0}
-              step="any"
+              step={Number(contentMl) > 0 && unit === 'UN' ? 1 : 'any'}
               value={stock}
               onChange={(e) => setStock(e.target.value)}
               disabled={saving}
             />
+            {initial && usesBottleStockModel(initial) && (
+              <span className="product-form__field-hint">
+                Agora: {formatProductStockLabel(initial, stockCatalog)}. A garrafa aberta muda só
+                nas vendas de dose.
+              </span>
+            )}
           </label>
         )}
 
-        {!isService && (
+        {tracksStock && (
           <label>
             Estoque mínimo
             <input

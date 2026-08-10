@@ -1,4 +1,5 @@
 import type { OrganizationId, UserId } from '../../shared/types'
+import type { ProductType } from '../products/types'
 
 export const PAYMENT_METHODS = {
   CASH: 'cash',
@@ -26,7 +27,7 @@ export interface CartItem {
   catalogPriceCents?: number
   costCents: number
   quantity: number
-  type: 'product' | 'service'
+  type: ProductType
   /** Estoque disponível no momento da inclusão (produtos) */
   availableStock?: number
   /** Item sem cadastro — não baixa estoque */
@@ -45,7 +46,7 @@ export interface SaleItem {
   unitPriceCents: number
   costCents: number
   totalCents: number
-  type: 'product' | 'service'
+  type: ProductType
 }
 
 export interface Sale {

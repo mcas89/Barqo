@@ -20,6 +20,8 @@ import {
 } from '../../billing/plans'
 import {
   normalizeProductText,
+  PRODUCT_TYPES,
+  productTracksOwnStock,
   type Product,
   type ProductBarcodeMeta,
   type ProductInput,
@@ -30,6 +32,7 @@ import {
   generateBalqoInternalBarcode,
   productHasBarcode,
 } from './barcode-service'
+import { DEFAULT_YIELD_PERCENT } from './dose-service'
 
 function requireDb() {
   const db = getFirestoreDb()
@@ -51,15 +54,72 @@ function mapBarcodeMeta(data: Record<string, unknown>): ProductBarcodeMeta | und
   return buildBarcodeMeta({ value: barcode })
 }
 
+function applyDoseFields(product: Product, input: ProductInput): void {
+  delete product.contentMl
+  delete product.doseBaseProductId
+  delete product.doseMl
+  delete product.doseYieldPercent
+
+  if (input.type === PRODUCT_TYPES.PRODUCT) {
+    const contentMl = Number(input.contentMl)
+    if (Number.isFinite(contentMl) && contentMl > 0) {
+      product.contentMl = contentMl
+    } else {
+      delete product.openBottleMlRemaining
+    }
+    return
+  }
+
+  delete product.openBottleMlRemaining
+
+  if (input.type !== PRODUCT_TYPES.DOSE) return
+
+  const baseId = input.doseBaseProductId?.trim()
+  if (!baseId) throw new Error('Selecione a garrafa base da dose.')
+  const doseMl = Number(input.doseMl)
+  if (!Number.isFinite(doseMl) || doseMl <= 0) {
+    throw new Error('Informe o volume da dose em ml.')
+  }
+  const yieldPct = Number(input.doseYieldPercent)
+  product.doseBaseProductId = baseId
+  product.doseMl = doseMl
+  product.doseYieldPercent =
+    Number.isFinite(yieldPct) && yieldPct > 0
+      ? Math.min(100, Math.max(1, yieldPct))
+      : DEFAULT_YIELD_PERCENT
+}
+
+/** Estoque próprio: garrafas com contentMl ficam em unidades inteiras (cheias). */
+function normalizeOwnStock(input: ProductInput): number {
+  if (!productTracksOwnStock(input.type)) return 0
+  const raw = Math.max(0, Number(input.stock) || 0)
+  if (
+    input.type === PRODUCT_TYPES.PRODUCT &&
+    Number(input.contentMl) > 0 &&
+    (input.unit === 'UN' || input.unit === 'ML' || input.unit === 'L')
+  ) {
+    return Math.floor(raw + 1e-9)
+  }
+  return raw
+}
+
+function mapProductType(raw: unknown): Product['type'] {
+  if (raw === 'service' || raw === 'dose' || raw === 'meal' || raw === 'product') {
+    return raw
+  }
+  return 'product'
+}
+
 function mapProduct(id: string, data: Record<string, unknown>): Product {
   const barcode = (data.barcode as string | undefined) || undefined
   const barcodeMeta = mapBarcodeMeta(data)
+  const type = mapProductType(data.type)
   const product: Product = {
     id,
     organizationId: data.organizationId as string,
     name: normalizeProductText(String(data.name ?? '')),
     unit: (data.unit as Product['unit']) || 'UN',
-    type: (data.type as Product['type']) || 'product',
+    type,
     priceCents: Number(data.priceCents ?? 0),
     costCents: Number(data.costCents ?? 0),
     stock: Number(data.stock ?? 0),
@@ -74,6 +134,34 @@ function mapProduct(id: string, data: Record<string, unknown>): Product {
   if (data.prepStation === 'kitchen' || data.prepStation === 'bar' || data.prepStation === 'none') {
     product.prepStation = data.prepStation
   }
+  const contentMl = Number(data.contentMl)
+  if (Number.isFinite(contentMl) && contentMl > 0) product.contentMl = contentMl
+  const openMl = Number(data.openBottleMlRemaining)
+  if (Number.isFinite(openMl) && openMl > 0) {
+    product.openBottleMlRemaining = openMl
+    product.stock = Math.max(0, Math.floor(product.stock + 1e-9))
+  } else if (
+    product.contentMl &&
+    product.unit === 'UN' &&
+    product.stock > 0 &&
+    !Number.isInteger(product.stock)
+  ) {
+    // Migra estoque fracionário legado (ex.: 2.81) → cheias + aberta.
+    const sealed = Math.floor(product.stock)
+    const frac = product.stock - sealed
+    product.stock = sealed
+    const migratedOpen = Math.round(frac * product.contentMl)
+    if (migratedOpen > 0) product.openBottleMlRemaining = migratedOpen
+  } else if (product.contentMl && (product.unit === 'UN' || product.unit === 'ML' || product.unit === 'L')) {
+    product.stock = Math.max(0, Math.floor(product.stock + 1e-9))
+  }
+  if (typeof data.doseBaseProductId === 'string' && data.doseBaseProductId) {
+    product.doseBaseProductId = data.doseBaseProductId
+  }
+  const doseMl = Number(data.doseMl)
+  if (Number.isFinite(doseMl) && doseMl > 0) product.doseMl = doseMl
+  const doseYield = Number(data.doseYieldPercent)
+  if (Number.isFinite(doseYield) && doseYield > 0) product.doseYieldPercent = doseYield
   return product
 }
 
@@ -168,8 +256,8 @@ export async function createProduct(
     type: input.type,
     priceCents: Math.max(0, Math.round(input.priceCents)),
     costCents: Math.max(0, Math.round(input.costCents)),
-    stock: input.type === 'service' ? 0 : Math.max(0, input.stock),
-    minStock: input.type === 'service' ? 0 : Math.max(0, input.minStock),
+    stock: normalizeOwnStock(input),
+    minStock: productTracksOwnStock(input.type) ? Math.max(0, input.minStock) : 0,
     active: input.active ?? true,
     createdAt: now,
     updatedAt: now,
@@ -180,6 +268,7 @@ export async function createProduct(
   if (barcodeMeta) product.barcodeMeta = barcodeMeta
   if (category) product.category = category
   if (input.prepStation) product.prepStation = input.prepStation
+  applyDoseFields(product, input)
 
   await setDoc(
     doc(requireDb(), 'organizations', organizationId, 'products', id),
@@ -217,8 +306,8 @@ export async function updateProduct(
     type: input.type,
     priceCents: Math.max(0, Math.round(input.priceCents)),
     costCents: Math.max(0, Math.round(input.costCents)),
-    stock: input.type === 'service' ? 0 : Math.max(0, input.stock),
-    minStock: input.type === 'service' ? 0 : Math.max(0, input.minStock),
+    stock: normalizeOwnStock(input),
+    minStock: productTracksOwnStock(input.type) ? Math.max(0, input.minStock) : 0,
     active: input.active ?? existing.active,
     updatedAt: nowIso(),
   }
@@ -235,6 +324,7 @@ export async function updateProduct(
   else delete updated.category
   if (input.prepStation) updated.prepStation = input.prepStation
   else delete updated.prepStation
+  applyDoseFields(updated, input)
 
   await setDoc(
     doc(requireDb(), 'organizations', organizationId, 'products', productId),

@@ -33,6 +33,12 @@ export interface CachedProduct {
   category?: string
   unit: ProductUnit
   type: ProductType
+  prepStation?: import('../../features/products/types').PrepStation
+  contentMl?: number
+  openBottleMlRemaining?: number
+  doseBaseProductId?: string
+  doseMl?: number
+  doseYieldPercent?: number
   priceCents: number
   costCents: number
   stock: number

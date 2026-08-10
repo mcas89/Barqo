@@ -37,6 +37,7 @@ import { PosUnlockScreen } from '../components/PosUnlockScreen'
 import { usePos } from '../hooks/usePos'
 import { usePosOperator } from '../hooks/usePosOperator'
 import { PERMISSIONS } from '../../users/permissions'
+import { productTracksOwnStock } from '../../products'
 import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_METHODS,
@@ -583,7 +584,7 @@ export function PosPage() {
                       type="button"
                       role="option"
                       onClick={() => pickProduct(product.id)}
-                      disabled={product.type === 'product' && product.stock <= 0}
+                      disabled={productTracksOwnStock(product.type) && product.stock <= 0}
                     >
                       <span>
                         {product.name}

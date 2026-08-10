@@ -45,9 +45,18 @@ export type ProductUnit = (typeof PRODUCT_UNITS)[number]
 export const PRODUCT_TYPES = {
   PRODUCT: 'product',
   SERVICE: 'service',
+  DOSE: 'dose',
+  MEAL: 'meal',
 } as const
 
 export type ProductType = (typeof PRODUCT_TYPES)[keyof typeof PRODUCT_TYPES]
+
+export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+  product: 'Produto',
+  service: 'Serviço',
+  dose: 'Dose',
+  meal: 'Refeição',
+}
 
 export const PREP_STATIONS = {
   KITCHEN: 'kitchen',
@@ -63,6 +72,18 @@ export const PREP_STATION_LABELS: Record<PrepStation, string> = {
   none: 'Só na conta (sem fila)',
 }
 
+/** Só produto físico controla estoque próprio no cadastro/venda. */
+export function productTracksOwnStock(type: ProductType): boolean {
+  return type === PRODUCT_TYPES.PRODUCT
+}
+
+export function defaultPrepStationForType(type: ProductType): PrepStation {
+  if (type === PRODUCT_TYPES.SERVICE) return PREP_STATIONS.NONE
+  if (type === PRODUCT_TYPES.DOSE) return PREP_STATIONS.BAR
+  if (type === PRODUCT_TYPES.MEAL) return PREP_STATIONS.KITCHEN
+  return PREP_STATIONS.NONE
+}
+
 export interface Product {
   id: string
   organizationId: OrganizationId
@@ -75,6 +96,22 @@ export interface Product {
   type: ProductType
   /** Destino na fila do Salão (cozinha/bar). */
   prepStation?: PrepStation
+  /**
+   * Conteúdo em ml de 1 UN (garrafa). Usado quando a unidade é UN e o item
+   * serve de base para doses.
+   */
+  contentMl?: number
+  /**
+   * ml restantes na garrafa aberta (0/ausente = só cheias em `stock`).
+   * `stock` = quantidade de garrafas lacradas/cheias.
+   */
+  openBottleMlRemaining?: number
+  /** Dose: produto base (garrafa) que terá o estoque baixado. */
+  doseBaseProductId?: string
+  /** Dose: volume da porção em ml. */
+  doseMl?: number
+  /** Dose: rendimento % (margem de erro). Default 90. */
+  doseYieldPercent?: number
   priceCents: number
   costCents: number
   stock: number
@@ -100,6 +137,10 @@ export type ProductInput = {
   unit: ProductUnit
   type: ProductType
   prepStation?: PrepStation
+  contentMl?: number
+  doseBaseProductId?: string
+  doseMl?: number
+  doseYieldPercent?: number
   priceCents: number
   costCents: number
   stock: number

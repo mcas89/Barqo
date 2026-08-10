@@ -6,7 +6,8 @@ import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import type { Product } from '../../products'
 import {
   filterInventoryProducts,
-  listInventoryProducts,
+  isLowStock,
+  listInventoryCatalog,
   listStockMovements,
   registerStockAdjustment,
   registerStockEntry,
@@ -23,7 +24,7 @@ export function useInventory() {
   const { organization, user } = useAuth()
   const { operator } = usePosOperator()
   const { deviceId, getOperationAccess } = useDeviceSession()
-  const [products, setProducts] = useState<Product[]>([])
+  const [catalog, setCatalog] = useState<Product[]>([])
   const [movements, setMovements] = useState<StockMovement[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -35,7 +36,7 @@ export function useInventory() {
 
   const refresh = useCallback(async () => {
     if (!organizationId) {
-      setProducts([])
+      setCatalog([])
       setMovements([])
       setLoading(false)
       return
@@ -45,10 +46,10 @@ export function useInventory() {
     setError(null)
     try {
       const [productList, movementList] = await Promise.all([
-        listInventoryProducts(organizationId),
+        listInventoryCatalog(organizationId),
         listStockMovements(organizationId, { max: 60 }),
       ])
-      setProducts(productList)
+      setCatalog(productList)
       setMovements(movementList)
     } catch (err) {
       console.error(err)
@@ -101,13 +102,14 @@ export function useInventory() {
     }
   }
 
+  const stockProducts = catalog.filter((product) => product.type === 'product')
+
   return {
     organization,
-    products: filterInventoryProducts(products, search, onlyLowStock),
-    allProducts: products,
-    lowStockCount: products.filter(
-      (p) => p.minStock > 0 && p.stock <= p.minStock,
-    ).length,
+    products: filterInventoryProducts(stockProducts, search, onlyLowStock),
+    catalog,
+    allProducts: stockProducts,
+    lowStockCount: stockProducts.filter(isLowStock).length,
     movements,
     loading,
     saving,

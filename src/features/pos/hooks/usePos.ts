@@ -16,6 +16,7 @@ import {
   findProductByBarcode,
   listProducts,
   normalizeProductText,
+  productTracksOwnStock,
   type Product,
 } from '../../products'
 import { DEFAULT_PLAN_ID } from '../../billing'
@@ -191,7 +192,7 @@ export function usePos() {
     setLastSale(null)
     if (!ensureCashOpen()) return false
 
-    if (product.type === 'product' && product.stock <= 0) {
+    if (productTracksOwnStock(product.type) && product.stock <= 0) {
       setError(`${product.name} sem estoque.`)
       return false
     }
@@ -201,7 +202,7 @@ export function usePos() {
       const existing = current.find((item) => item.productId === product.id)
       const nextQty = (existing?.quantity ?? 0) + quantity
 
-      if (product.type === 'product' && nextQty > product.stock) {
+      if (productTracksOwnStock(product.type) && nextQty > product.stock) {
         setError(`Estoque insuficiente para ${product.name}.`)
         added = false
         return current
@@ -225,7 +226,7 @@ export function usePos() {
           costCents: product.costCents,
           quantity,
           type: product.type,
-          availableStock: product.type === 'product' ? product.stock : undefined,
+          availableStock: productTracksOwnStock(product.type) ? product.stock : undefined,
         },
       ]
     })
@@ -407,7 +408,7 @@ export function usePos() {
           if (item.productId !== productId) return item
           const next = Math.max(0, quantity)
           if (
-            item.type === 'product' &&
+            productTracksOwnStock(item.type) &&
             item.availableStock != null &&
             next > item.availableStock
           ) {

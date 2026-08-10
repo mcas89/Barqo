@@ -1,15 +1,26 @@
 import type { Product } from '../../products'
+import {
+  formatProductStockLabel,
+  usesBottleStockModel,
+} from '../../products/services/dose-service'
 import { isLowStock } from '../services/inventory-service'
 import type { StockMoveMode } from './StockMoveForm'
 import './InventoryList.css'
 
 interface InventoryListProps {
   products: Product[]
+  /** Catálogo completo (inclui doses) para montar `2 un / 8 doses`. */
+  catalog?: Product[]
   onMove: (product: Product, mode: StockMoveMode) => void
   busy?: boolean
 }
 
-export function InventoryList({ products, onMove, busy }: InventoryListProps) {
+export function InventoryList({
+  products,
+  catalog,
+  onMove,
+  busy,
+}: InventoryListProps) {
   if (products.length === 0) {
     return (
       <p className="inventory-list__empty">
@@ -17,6 +28,8 @@ export function InventoryList({ products, onMove, busy }: InventoryListProps) {
       </p>
     )
   }
+
+  const labelCatalog = catalog ?? products
 
   return (
     <div className="inventory-list">
@@ -32,6 +45,7 @@ export function InventoryList({ products, onMove, busy }: InventoryListProps) {
         <tbody>
           {products.map((product) => {
             const low = isLowStock(product)
+            const balance = formatProductStockLabel(product, labelCatalog)
             return (
               <tr
                 key={product.id}
@@ -42,12 +56,11 @@ export function InventoryList({ products, onMove, busy }: InventoryListProps) {
                   <span>
                     {product.barcode || 'Sem código'}
                     {product.category ? ` · ${product.category}` : ''}
+                    {usesBottleStockModel(product) ? ' · garrafa' : ''}
                   </span>
                 </td>
                 <td data-label="Saldo">
-                  <strong>
-                    {product.stock} {product.unit}
-                  </strong>
+                  <strong>{balance}</strong>
                   {low && <em>baixo</em>}
                 </td>
                 <td data-label="Mín.">{product.minStock > 0 ? product.minStock : '—'}</td>

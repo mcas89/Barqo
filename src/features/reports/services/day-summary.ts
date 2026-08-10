@@ -1,6 +1,7 @@
 import type { PaymentMethod, Sale } from '../../pos/types'
 import { PAYMENT_METHODS } from '../../pos/types'
 import type { Product } from '../../products'
+import { formatProductStockLabel, readBottleStock, usesBottleStockModel } from '../../products'
 import type { ActorNameMap } from './actor-names'
 
 export interface DayPaymentBreakdown {
@@ -19,6 +20,7 @@ export interface LowStockAlert {
   id: string
   name: string
   stock: number
+  stockLabel: string
   minStock: number
 }
 
@@ -113,17 +115,22 @@ export function buildDaySummary(input: {
     .slice(0, 8)
 
   const lowStock = input.products
-    .filter(
-      (product) =>
-        product.active &&
-        product.type === 'product' &&
-        product.minStock > 0 &&
-        product.stock <= product.minStock,
-    )
+    .filter((product) => {
+      if (!product.active || product.type !== 'product' || product.minStock <= 0) {
+        return false
+      }
+      const sealed = usesBottleStockModel(product)
+        ? readBottleStock(product).sealed
+        : product.stock
+      return sealed <= product.minStock
+    })
     .map((product) => ({
       id: product.id,
       name: product.name,
-      stock: product.stock,
+      stock: usesBottleStockModel(product)
+        ? readBottleStock(product).sealed
+        : product.stock,
+      stockLabel: formatProductStockLabel(product, input.products),
       minStock: product.minStock,
     }))
     .sort((a, b) => a.stock - b.stock)

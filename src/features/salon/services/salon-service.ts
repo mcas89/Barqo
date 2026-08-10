@@ -16,6 +16,7 @@ import { nowIso } from '../../../shared/lib/dates'
 import { omitUndefined } from '../../../shared/lib/firestore'
 import type { OrganizationId } from '../../../shared/types'
 import type { Product } from '../../products/types'
+import { defaultPrepStationForType } from '../../products/types'
 import {
   PREP_STATIONS,
   PREP_STATUSES,
@@ -68,7 +69,10 @@ function mapTicketItem(raw: Record<string, unknown>): TicketItem {
     unitPriceCents,
     costCents: Math.max(0, Math.round(Number(raw.costCents ?? 0))),
     totalCents: Math.max(0, Math.round(Number(raw.totalCents ?? quantity * unitPriceCents))),
-    type: raw.type === 'service' ? 'service' : 'product',
+    type:
+      raw.type === 'service' || raw.type === 'dose' || raw.type === 'meal'
+        ? raw.type
+        : 'product',
     station: (raw.station as PrepStation) || PREP_STATIONS.KITCHEN,
     prepStatus: (raw.prepStatus as PrepStatus) || PREP_STATUSES.QUEUED,
     addedAt: String(raw.addedAt ?? ''),
@@ -110,7 +114,7 @@ function mapTicket(id: string, data: Record<string, unknown>): SalonTicket {
 
 export function defaultPrepStationForProduct(product: Product): PrepStation {
   if (product.prepStation) return product.prepStation
-  return product.type === 'service' ? PREP_STATIONS.NONE : PREP_STATIONS.KITCHEN
+  return defaultPrepStationForType(product.type)
 }
 
 export async function listSalonTables(

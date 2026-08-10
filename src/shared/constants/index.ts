@@ -103,3 +103,4 @@ export const USER_ROLES = {
 export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES]
 
 export { PLAN_IDS, type PlanId } from './plans'
+export { BUSINESS_SEGMENTS, normalizeBusinessSegment, isKnownBusinessSegment, type BusinessSegment } from './segments'

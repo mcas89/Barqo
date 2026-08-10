@@ -1,5 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import type { Product } from '../../products'
+import {
+  formatProductStockLabel,
+  usesBottleStockModel,
+} from '../../products/services/dose-service'
 import './StockMoveForm.css'
 
 export type StockMoveMode = 'entry' | 'loss' | 'adjustment'
@@ -8,6 +12,7 @@ interface StockMoveFormProps {
   product: Product
   mode: StockMoveMode
   saving: boolean
+  catalog?: Product[]
   onSubmit: (value: { quantity?: number; newStock?: number; note: string }) => Promise<void>
   onCancel: () => void
 }
@@ -22,13 +27,16 @@ export function StockMoveForm({
   product,
   mode,
   saving,
+  catalog,
   onSubmit,
   onCancel,
 }: StockMoveFormProps) {
+  const bottle = usesBottleStockModel(product)
   const [quantity, setQuantity] = useState('')
-  const [newStock, setNewStock] = useState(String(product.stock))
+  const [newStock, setNewStock] = useState(String(Math.floor(product.stock)))
   const [note, setNote] = useState('')
   const [localError, setLocalError] = useState<string | null>(null)
+  const balanceLabel = formatProductStockLabel(product, catalog ?? [product])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -38,7 +46,11 @@ export function StockMoveForm({
       if (mode === 'adjustment') {
         const value = Number(newStock)
         if (!Number.isFinite(value) || value < 0) {
-          setLocalError('Informe o saldo contado (0 ou mais).')
+          setLocalError(
+            bottle
+              ? 'Informe quantas garrafas cheias contou (0 ou mais).'
+              : 'Informe o saldo contado (0 ou mais).',
+          )
           return
         }
         await onSubmit({ newStock: value, note })
@@ -60,13 +72,18 @@ export function StockMoveForm({
       <header>
         <h2>{TITLES[mode]}</h2>
         <p>
-          <strong>{product.name}</strong> · saldo atual: {product.stock} {product.unit}
+          <strong>{product.name}</strong> · saldo atual: {balanceLabel}
         </p>
+        {bottle && (
+          <p className="stock-move-form__hint">
+            Movimentação em <strong>garrafas cheias</strong>. A aberta (doses) só muda nas vendas.
+          </p>
+        )}
       </header>
 
       {mode === 'adjustment' ? (
         <label>
-          Novo saldo (contagem)
+          {bottle ? 'Garrafas cheias (contagem)' : 'Novo saldo (contagem)'}
           <input
             inputMode="numeric"
             value={newStock}
@@ -78,7 +95,7 @@ export function StockMoveForm({
         </label>
       ) : (
         <label>
-          Quantidade
+          {bottle ? 'Quantidade (garrafas cheias)' : 'Quantidade'}
           <input
             inputMode="numeric"
             value={quantity}

@@ -15,8 +15,10 @@ import { validatePinFormat } from '../../users/services/pin'
 import {
   APP_NAME,
   BALQO_LOGO_SRC,
+  BUSINESS_SEGMENTS,
   DEFAULT_THEME_COLOR,
   THEME_PRESETS,
+  normalizeBusinessSegment,
   resolveThemeTokens,
   themeCssVars,
 } from '../../../shared/constants'
@@ -25,16 +27,6 @@ import { useDocumentTheme } from '../../../shared/hooks/useDocumentTheme'
 import { fileToLogoDataUrl } from '../../settings/lib/logo'
 import { FiscalNotice, LegalAccept } from '../../legal'
 import './OnboardingPage.css'
-
-const SEGMENTS = [
-  'Mercearia / mercado',
-  'Conveniência',
-  'Vestuário',
-  'Alimentação',
-  'Pet shop',
-  'Serviços',
-  'Outro',
-]
 
 export function OnboardingPage() {
   const {
@@ -51,7 +43,7 @@ export function OnboardingPage() {
 
   const [organizationName, setOrganizationName] = useState('')
   const [document, setDocument] = useState('')
-  const [segment, setSegment] = useState(SEGMENTS[0])
+  const [segment, setSegment] = useState(BUSINESS_SEGMENTS[0])
   const [planId, setPlanId] = useState<PlanId>(DEFAULT_PLAN_ID)
   const [themeColor, setThemeColor] = useState(DEFAULT_THEME_COLOR)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
@@ -137,7 +129,7 @@ export function OnboardingPage() {
       await createOrganizationForCurrentUser({
         organizationName,
         document,
-        segment,
+        segment: normalizeBusinessSegment(segment),
         planId,
         ownerPin: needsOwnerPin ? ownerPin : undefined,
         ...brand,
@@ -226,7 +218,7 @@ export function OnboardingPage() {
                 onChange={(e) => setSegment(e.target.value)}
                 disabled={loading}
               >
-                {SEGMENTS.map((item) => (
+                {BUSINESS_SEGMENTS.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>

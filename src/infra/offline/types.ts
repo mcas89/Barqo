@@ -6,6 +6,8 @@ export interface SaleCreateQueuePayload {
     productId: string
     productName: string
     quantity: number
+    /** Baixa de dose em ml (modelo garrafa aberta). */
+    consumeMl?: number
   }>
   receivable?: {
     customerId: string

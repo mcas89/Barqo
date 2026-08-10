@@ -5,7 +5,10 @@ import {
   APP_VERSION,
   BALQO_SUPPORT_WHATSAPP,
   BALQO_LOGO_SRC,
+  BUSINESS_SEGMENTS,
   DEFAULT_THEME_COLOR,
+  normalizeBusinessSegment,
+  isKnownBusinessSegment,
   resolveThemeColor,
   themeCssVars,
   THEME_PRESETS,
@@ -37,16 +40,6 @@ import { CategoriesSettingsModal } from '../components/CategoriesSettingsModal'
 import { useSettings } from '../hooks/useSettings'
 import './SettingsPage.css'
 
-const SEGMENTS = [
-  'Mercearia / mercado',
-  'Conveniência',
-  'Vestuário',
-  'Alimentação',
-  'Pet shop',
-  'Serviços',
-  'Outro',
-]
-
 export function SettingsPage() {
   const { subscription } = useAuth()
   const { operators, pinRequired, hasPrivilegedAccess } = usePosOperator()
@@ -74,7 +67,7 @@ export function SettingsPage() {
 
   const [name, setName] = useState('')
   const [document, setDocument] = useState('')
-  const [segment, setSegment] = useState(SEGMENTS[0])
+  const [segment, setSegment] = useState<string>(BUSINESS_SEGMENTS[0])
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
@@ -112,7 +105,7 @@ export function SettingsPage() {
     if (!organization) return
     setName(organization.name)
     setDocument(organization.document ?? '')
-    setSegment(organization.segment || SEGMENTS[0])
+    setSegment(normalizeBusinessSegment(organization.segment))
     setPhone(organization.phone ?? '')
     setAddress(organization.address ?? '')
     setWhatsapp(organization.whatsapp ?? '')
@@ -165,7 +158,7 @@ export function SettingsPage() {
       await save({
         name,
         document,
-        segment,
+        segment: normalizeBusinessSegment(segment),
         phone,
         address,
         whatsapp,
@@ -237,8 +230,8 @@ export function SettingsPage() {
     await save({
       name,
       document,
-      segment,
-      phone,
+        segment: normalizeBusinessSegment(segment),
+        phone,
       address,
       whatsapp,
       themeColor,
@@ -264,8 +257,8 @@ export function SettingsPage() {
     await save({
       name,
       document,
-      segment,
-      phone,
+        segment: normalizeBusinessSegment(segment),
+        phone,
       address,
       whatsapp,
       themeColor,
@@ -361,11 +354,14 @@ export function SettingsPage() {
                   onChange={(e) => setSegment(e.target.value)}
                   disabled={saving || !canEdit}
                 >
-                  {SEGMENTS.map((item) => (
+                  {BUSINESS_SEGMENTS.map((item) => (
                     <option key={item} value={item}>
                       {item}
                     </option>
                   ))}
+                  {segment && !isKnownBusinessSegment(segment) && (
+                    <option value={segment}>{segment}</option>
+                  )}
                 </select>
               </label>
               <label>
