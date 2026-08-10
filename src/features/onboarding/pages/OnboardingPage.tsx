@@ -43,7 +43,7 @@ export function OnboardingPage() {
 
   const [organizationName, setOrganizationName] = useState('')
   const [document, setDocument] = useState('')
-  const [segment, setSegment] = useState(BUSINESS_SEGMENTS[0])
+  const [segment, setSegment] = useState<string>(BUSINESS_SEGMENTS[0])
   const [planId, setPlanId] = useState<PlanId>(DEFAULT_PLAN_ID)
   const [themeColor, setThemeColor] = useState(DEFAULT_THEME_COLOR)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
