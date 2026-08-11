@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowRight,
   Eye,
@@ -27,7 +27,10 @@ export function LoginPage() {
     loading,
   } = useAuth()
   const navigate = useNavigate()
-  const [mode, setMode] = useState<AuthMode>('login')
+  const [searchParams] = useSearchParams()
+  const initialMode: AuthMode =
+    searchParams.get('modo') === 'cadastro' ? 'register' : 'login'
+  const [mode, setMode] = useState<AuthMode>(initialMode)
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

@@ -60,7 +60,7 @@ export function OnboardingPage() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/entrar" replace />
   }
 
   const selectedTheme =

@@ -4,7 +4,7 @@ import './AuthLayout.css'
 
 export function AuthLayout() {
   const { pathname } = useLocation()
-  const isLogin = pathname === '/'
+  const isLogin = pathname === '/entrar'
   const isOnboarding = pathname === '/onboarding'
   const isLegal = pathname === '/termos' || pathname === '/privacidade'
 

@@ -16,7 +16,7 @@ export default defineConfig({
         theme_color: '#0b1f3a',
         background_color: '#0b1f3a',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/entrar',
         lang: 'pt-BR',
         icons: [
           {

@@ -6,7 +6,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation()
 
   if (!firebaseReady) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/entrar" replace />
   }
 
   if (loading) {
@@ -18,7 +18,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" replace state={{ from: location }} />
+    return <Navigate to="/entrar" replace state={{ from: location }} />
   }
 
   if (!organization && location.pathname !== '/onboarding') {

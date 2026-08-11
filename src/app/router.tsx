@@ -6,6 +6,7 @@ import { RequireDeviceAccess } from './layouts/RequireDeviceAccess'
 import { RequireOperatorUnlock } from './layouts/RequireOperatorUnlock'
 import { RequireSubscriptionAccess } from './layouts/RequireSubscriptionAccess'
 import { LoginPage, RedirectIfAuthenticated, RequireAuth } from '../features/auth'
+import { LandingPage } from '../features/landing'
 import { OnboardingPage } from '../features/onboarding'
 import { PrivacyPage, TermsPage } from '../features/legal'
 import { HomePage, ReportsPage } from '../features/reports'
@@ -26,9 +27,18 @@ import { SalonTablesPage, KitchenPage, WaiterPage } from '../features/salon'
 export function AppRouter() {
   return (
     <Routes>
+      <Route
+        path="/"
+        element={
+          <RedirectIfAuthenticated>
+            <LandingPage />
+          </RedirectIfAuthenticated>
+        }
+      />
+
       <Route element={<AuthLayout />}>
         <Route
-          path="/"
+          path="/entrar"
           element={
             <RedirectIfAuthenticated>
               <LoginPage />
