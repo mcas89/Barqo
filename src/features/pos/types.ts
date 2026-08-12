@@ -28,6 +28,8 @@ export interface CartItem {
   costCents: number
   quantity: number
   type: ProductType
+  /** Unidade do produto (KG, UN…) — para a granel e orçamento. */
+  unit?: string
   /** Estoque disponível no momento da inclusão (produtos) */
   availableStock?: number
   /** Item sem cadastro — não baixa estoque */

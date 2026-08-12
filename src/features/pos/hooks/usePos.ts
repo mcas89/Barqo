@@ -226,6 +226,7 @@ export function usePos() {
           costCents: product.costCents,
           quantity,
           type: product.type,
+          unit: product.unit,
           availableStock: productTracksOwnStock(product.type) ? product.stock : undefined,
         },
       ]
@@ -406,11 +407,16 @@ export function usePos() {
       current
         .map((item) => {
           if (item.productId !== productId) return item
-          const next = Math.max(0, quantity)
+          const stepUnit = (item.unit ?? '').toUpperCase()
+          const isWeight =
+            stepUnit === 'KG' || stepUnit === 'G' || stepUnit === 'L' || stepUnit === 'ML'
+          const next = isWeight
+            ? Math.max(0, Math.round(quantity * 1000) / 1000)
+            : Math.max(0, Math.round(quantity))
           if (
             productTracksOwnStock(item.type) &&
             item.availableStock != null &&
-            next > item.availableStock
+            next > item.availableStock + 1e-9
           ) {
             setError(`Estoque insuficiente para ${item.name}.`)
             return item

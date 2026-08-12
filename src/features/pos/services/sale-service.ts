@@ -171,7 +171,10 @@ async function validateProductStock(
 }
 
 export function cartSubtotalCents(items: CartItem[]): number {
-  return items.reduce((sum, item) => sum + item.unitPriceCents * item.quantity, 0)
+  return items.reduce(
+    (sum, item) => sum + Math.round(item.unitPriceCents * item.quantity),
+    0,
+  )
 }
 
 export function cartTotalCents(items: CartItem[], discountCents: number): number {
@@ -232,7 +235,7 @@ function buildSaleDraft(input: CompleteSaleInput): {
     quantity: item.quantity,
     unitPriceCents: item.unitPriceCents,
     costCents: item.costCents,
-    totalCents: item.unitPriceCents * item.quantity,
+    totalCents: Math.round(item.unitPriceCents * item.quantity),
     type: item.type,
   }))
 

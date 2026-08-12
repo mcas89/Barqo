@@ -80,6 +80,10 @@ service cloud.firestore {
         allow write: if canAccessOrg(orgId);
       }
 
+      match /quotes/{quoteId} {
+        allow read, write: if canAccessOrg(orgId);
+      }
+
       match /stock_movements/{movementId} {
         allow read, write: if canAccessOrg(orgId);
       }

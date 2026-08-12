@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { Link } from 'react-router-dom'
 import {
   Banknote,
+  ClipboardList,
   EllipsisVertical,
   Pause,
   Play,
@@ -38,10 +39,14 @@ import { PosRemainingPaymentModal } from '../components/PosRemainingPaymentModal
 import { PosRecentSalesPanel } from '../components/PosRecentSalesPanel'
 import { PosTablesPanel } from '../components/PosTablesPanel'
 import { PosUnlockScreen } from '../components/PosUnlockScreen'
+import { PosWeightModal } from '../components/PosWeightModal'
+import { formatCartQuantity, productSoldByWeight } from '../lib/cart-quantity'
+import { createQuote } from '../services/quote-service'
+import { openQuotePrintWindow, renderQuoteHtml } from '../services/quote-print'
 import { usePos } from '../hooks/usePos'
 import { usePosOperator } from '../hooks/usePosOperator'
 import { PERMISSIONS } from '../../users/permissions'
-import { productTracksOwnStock } from '../../products'
+import { productTracksOwnStock, type Product } from '../../products'
 import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_METHODS,
@@ -49,6 +54,12 @@ import {
   type Sale,
   type SalePayment,
 } from '../types'
+import {
+  POS_PAYMENT_SHORTCUTS,
+  POS_SHORTCUT_LABELS,
+  isEditableKeyboardTarget,
+  paymentMethodFromShortcutKey,
+} from '../lib/pos-shortcuts'
 import './PosPage.css'
 
 type PendingAuth =
@@ -80,6 +91,9 @@ export function PosPage() {
   const [priceDraft, setPriceDraft] = useState('')
   const [showMobileMore, setShowMobileMore] = useState(false)
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [quoteMode, setQuoteMode] = useState(false)
+  const [quoteBusy, setQuoteBusy] = useState(false)
+  const [weightPrompt, setWeightPrompt] = useState<Product | null>(null)
   const [whatsappReceipt, setWhatsappReceipt] = useState<{
     sale: Sale
     phone?: string
@@ -157,6 +171,7 @@ export function PosPage() {
     discountCents,
     setDiscountCents,
     totalCents,
+    subtotalCents,
     busy,
     error,
     lastSale,
@@ -166,8 +181,6 @@ export function PosPage() {
     salonTicket,
     loadSalonTicket,
     addProduct,
-    addBySearchEnter,
-    addByBarcode,
     addLooseItem,
     quickCreateAndAdd,
     setItemQuantity,
@@ -193,7 +206,7 @@ export function PosPage() {
   )
 
   const showSuggestions = cashOpen && search.trim().length > 0 && !busy
-  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0)
+  const itemCount = cart.length
 
   useEffect(() => {
     if (cashOpen && operator) searchRef.current?.focus()
@@ -268,10 +281,20 @@ export function PosPage() {
   function onSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Enter') {
       event.preventDefault()
-      const result = addBySearchEnter()
-      if (result === 'not_found') {
-        openQuick(looksLikeBarcode(search) ? 'register' : 'loose', true)
+      const term = search.trim().toLowerCase()
+      if (!term) return
+      const exactBarcode = catalog.find(
+        (product) => product.barcode?.toLowerCase() === term,
+      )
+      if (exactBarcode) {
+        requestAddProduct(exactBarcode)
+        return
       }
+      if (filteredCatalog[0]) {
+        requestAddProduct(filteredCatalog[0])
+        return
+      }
+      openQuick(looksLikeBarcode(search) ? 'register' : 'loose', true)
       searchRef.current?.focus()
     }
     if (event.key === 'Escape') {
@@ -281,21 +304,20 @@ export function PosPage() {
 
   function handleBarcodeDetect(code: string) {
     setShowBarcodeScanner(false)
-    const result = addByBarcode(code)
-    if (result === 'added') {
-      setToast('Produto adicionado')
+    const term = code.trim().toLowerCase()
+    const exactBarcode = catalog.find(
+      (product) => product.barcode?.toLowerCase() === term,
+    )
+    if (exactBarcode) {
+      requestAddProduct(exactBarcode)
       return
     }
-    if (result === 'not_found') {
-      setSearch(code)
-      setQuickBarcode(code)
-      setQuickName('')
-      setQuickMode('register')
-      setQuickOpen(true)
-      setToast('Código não cadastrado')
-      return
-    }
-    setToast('Abra o caixa para vender')
+    setSearch(code)
+    setQuickBarcode(code)
+    setQuickName('')
+    setQuickMode('register')
+    setQuickOpen(true)
+    setToast('Código não cadastrado')
   }
 
   function startPriceEdit(productId: string, unitPriceCents: number) {
@@ -311,9 +333,30 @@ export function PosPage() {
   function pickProduct(productId: string) {
     const product = catalog.find((item) => item.id === productId)
     if (!product) return
-    addProduct(product)
-    setSearch('')
-    searchRef.current?.focus()
+    requestAddProduct(product)
+  }
+
+  function requestAddProduct(product: Product) {
+    if (productSoldByWeight(product.unit)) {
+      setWeightPrompt(product)
+      return
+    }
+    const ok = addProduct(product)
+    if (ok) {
+      setSearch('')
+      searchRef.current?.focus()
+    }
+  }
+
+  function confirmWeightAdd(weight: number) {
+    if (!weightPrompt) return
+    const ok = addProduct(weightPrompt, weight)
+    setWeightPrompt(null)
+    if (ok) {
+      setSearch('')
+      searchRef.current?.focus()
+      setToast(`${weightPrompt.name} · ${formatCartQuantity(weight, weightPrompt.unit)}`)
+    }
   }
 
   function centsToInput(cents: number): string {
@@ -397,6 +440,10 @@ export function PosPage() {
   }
 
   async function handleFinish() {
+    if (quoteMode) {
+      await handleGenerateQuote()
+      return
+    }
     const primary = buildPrimaryPayments()
     if (!primary) return
 
@@ -407,6 +454,86 @@ export function PosPage() {
     }
 
     await completeSaleWithPayments(primary)
+  }
+
+  function toggleQuoteMode() {
+    if (salonTicket) {
+      setToast('Finalize a mesa antes de usar orçamento.')
+      return
+    }
+    setQuoteMode((current) => {
+      const next = !current
+      if (next) {
+        setSelectedMethod(null)
+        setPaymentAmountDraft('')
+        setSplitPayments(null)
+        for (const method of Object.values(PAYMENT_METHODS)) {
+          setPaymentAmount(method, 0)
+        }
+      }
+      return next
+    })
+  }
+
+  async function handleGenerateQuote() {
+    if (
+      !organization ||
+      !operator ||
+      !deviceId ||
+      cart.length === 0 ||
+      quoteBusy ||
+      busy ||
+      posLocked
+    ) {
+      return
+    }
+    if (salonTicket) {
+      setToast('Finalize a mesa no caixa — orçamento não se aplica.')
+      return
+    }
+
+    setQuoteBusy(true)
+    try {
+      const quote = await createQuote({
+        organizationId: organization.id,
+        cart,
+        discountCents,
+        subtotalCents,
+        totalCents,
+        userId: authUser?.id ?? operator.id,
+        userName: operator.displayName || authUser?.displayName || 'Operador',
+        operatorId: operator.id,
+        deviceId,
+        customerId: customer?.id,
+        customerName: customer?.name,
+        customerPhone: customer?.phone,
+      })
+      openQuotePrintWindow(
+        renderQuoteHtml({
+          quote,
+          organizationName: organization.name,
+          organizationDocument: organization.document,
+          organizationAddress: organization.address,
+          organizationPhone: organization.phone,
+          logoDataUrl: organization.logoDataUrl,
+        }),
+      )
+      clearCart()
+      setCustomer(null)
+      setSelectedMethod(null)
+      setPaymentAmountDraft('')
+      setSplitPayments(null)
+      setShowDiscount(false)
+      setToast('Orçamento gerado')
+      searchRef.current?.focus()
+    } catch (err) {
+      console.error(err)
+      setToast(
+        err instanceof Error ? err.message : 'Não foi possível gerar o orçamento.',
+      )
+    } finally {
+      setQuoteBusy(false)
+    }
   }
 
   async function handleSplitConfirm(nextPayments: SalePayment[]) {
@@ -487,6 +614,170 @@ export function PosPage() {
     }
   }
 
+  const paidMethod = payments[0]?.method
+  const activeMethod = selectedMethod ?? paidMethod ?? null
+  const paymentReady = parseMoneyToCents(paymentAmountDraft) > 0
+  const fiadoReady =
+    activeMethod !== PAYMENT_METHODS.ON_ACCOUNT || Boolean(customer)
+  const canFinishSale =
+    cart.length > 0 &&
+    Boolean(activeMethod) &&
+    totalCents > 0 &&
+    paymentReady &&
+    fiadoReady &&
+    !busy &&
+    !quoteBusy &&
+    !posLocked
+
+  const canFinishQuote =
+    quoteMode &&
+    cart.length > 0 &&
+    !busy &&
+    !quoteBusy &&
+    !posLocked &&
+    !salonTicket
+
+  const canFinish = quoteMode ? canFinishQuote : canFinishSale
+
+  useEffect(() => {
+    if (!organization || !operator || !cashOpen || loadingCash || loadingOperator) {
+      return
+    }
+
+    function onKeyDown(event: globalThis.KeyboardEvent) {
+      const key = event.key
+      const modalOpen =
+        Boolean(pendingAuth) ||
+        Boolean(weightPrompt) ||
+        quickOpen ||
+        showCustomerPicker ||
+        showBarcodeScanner ||
+        showTables ||
+        showRecentSales ||
+        Boolean(whatsappReceipt) ||
+        Boolean(splitPayments)
+
+      if (key === 'Escape') {
+        if (weightPrompt) {
+          event.preventDefault()
+          setWeightPrompt(null)
+          return
+        }
+        if (pendingAuth) {
+          event.preventDefault()
+          setPendingAuth(null)
+          return
+        }
+        if (quickOpen) {
+          event.preventDefault()
+          setQuickOpen(false)
+          searchRef.current?.focus()
+          return
+        }
+        if (showCustomerPicker) {
+          event.preventDefault()
+          setShowCustomerPicker(false)
+          return
+        }
+        if (showBarcodeScanner) {
+          event.preventDefault()
+          setShowBarcodeScanner(false)
+          return
+        }
+        if (showTables) {
+          event.preventDefault()
+          setShowTables(false)
+          return
+        }
+        if (showRecentSales) {
+          event.preventDefault()
+          setShowRecentSales(false)
+          return
+        }
+        if (splitPayments) {
+          event.preventDefault()
+          setSplitPayments(null)
+          return
+        }
+        if (search) {
+          event.preventDefault()
+          setSearch('')
+        }
+        return
+      }
+
+      if (modalOpen || posLocked || busy || quoteBusy) return
+
+      if (key === 'F2') {
+        event.preventDefault()
+        searchRef.current?.focus()
+        searchRef.current?.select()
+        return
+      }
+
+      const payMethod = paymentMethodFromShortcutKey(key)
+      if (payMethod) {
+        event.preventDefault()
+        if (
+          !quoteMode &&
+          paymentMethods.includes(payMethod) &&
+          totalCents > 0 &&
+          cart.length > 0
+        ) {
+          choosePayment(payMethod)
+        }
+        return
+      }
+
+      if (key === 'F8' || (key === 'Enter' && event.ctrlKey)) {
+        event.preventDefault()
+        if (canFinish) void handleFinish()
+        return
+      }
+
+      if (key === 'F9') {
+        event.preventDefault()
+        setShowCustomerPicker(true)
+        return
+      }
+
+      if (key === 'Delete' && !isEditableKeyboardTarget(event.target)) {
+        event.preventDefault()
+        if (cart.length === 0) return
+        const last = cart[cart.length - 1]
+        if (last) requestRemove(last.productId)
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [
+    organization,
+    operator,
+    cashOpen,
+    loadingCash,
+    loadingOperator,
+    pendingAuth,
+    weightPrompt,
+    quickOpen,
+    showCustomerPicker,
+    showBarcodeScanner,
+    showTables,
+    showRecentSales,
+    whatsappReceipt,
+    splitPayments,
+    posLocked,
+    busy,
+    quoteBusy,
+    quoteMode,
+    search,
+    paymentMethods,
+    totalCents,
+    cart,
+    canFinish,
+    customer,
+  ])
+
   if (!organization) {
     return <p className="pos-page__empty">Nenhuma loja ativa.</p>
   }
@@ -550,19 +841,6 @@ export function PosPage() {
     )
   }
 
-  const paidMethod = payments[0]?.method
-  const activeMethod = selectedMethod ?? paidMethod ?? null
-  const paymentReady = parseMoneyToCents(paymentAmountDraft) > 0
-  const fiadoReady =
-    activeMethod !== PAYMENT_METHODS.ON_ACCOUNT || Boolean(customer)
-  const canFinish =
-    cart.length > 0 &&
-    Boolean(activeMethod) &&
-    totalCents > 0 &&
-    paymentReady &&
-    fiadoReady &&
-    !busy
-
   return (
     <section className="pos-page">
       <div className="pos-page__toolbar">
@@ -579,9 +857,9 @@ export function PosPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={onSearchKeyDown}
-            placeholder="Código de barras ou nome do produto"
+            placeholder={`Código ou nome · ${POS_SHORTCUT_LABELS.focusSearch}`}
             disabled={busy}
-            aria-label="Buscar produto"
+            aria-label={`Buscar produto (${POS_SHORTCUT_LABELS.focusSearch})`}
             autoComplete="off"
           />
 
@@ -637,11 +915,12 @@ export function PosPage() {
         <button
           type="button"
           className="pos-page__customer-chip pos-page__desk-only"
-          title="Cliente da venda"
+          title={`Cliente da venda (${POS_SHORTCUT_LABELS.customer})`}
           onClick={() => setShowCustomerPicker(true)}
         >
           <UserRound size={16} strokeWidth={2} aria-hidden />
           {customer ? customer.name : 'Cliente'}
+          <kbd className="pos-page__kbd">{POS_SHORTCUT_LABELS.customer}</kbd>
         </button>
 
         {canOpenFiados ? (
@@ -699,6 +978,27 @@ export function PosPage() {
             Caixa
           </Link>
         )}
+        <button
+          type="button"
+          className={
+            quoteMode
+              ? 'pos-page__ghost pos-page__ghost--active pos-page__desk-only'
+              : 'pos-page__ghost pos-page__desk-only'
+          }
+          onClick={toggleQuoteMode}
+          disabled={busy || quoteBusy || Boolean(salonTicket)}
+          title={
+            salonTicket
+              ? 'Finalize a mesa antes de usar orçamento'
+              : quoteMode
+                ? 'Modo orçamento ativo — clique para voltar à venda'
+                : 'Montar orçamento (sem baixa de estoque)'
+          }
+          aria-pressed={quoteMode}
+        >
+          <ClipboardList size={16} strokeWidth={2} aria-hidden />
+          Orçamento
+        </button>
 
         <div className="pos-page__more pos-page__phone-only">
           <button
@@ -816,6 +1116,21 @@ export function PosPage() {
                   <button
                     type="button"
                     role="menuitem"
+                    disabled={busy || quoteBusy || Boolean(salonTicket)}
+                    aria-pressed={quoteMode}
+                    onClick={() => {
+                      setShowMobileMore(false)
+                      toggleQuoteMode()
+                    }}
+                  >
+                    <ClipboardList size={16} strokeWidth={2} aria-hidden />
+                    {quoteMode ? 'Orçamento · ativo' : 'Orçamento'}
+                  </button>
+                </li>
+                <li role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
                     disabled={busy || cart.length === 0}
                     onClick={() => {
                       setShowMobileMore(false)
@@ -875,6 +1190,7 @@ export function PosPage() {
           onSelect={(ticket) => {
             const ok = loadSalonTicket(ticket)
             if (!ok) return
+            setQuoteMode(false)
             setShowTables(false)
             setSelectedMethod(null)
             setPaymentAmountDraft('')
@@ -889,6 +1205,20 @@ export function PosPage() {
         <PosBarcodeScanner
           onDetect={handleBarcodeDetect}
           onClose={() => setShowBarcodeScanner(false)}
+        />
+      )}
+
+      {weightPrompt && (
+        <PosWeightModal
+          productName={weightPrompt.name}
+          unit={weightPrompt.unit || 'KG'}
+          unitPriceCents={weightPrompt.priceCents}
+          maxStock={
+            productTracksOwnStock(weightPrompt.type) ? weightPrompt.stock : undefined
+          }
+          busy={busy}
+          onConfirm={confirmWeightAdd}
+          onCancel={() => setWeightPrompt(null)}
         />
       )}
 
@@ -978,9 +1308,11 @@ export function PosPage() {
                 >
                   {salonTicket
                     ? salonTicket.tableName
-                    : customer
-                      ? customer.name
-                      : 'Caixa livre'}
+                    : quoteMode
+                      ? 'Orçamento'
+                      : customer
+                        ? customer.name
+                        : 'Caixa livre'}
                 </p>
               )}
               <span>
@@ -1092,9 +1424,11 @@ export function PosPage() {
               >
                 {posLocked
                   ? 'Bloqueado'
-                  : customer
-                    ? customer.name
-                    : 'Caixa livre'}
+                  : quoteMode
+                    ? 'Orçamento'
+                    : customer
+                      ? customer.name
+                      : 'Caixa livre'}
               </strong>
               {posLocked ? (
                 <div className="pos-page__cart-lock pos-page__cart-lock--empty" role="alert">
@@ -1121,7 +1455,10 @@ export function PosPage() {
             </div>
           ) : (
             <ul className="pos-page__cart-list">
-              {cart.map((item) => (
+              {cart.map((item) => {
+                const byWeight = productSoldByWeight(item.unit)
+                const qtyStep = byWeight ? 0.1 : 1
+                return (
                 <li key={item.productId}>
                   <div className="pos-page__item-info">
                     <strong>
@@ -1152,7 +1489,10 @@ export function PosPage() {
                         onClick={() => startPriceEdit(item.productId, item.unitPriceCents)}
                         disabled={busy}
                       >
-                        {formatMoney(item.unitPriceCents)} cada
+                        {formatMoney(item.unitPriceCents)}
+                        {byWeight && item.unit
+                          ? ` / ${item.unit.toLowerCase()}`
+                          : ' cada'}
                         {item.catalogPriceCents != null &&
                         item.catalogPriceCents !== item.unitPriceCents
                           ? ' · ajustado'
@@ -1165,28 +1505,32 @@ export function PosPage() {
                       type="button"
                       aria-label="Diminuir"
                       onClick={() => {
-                        if (item.quantity <= 1) {
+                        if (item.quantity <= qtyStep + 1e-9) {
                           requestRemove(item.productId)
                           return
                         }
-                        setItemQuantity(item.productId, item.quantity - 1)
+                        setItemQuantity(item.productId, item.quantity - qtyStep)
                       }}
                       disabled={busy}
                     >
                       −
                     </button>
-                    <span>{item.quantity}</span>
+                    <span>{formatCartQuantity(item.quantity, item.unit)}</span>
                     <button
                       type="button"
                       aria-label="Aumentar"
-                      onClick={() => setItemQuantity(item.productId, item.quantity + 1)}
+                      onClick={() =>
+                        setItemQuantity(item.productId, item.quantity + qtyStep)
+                      }
                       disabled={busy}
                     >
                       +
                     </button>
                   </div>
                   <div className="pos-page__line-total">
-                    <strong>{formatMoney(item.unitPriceCents * item.quantity)}</strong>
+                    <strong>
+                      {formatMoney(Math.round(item.unitPriceCents * item.quantity))}
+                    </strong>
                     <button
                       type="button"
                       className="pos-page__ghost"
@@ -1197,14 +1541,15 @@ export function PosPage() {
                     </button>
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
         </div>
 
         <aside className="pos-page__checkout">
           <div className="pos-page__total-block">
-            <span>Total da venda</span>
+            <span>{quoteMode ? 'Total do orçamento' : 'Total da venda'}</span>
             <strong>{formatMoney(totalCents)}</strong>
             {discountCents > 0 && (
               <em>Desconto {formatMoney(discountCents)}</em>
@@ -1238,44 +1583,64 @@ export function PosPage() {
             </label>
           )}
 
-          <p className="pos-page__pay-label">Forma de pagamento</p>
-          <div className="pos-page__pay-grid">
-            {paymentMethods.map((method) => (
-              <button
-                key={method}
-                type="button"
-                className={
-                  activeMethod === method
-                    ? 'pos-page__pay-btn pos-page__pay-btn--active'
-                    : 'pos-page__pay-btn'
-                }
-                onClick={() => choosePayment(method)}
-                disabled={busy || totalCents <= 0}
-              >
-                {PAYMENT_METHOD_LABELS[method]}
-              </button>
-            ))}
-          </div>
+          {!quoteMode ? (
+            <>
+              <p className="pos-page__pay-label">Forma de pagamento</p>
+              <div className="pos-page__pay-grid">
+                {paymentMethods.map((method) => {
+                  const shortcut = POS_PAYMENT_SHORTCUTS[method]
+                  return (
+                    <button
+                      key={method}
+                      type="button"
+                      className={
+                        activeMethod === method
+                          ? 'pos-page__pay-btn pos-page__pay-btn--active'
+                          : 'pos-page__pay-btn'
+                      }
+                      onClick={() => choosePayment(method)}
+                      disabled={busy || totalCents <= 0 || posLocked}
+                      title={
+                        shortcut
+                          ? `${PAYMENT_METHOD_LABELS[method]} (${shortcut})`
+                          : PAYMENT_METHOD_LABELS[method]
+                      }
+                    >
+                      <span>{PAYMENT_METHOD_LABELS[method]}</span>
+                      {shortcut ? (
+                        <kbd className="pos-page__kbd pos-page__kbd--on-btn">{shortcut}</kbd>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
 
-          {activeMethod && (
-            <label className="pos-page__cash">
-              Valor neste pagamento
-              <input
-                value={paymentAmountDraft}
-                onChange={(e) => onPaymentAmountChange(e.target.value)}
-                placeholder="0,00"
-                disabled={busy}
-                inputMode="decimal"
-                aria-label={`Valor em ${PAYMENT_METHOD_LABELS[activeMethod]}`}
-              />
-            </label>
-          )}
+              {activeMethod && (
+                <label className="pos-page__cash">
+                  Valor neste pagamento
+                  <input
+                    value={paymentAmountDraft}
+                    onChange={(e) => onPaymentAmountChange(e.target.value)}
+                    placeholder="0,00"
+                    disabled={busy}
+                    inputMode="decimal"
+                    aria-label={`Valor em ${PAYMENT_METHOD_LABELS[activeMethod]}`}
+                  />
+                </label>
+              )}
 
-          {activeMethod === PAYMENT_METHODS.CASH && changeCents > 0 && (
-            <div className="pos-page__change">
-              <span>Troco</span>
-              <strong>{formatMoney(changeCents)}</strong>
-            </div>
+              {activeMethod === PAYMENT_METHODS.CASH && changeCents > 0 && (
+                <div className="pos-page__change">
+                  <span>Troco</span>
+                  <strong>{formatMoney(changeCents)}</strong>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="pos-page__pay-hint">
+              Modo orçamento: sem pagamento e sem baixa de estoque. Gere o documento
+              para o cliente.
+            </p>
           )}
 
           <button
@@ -1283,9 +1648,36 @@ export function PosPage() {
             className="pos-page__finish"
             onClick={() => void handleFinish()}
             disabled={!canFinish}
+            title={
+              quoteMode
+                ? `Gerar orçamento (${POS_SHORTCUT_LABELS.finish} ou Ctrl+Enter)`
+                : `Finalizar venda (${POS_SHORTCUT_LABELS.finish} ou Ctrl+Enter)`
+            }
           >
-            {busy ? 'Finalizando…' : 'Finalizar venda'}
+            <span>
+              {quoteBusy || busy
+                ? quoteMode
+                  ? 'Gerando…'
+                  : 'Finalizando…'
+                : quoteMode
+                  ? 'Gerar orçamento'
+                  : 'Finalizar venda'}
+            </span>
+            {!busy && !quoteBusy ? (
+              <kbd className="pos-page__kbd pos-page__kbd--on-finish">
+                {POS_SHORTCUT_LABELS.finish}
+              </kbd>
+            ) : null}
           </button>
+          <p className="pos-page__shortcut-hint pos-page__desk-only">
+            {POS_SHORTCUT_LABELS.focusSearch} busca
+            {quoteMode
+              ? ''
+              : ` · ${POS_SHORTCUT_LABELS.cash}/${POS_SHORTCUT_LABELS.pix}/${POS_SHORTCUT_LABELS.debit} pagamento`}{' '}
+            · {POS_SHORTCUT_LABELS.finish} {quoteMode ? 'orçamento' : 'finalizar'} ·{' '}
+            {POS_SHORTCUT_LABELS.customer} cliente · {POS_SHORTCUT_LABELS.removeLast}{' '}
+            remove item
+          </p>
         </aside>
       </div>
       </div>
