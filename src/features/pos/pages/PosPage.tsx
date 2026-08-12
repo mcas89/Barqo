@@ -23,9 +23,12 @@ import {
   PLAN_FEATURES,
   planHasFeature,
   resolvePlanId,
+  getSubscriptionCoverage,
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import { useDeviceSession } from '../../devices'
+import { BALQO_SUPPORT_WHATSAPP } from '../../../shared/constants'
+import { whatsappUrl } from '../../../shared/lib/whatsapp'
 import { fulfillSaleReceipt, resolveReceiptSettings, WhatsappReceiptSheet } from '../../receipts'
 import { PinAuthorizeModal } from '../components/PinAuthorizeModal'
 import { PosBarcodeScanner } from '../components/PosBarcodeScanner'
@@ -83,11 +86,43 @@ export function PosPage() {
     copy?: 'original' | 'segunda_via'
   } | null>(null)
 
-  const { subscription, organization: authOrg } = useAuth()
-  const { devices, deviceId } = useDeviceSession()
+  const { subscription, organization: authOrg, user: authUser } = useAuth()
+  const { devices, deviceId, operationLimited, accessState } = useDeviceSession()
   const planId = resolvePlanId(subscription?.planId ?? authOrg?.planId ?? DEFAULT_PLAN_ID)
   const canUseFiado = planHasFeature(planId, PLAN_FEATURES.RECEIVABLES)
   const hasSalon = planHasFeature(planId, PLAN_FEATURES.SALON)
+  const coverage = getSubscriptionCoverage(subscription)
+  const subscriptionLocked = Boolean(coverage && !coverage.canOperate)
+  const posLocked =
+    subscriptionLocked ||
+    operationLimited ||
+    accessState === 'blocked' ||
+    accessState === 'removed' ||
+    accessState === 'limited' ||
+    accessState === 'clock_invalid'
+  const lockTitle = subscriptionLocked
+    ? coverage?.title ?? 'Acesso bloqueado'
+    : accessState === 'blocked'
+      ? 'Dispositivo bloqueado'
+      : accessState === 'removed'
+        ? 'Dispositivo não autorizado'
+        : 'Operação restrita'
+  const lockDetail = subscriptionLocked
+    ? coverage?.isRemoteBlocked
+      ? 'Bloqueado remotamente. Fale com a gestão BALQO.'
+      : 'Regularize o plano para voltar a vender.'
+    : 'Consulta liberada — vendas e alterações pausadas.'
+  const lockSupportHref =
+    coverage?.isRemoteBlocked
+      ? whatsappUrl(
+          BALQO_SUPPORT_WHATSAPP,
+          [
+            'Olá, meu acesso BALQO está bloqueado remotamente.',
+            `Loja: ${authOrg?.name ?? '—'}`,
+            `Nome: ${authUser?.displayName ?? '—'}`,
+          ].join('\n'),
+        )
+      : null
 
   const {
     operator,
@@ -962,7 +997,7 @@ export function PosPage() {
                   type="button"
                   className="pos-page__ghost pos-page__desk-only"
                   onClick={() => void handleHoldSale()}
-                  disabled={busy || Boolean(salonTicket) || heldSales.length >= maxHeldSales}
+                  disabled={busy || Boolean(salonTicket) || heldSales.length >= maxHeldSales || posLocked}
                   title={
                     salonTicket
                       ? 'Finalize a mesa no caixa (não usa espera)'
@@ -978,13 +1013,27 @@ export function PosPage() {
                   type="button"
                   className="pos-page__ghost"
                   onClick={requestClear}
-                  disabled={busy}
+                  disabled={busy || posLocked}
                 >
                   Limpar
                 </button>
               </div>
             )}
           </header>
+
+          {posLocked && cart.length > 0 ? (
+            <div className="pos-page__cart-lock" role="alert">
+              <strong>{lockTitle}</strong>
+              <span>{lockDetail}</span>
+              {lockSupportHref ? (
+                <a href={lockSupportHref} target="_blank" rel="noreferrer">
+                  Gestão BALQO
+                </a>
+              ) : (
+                <Link to="/app/billing">Ver planos</Link>
+              )}
+            </div>
+          ) : null}
 
           {heldSales.length > 0 && (
             <div className="pos-page__holds" aria-label="Vendas em espera">
@@ -1034,15 +1083,41 @@ export function PosPage() {
 
           {cart.length === 0 ? (
             <div className="pos-page__empty-cart">
-              <strong className="pos-page__empty-mode">
-                {customer ? customer.name : 'Caixa livre'}
+              <strong
+                className={
+                  posLocked
+                    ? 'pos-page__empty-mode pos-page__empty-mode--locked'
+                    : 'pos-page__empty-mode'
+                }
+              >
+                {posLocked
+                  ? 'Bloqueado'
+                  : customer
+                    ? customer.name
+                    : 'Caixa livre'}
               </strong>
-              <p className="pos-page__empty-hint pos-page__desk-only">
-                Passe o código, busque pelo nome ou use Avulsa / cadastro rápido.
-              </p>
-              <p className="pos-page__empty-hint pos-page__phone-only">
-                Busque pelo código ou nome do produto.
-              </p>
+              {posLocked ? (
+                <div className="pos-page__cart-lock pos-page__cart-lock--empty" role="alert">
+                  <strong>{lockTitle}</strong>
+                  <span>{lockDetail}</span>
+                  {lockSupportHref ? (
+                    <a href={lockSupportHref} target="_blank" rel="noreferrer">
+                      Gestão BALQO
+                    </a>
+                  ) : (
+                    <Link to="/app/billing">Ver planos</Link>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <p className="pos-page__empty-hint pos-page__desk-only">
+                    Passe o código, busque pelo nome ou use Avulsa / cadastro rápido.
+                  </p>
+                  <p className="pos-page__empty-hint pos-page__phone-only">
+                    Busque pelo código ou nome do produto.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <ul className="pos-page__cart-list">

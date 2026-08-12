@@ -8,7 +8,6 @@ import { useAuth } from '../../shared/hooks/useAuth'
 import { useDocumentTheme } from '../../shared/hooks/useDocumentTheme'
 import { usePosOperator } from '../../features/pos/hooks/usePosOperator'
 import { POS_ROLE_LABELS } from '../../features/pos/types/operator'
-import { AccessNoticeBanner } from '../../features/devices'
 import './PosLayout.css'
 
 function formatLiveClock(date: Date) {
@@ -74,7 +73,6 @@ export function PosLayout() {
       </header>
 
       <main className="pos-layout__main">
-        <AccessNoticeBanner />
         <Outlet />
       </main>
     </div>

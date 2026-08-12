@@ -558,6 +558,47 @@
   color: var(--balqo-brand, #0b1f3a) !important;
 }
 
+.pos-page__empty-mode--locked {
+  color: #991b1b !important;
+  font-size: clamp(1.7rem, 4vw, 2.4rem) !important;
+}
+
+.pos-page__cart-lock {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0 0.85rem 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.55rem;
+  background: #fef2f2;
+  border: 1px solid color-mix(in srgb, #b91c1c 28%, transparent);
+  color: #991b1b;
+  text-align: left;
+}
+
+.pos-page__cart-lock--empty {
+  margin: 0.75rem 0 0;
+  justify-items: center;
+  text-align: center;
+  max-width: 22rem;
+}
+
+.pos-page__cart-lock strong {
+  font-size: 0.88rem;
+}
+
+.pos-page__cart-lock span {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+.pos-page__cart-lock a {
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: inherit;
+}
+
 .pos-page__empty-cart strong {
   font-size: 1.15rem;
   color: #0b1f3a;
