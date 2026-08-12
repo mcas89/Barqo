@@ -27,6 +27,8 @@ export interface SubscriptionCoverage {
   isTrial: boolean
   isPendingPayment: boolean
   isBlocked: boolean
+  /** Bloqueio manual pelo admin (status blocked/canceled), não vencimento. */
+  isRemoteBlocked: boolean
   title: string
   detail: string
 }
@@ -91,7 +93,9 @@ export function getSubscriptionCoverage(
   const isBlocked = storedBlocked || blockedByDate || isPendingPayment
 
   let effectiveStatus: SubscriptionStatus = subscription.status
-  if (isPaidUp) {
+  if (storedBlocked) {
+    effectiveStatus = SUBSCRIPTION_STATUS.BLOCKED
+  } else if (isPaidUp) {
     effectiveStatus = isTrial ? SUBSCRIPTION_STATUS.TRIAL : SUBSCRIPTION_STATUS.ACTIVE
   } else if (inGrace) {
     effectiveStatus = SUBSCRIPTION_STATUS.GRACE
@@ -103,7 +107,8 @@ export function getSubscriptionCoverage(
     effectiveStatus = SUBSCRIPTION_STATUS.PAST_DUE
   }
 
-  const canOperate = isPaidUp || inGrace
+  // Bloqueio remoto (admin) trava na hora, mesmo com data de validade futura.
+  const canOperate = !storedBlocked && (isPaidUp || inGrace)
 
   let tone: PlanNoticeTone = 'ok'
   if (isPendingPayment || blockedByDate || storedBlocked || inGrace || daysRemaining === 0) {
@@ -123,15 +128,20 @@ export function getSubscriptionCoverage(
   let title: string
   let detail: string
 
-  if (isPendingPayment) {
+  if (storedBlocked) {
+    title = 'Acesso bloqueado remotamente'
+    detail =
+      'Entre em contato com a gestão BALQO para liberar o sistema. Você pode consultar os dados, mas não vender nem alterar nada.'
+  } else if (isPendingPayment) {
     title = `Assine o plano ${plan.name} para começar`
     detail = 'Pague o plano escolhido para liberar o PDV e as demais funções.'
-  } else if ((blockedByDate || storedBlocked) && accessUntil) {
+  } else if (blockedByDate && accessUntil) {
     title = `Acesso bloqueado · plano ${plan.name}`
-    detail = `Venceu em ${formatDate(accessUntil)}. Pague para reativar o PDV e o sistema.`
-  } else if (blockedByDate || storedBlocked) {
+    detail = `Venceu em ${formatDate(accessUntil)}. Pague para reativar o PDV e o sistema. Você pode consultar os dados, mas não vender nem alterar nada.`
+  } else if (blockedByDate) {
     title = `Acesso bloqueado · plano ${plan.name}`
-    detail = 'Regularize o pagamento para voltar a usar o sistema.'
+    detail =
+      'Regularize o pagamento para voltar a usar o sistema. Você pode consultar os dados, mas não vender nem alterar nada.'
   } else if (inGrace && accessUntil) {
     title = `Plano ${plan.name} vencido há ${daysLabel(daysOverdue)}`
     detail = `Bloqueio em ${daysLabel(graceDaysRemaining ?? 0)}. Pague agora para não perder o acesso.`
@@ -176,6 +186,7 @@ export function getSubscriptionCoverage(
     isTrial,
     isPendingPayment,
     isBlocked,
+    isRemoteBlocked: storedBlocked,
     title,
     detail,
   }

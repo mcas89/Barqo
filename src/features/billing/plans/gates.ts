@@ -77,12 +77,11 @@ export function canOperateWithStatus(status: SubscriptionStatus): boolean {
   return (
     status === SUBSCRIPTION_STATUS.TRIAL ||
     status === SUBSCRIPTION_STATUS.ACTIVE ||
-    status === SUBSCRIPTION_STATUS.GRACE ||
-    status === SUBSCRIPTION_STATUS.PAST_DUE
+    status === SUBSCRIPTION_STATUS.GRACE
   )
 }
 
-/** PAST_DUE e GRACE permitem uso com aviso; BLOCKED/CANCELED não. */
+/** PAST_DUE e GRACE permitem aviso; BLOCKED/CANCELED não. */
 export function shouldShowPaymentWarning(status: SubscriptionStatus): boolean {
   return (
     status === SUBSCRIPTION_STATUS.PAST_DUE || status === SUBSCRIPTION_STATUS.GRACE

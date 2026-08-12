@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
 import {
   createSupplier,
   filterSuppliers,
@@ -11,6 +12,7 @@ import type { Supplier, SupplierInput } from '../types'
 
 export function useSuppliers() {
   const { organization } = useAuth()
+  const { getOperationAccess, operationLimited } = useDeviceSession()
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -48,6 +50,13 @@ export function useSuppliers() {
 
   async function saveSupplier(input: SupplierInput, supplierId?: string) {
     if (!organizationId) throw new Error('Nenhuma organização ativa.')
+    const access = getOperationAccess({ requireOperator: false, requireCash: false })
+    if (!access.allowed) {
+      throw new Error(
+        access.message ??
+          'Acesso bloqueado. Você pode consultar, mas não alterar fornecedores.',
+      )
+    }
 
     setSaving(true)
     setError(null)
@@ -71,6 +80,14 @@ export function useSuppliers() {
 
   async function toggleActive(supplier: Supplier) {
     if (!organizationId) return
+    const access = getOperationAccess({ requireOperator: false, requireCash: false })
+    if (!access.allowed) {
+      setError(
+        access.message ??
+          'Acesso bloqueado. Você pode consultar, mas não alterar fornecedores.',
+      )
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -97,5 +114,6 @@ export function useSuppliers() {
     refresh,
     saveSupplier,
     toggleActive,
+    viewOnly: operationLimited,
   }
 }

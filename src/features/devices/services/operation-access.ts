@@ -24,7 +24,7 @@ const MESSAGES: Record<OperationDenyReason, string> = {
   subscription_expired:
     'Assinatura não validada há mais de 7 dias. Conecte-se à internet para voltar a vender.',
   subscription_blocked:
-    'A assinatura está bloqueada. Regularize o plano para voltar a vender.',
+    'Acesso bloqueado. Você pode consultar os dados, mas não vender nem alterar nada. Fale com a gestão BALQO ou regularize o plano.',
   operator_required: 'Desbloqueie o PDV com o PIN do operador.',
   cash_session_required: 'Abra o caixa antes de continuar.',
 }

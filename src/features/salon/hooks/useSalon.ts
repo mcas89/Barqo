@@ -6,6 +6,7 @@ import {
   upgradeMessageForFeature,
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import { listProducts } from '../../products'
 import type { Product } from '../../products'
@@ -33,6 +34,7 @@ import { ticketTotalCents } from '../types'
 export function useSalon() {
   const { organization, subscription, user } = useAuth()
   const { operator, can, pinRequired } = usePosOperator()
+  const { getOperationAccess, operationLimited } = useDeviceSession()
   const [tables, setTables] = useState<SalonTable[]>([])
   const [tickets, setTickets] = useState<SalonTicket[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -58,6 +60,20 @@ export function useSalon() {
   }, [tickets])
 
   const kitchenQueue = useMemo(() => buildKitchenQueue(tickets), [tickets])
+
+  function assertCanWrite() {
+    const access = getOperationAccess({
+      hasOperator: Boolean(operator),
+      requireOperator: false,
+      requireCash: false,
+    })
+    if (!access.allowed) {
+      throw new Error(
+        access.message ??
+          'Acesso bloqueado. Você pode consultar o salão, mas não alterar comandas.',
+      )
+    }
+  }
 
   const refreshTables = useCallback(async () => {
     if (!organizationId || !hasSalon) {
@@ -109,6 +125,7 @@ export function useSalon() {
 
   async function openOrGetTicket(table: SalonTable) {
     if (!organizationId || !operator) throw new Error('Operador não desbloqueado.')
+    assertCanWrite()
     setBusy(true)
     setError(null)
     try {
@@ -130,6 +147,7 @@ export function useSalon() {
     note?: string
   }) {
     if (!organizationId || !operator) throw new Error('Operador não desbloqueado.')
+    assertCanWrite()
     setBusy(true)
     setError(null)
     try {
@@ -153,6 +171,7 @@ export function useSalon() {
     lines: Array<{ product: Product; quantity: number; note?: string }>
   }) {
     if (!organizationId || !operator) throw new Error('Operador não desbloqueado.')
+    assertCanWrite()
     setBusy(true)
     setError(null)
     try {
@@ -170,6 +189,7 @@ export function useSalon() {
 
   async function setPrepStatus(ticketId: string, itemId: string, prepStatus: PrepStatus) {
     if (!organizationId) return
+    assertCanWrite()
     setBusy(true)
     try {
       await updateTicketItemPrepStatus({
@@ -185,6 +205,7 @@ export function useSalon() {
 
   async function removeTicketItem(ticketId: string, itemId: string) {
     if (!organizationId) return
+    assertCanWrite()
     setBusy(true)
     setError(null)
     try {
@@ -200,11 +221,13 @@ export function useSalon() {
 
   async function applyDiscount(ticketId: string, discountCents: number) {
     if (!organizationId) return
+    assertCanWrite()
     await setTicketDiscount({ organizationId, ticketId, discountCents })
   }
 
   async function closeTicketAfterSale(ticketId: string, saleId: string) {
     if (!organizationId || !operator) throw new Error('Operador não desbloqueado.')
+    assertCanWrite()
     await markTicketClosed({
       organizationId,
       ticketId,
@@ -216,6 +239,7 @@ export function useSalon() {
 
   async function voidEmptyTicket(ticketId: string) {
     if (!organizationId || !operator) return
+    assertCanWrite()
     await cancelOpenTicket({
       organizationId,
       ticketId,
@@ -226,6 +250,7 @@ export function useSalon() {
 
   async function addTable(name: string, number: number) {
     if (!organizationId) return
+    assertCanWrite()
     setBusy(true)
     try {
       await createSalonTable(organizationId, { name, number, sortOrder: number })
@@ -237,6 +262,7 @@ export function useSalon() {
 
   async function toggleTableActive(table: SalonTable) {
     if (!organizationId) return
+    assertCanWrite()
     setBusy(true)
     try {
       await updateSalonTable(organizationId, table.id, {
@@ -261,6 +287,7 @@ export function useSalon() {
     canWaiter,
     canKitchen,
     canClose,
+    viewOnly: operationLimited,
     tables,
     tickets,
     products,

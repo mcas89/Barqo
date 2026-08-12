@@ -6,6 +6,7 @@ import {
   getPlan,
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
 import {
   createProduct,
   filterProducts,
@@ -17,6 +18,7 @@ import type { Product, ProductInput } from '../types'
 
 export function useProducts() {
   const { organization, subscription } = useAuth()
+  const { getOperationAccess, operationLimited } = useDeviceSession()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -58,9 +60,19 @@ export function useProducts() {
     () => products.filter((product) => product.active).length,
     [products],
   )
-  const canAddProduct = canAddMore(planId, 'products', activeCount)
+  const canAddProduct = canAddMore(planId, 'products', activeCount) && !operationLimited
 
   const filtered = filterProducts(products, search)
+
+  function assertCanWrite() {
+    const access = getOperationAccess({ requireOperator: false, requireCash: false })
+    if (!access.allowed) {
+      throw new Error(
+        access.message ??
+          'Acesso bloqueado. Você pode consultar, mas não alterar produtos.',
+      )
+    }
+  }
 
   function findByBarcode(barcode: string) {
     const code = barcode.trim().toLowerCase()
@@ -74,6 +86,7 @@ export function useProducts() {
     if (!organizationId) {
       throw new Error('Nenhuma organização ativa.')
     }
+    assertCanWrite()
 
     setSaving(true)
     setError(null)
@@ -95,6 +108,12 @@ export function useProducts() {
 
   async function toggleActive(product: Product) {
     if (!organizationId) return
+    try {
+      assertCanWrite()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Acesso bloqueado.')
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -121,6 +140,7 @@ export function useProducts() {
     planId,
     planName: plan.name,
     canAddProduct,
+    viewOnly: operationLimited,
     loading,
     saving,
     error,

@@ -9,6 +9,7 @@ import {
   upgradeMessageForLimit,
 } from '../../billing'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
 import { usePosOperator } from '../../pos/hooks/usePosOperator'
 import { PERMISSIONS } from '../permissions'
 import {
@@ -25,6 +26,7 @@ import { employeeRolesForPlan } from '../types'
 export function useTeam() {
   const { organization, subscription } = useAuth()
   const { can, hasPrivilegedAccess } = usePosOperator()
+  const { getOperationAccess, operationLimited } = useDeviceSession()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -53,9 +55,15 @@ export function useTeam() {
   const seatsForLimit = countSeatsUsed(activeCount)
 
   const canAddEmployee =
-    canManage && hasMultiUser && canAddMore(planId, 'users', seatsForLimit)
+    canManage &&
+    hasMultiUser &&
+    canAddMore(planId, 'users', seatsForLimit) &&
+    !operationLimited
 
   const blockReason = useMemo(() => {
+    if (operationLimited) {
+      return 'Acesso bloqueado. Você pode consultar a equipe, mas não alterar.'
+    }
     if (!canManage) {
       return 'Somente o proprietário ou gerente pode gerenciar a equipe.'
     }
@@ -66,7 +74,7 @@ export function useTeam() {
       return upgradeMessageForLimit('users', planId)
     }
     return null
-  }, [canManage, hasMultiUser, planId, seatsForLimit])
+  }, [operationLimited, canManage, hasMultiUser, planId, seatsForLimit])
 
   const refresh = useCallback(async () => {
     if (!organizationId) {
@@ -103,6 +111,12 @@ export function useTeam() {
     if (!canManage) {
       throw new Error('Sem permissão para gerenciar a equipe.')
     }
+    const access = getOperationAccess({ requireOperator: false, requireCash: false })
+    if (!access.allowed) {
+      throw new Error(
+        access.message ?? 'Acesso bloqueado. Você pode consultar, mas não alterar a equipe.',
+      )
+    }
 
     setSaving(true)
     setError(null)
@@ -129,6 +143,14 @@ export function useTeam() {
 
   async function toggleActive(employee: Employee) {
     if (!organizationId || !canManage) return
+
+    const access = getOperationAccess({ requireOperator: false, requireCash: false })
+    if (!access.allowed) {
+      setError(
+        access.message ?? 'Acesso bloqueado. Você pode consultar, mas não alterar a equipe.',
+      )
+      return
+    }
 
     // Reativar precisa de assento livre
     if (!employee.active && !canAddMore(planId, 'users', seatsForLimit)) {
@@ -163,6 +185,7 @@ export function useTeam() {
     canManage,
     canAddEmployee,
     blockReason,
+    viewOnly: operationLimited,
     loading,
     saving,
     error,

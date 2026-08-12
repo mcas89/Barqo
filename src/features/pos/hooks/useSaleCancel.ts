@@ -10,7 +10,7 @@ import { usePosOperator } from './usePosOperator'
 
 export function useSaleCancel() {
   const { organization, user } = useAuth()
-  const { deviceId } = useDeviceSession()
+  const { deviceId, getOperationAccess } = useDeviceSession()
   const { operator, authorizePrivileged, can, pinRequired } = usePosOperator()
 
   const [sales, setSales] = useState<Sale[]>([])
@@ -79,6 +79,17 @@ export function useSaleCancel() {
     setBusy(true)
     setError(null)
     try {
+      const access = getOperationAccess({
+        hasOperator: true,
+        requireOperator: true,
+        requireCash: false,
+      })
+      if (!access.allowed) {
+        throw new Error(
+          access.message ?? 'Acesso bloqueado. Não é possível cancelar vendas.',
+        )
+      }
+
       if (needsPrivilegedPin) {
         if (!pin?.trim()) throw new Error('Informe o PIN de autorização.')
         await authorizePrivileged(pin)

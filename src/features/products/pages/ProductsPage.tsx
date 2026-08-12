@@ -41,6 +41,7 @@ export function ProductsPage() {
     findByBarcode,
     refresh,
     setErrorMessage,
+    viewOnly,
   } = useProducts()
 
   const [mode, setMode] = useState<'list' | 'form' | 'bulk'>('list')
@@ -49,9 +50,9 @@ export function ProductsPage() {
   const [batchNotice, setBatchNotice] = useState<string | null>(null)
   const [labelItems, setLabelItems] = useState<LabelPrintItem[] | null>(null)
 
-  const canGenerate = can(PERMISSIONS.GENERATE_BARCODE)
-  const canChange = can(PERMISSIONS.CHANGE_BARCODE)
-  const canPrint = can(PERMISSIONS.LABELS_PRINT)
+  const canGenerate = can(PERMISSIONS.GENERATE_BARCODE) && !viewOnly
+  const canChange = can(PERMISSIONS.CHANGE_BARCODE) && !viewOnly
+  const canPrint = can(PERMISSIONS.LABELS_PRINT) && !viewOnly
 
   const selectedProducts = useMemo(
     () => allProducts.filter((product) => selectedIds.has(product.id)),
@@ -59,6 +60,10 @@ export function ProductsPage() {
   )
 
   function openCreate() {
+    if (viewOnly) {
+      setErrorMessage('Acesso bloqueado. Você pode consultar, mas não incluir produtos.')
+      return
+    }
     if (!canAddProduct) {
       setErrorMessage(
         `Limite de produtos do plano ${planName} atingido (${activeCount}/${maxProducts}).`,
@@ -70,6 +75,10 @@ export function ProductsPage() {
   }
 
   function openBulk() {
+    if (viewOnly) {
+      setErrorMessage('Acesso bloqueado. Você pode consultar, mas não incluir produtos.')
+      return
+    }
     if (!canAddProduct) {
       setErrorMessage(
         `Limite de produtos do plano ${planName} atingido (${activeCount}/${maxProducts}).`,
@@ -81,6 +90,10 @@ export function ProductsPage() {
   }
 
   function openEdit(product: Product) {
+    if (viewOnly) {
+      setErrorMessage('Acesso bloqueado. Você pode consultar, mas não editar produtos.')
+      return
+    }
     setEditing(product)
     setMode('form')
   }

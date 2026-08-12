@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../shared/hooks/useAuth'
+import { useDeviceSession } from '../../devices'
 import {
   createCustomer,
   filterCustomers,
@@ -11,6 +12,7 @@ import type { Customer, CustomerInput } from '../types'
 
 export function useCustomers() {
   const { organization } = useAuth()
+  const { getOperationAccess, operationLimited } = useDeviceSession()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -48,6 +50,12 @@ export function useCustomers() {
 
   async function saveCustomer(input: CustomerInput, customerId?: string) {
     if (!organizationId) throw new Error('Nenhuma organização ativa.')
+    const access = getOperationAccess({ requireOperator: false, requireCash: false })
+    if (!access.allowed) {
+      throw new Error(
+        access.message ?? 'Acesso bloqueado. Você pode consultar, mas não alterar clientes.',
+      )
+    }
 
     setSaving(true)
     setError(null)
@@ -71,6 +79,13 @@ export function useCustomers() {
 
   async function toggleActive(customer: Customer) {
     if (!organizationId) return
+    const access = getOperationAccess({ requireOperator: false, requireCash: false })
+    if (!access.allowed) {
+      setError(
+        access.message ?? 'Acesso bloqueado. Você pode consultar, mas não alterar clientes.',
+      )
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -97,5 +112,6 @@ export function useCustomers() {
     refresh,
     saveCustomer,
     toggleActive,
+    viewOnly: operationLimited,
   }
 }
