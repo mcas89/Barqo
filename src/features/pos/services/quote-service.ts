@@ -1,8 +1,16 @@
 import { doc, setDoc } from 'firebase/firestore'
-import { requireDb } from '../../../infra/firebase'
+import { getFirestoreDb } from '../../../infra/firebase'
 import { createId } from '../../../shared/lib/ids'
 import { omitUndefined } from '../../../shared/lib/firestore'
 import type { CartItem } from '../types'
+
+function requireDb() {
+  const db = getFirestoreDb()
+  if (!db) {
+    throw new Error('Firestore não configurado. Verifique o arquivo .env.')
+  }
+  return db
+}
 
 export type QuoteStatus = 'open' | 'converted' | 'canceled'
 
