@@ -40,6 +40,28 @@ import { CategoriesSettingsModal } from '../components/CategoriesSettingsModal'
 import { useSettings } from '../hooks/useSettings'
 import './SettingsPage.css'
 
+const SETTINGS_SECTIONS = [
+  { id: 'loja', label: 'Loja' },
+  { id: 'aparencia', label: 'Aparência' },
+  { id: 'vendas', label: 'Vendas' },
+  { id: 'acesso', label: 'Acesso' },
+  { id: 'app', label: 'App e ajuda' },
+] as const
+
+type SettingsSectionId = (typeof SETTINGS_SECTIONS)[number]['id']
+
+function parseSettingsSection(hash: string): SettingsSectionId {
+  const id = hash.replace(/^#/, '').trim().toLowerCase()
+  if (SETTINGS_SECTIONS.some((section) => section.id === id)) {
+    return id as SettingsSectionId
+  }
+  // Atalhos antigos / deep links
+  if (id === 'dispositivos' || id === 'pins' || id === 'conta') return 'acesso'
+  if (id === 'impressora' || id === 'whatsapp' || id === 'categorias') return 'vendas'
+  if (id === 'visual') return 'aparencia'
+  return 'loja'
+}
+
 export function SettingsPage() {
   const { subscription } = useAuth()
   const { operators, pinRequired, hasPrivilegedAccess } = usePosOperator()
@@ -65,6 +87,11 @@ export function SettingsPage() {
     prepareLogo,
   } = useSettings()
 
+  const [section, setSection] = useState<SettingsSectionId>(() =>
+    parseSettingsSection(
+      typeof window !== 'undefined' ? window.location.hash : '',
+    ),
+  )
   const [name, setName] = useState('')
   const [document, setDocument] = useState('')
   const [segment, setSegment] = useState<string>(BUSINESS_SEGMENTS[0])
@@ -84,6 +111,20 @@ export function SettingsPage() {
   const [whatsappReceiptOnSale, setWhatsappReceiptOnSale] = useState(false)
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false)
   const [categoriesModalOpen, setCategoriesModalOpen] = useState(false)
+
+  useEffect(() => {
+    function onHashChange() {
+      setSection(parseSettingsSection(window.location.hash))
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  function goToSection(next: SettingsSectionId) {
+    setSection(next)
+    const url = `${window.location.pathname}${window.location.search}#${next}`
+    window.history.replaceState(null, '', url)
+  }
 
   useEffect(() => {
     const root = globalThis.document?.documentElement
@@ -275,6 +316,9 @@ export function SettingsPage() {
   const selectedTheme =
     THEME_PRESETS.find((preset) => preset.color.toLowerCase() === themeColor.toLowerCase()) ?? null
 
+  const activeDeviceCount = devices.filter((d) => d.status !== 'removed').length
+  const showSaveFeedback = section === 'loja' || section === 'aparencia'
+
   if (!organization) {
     return <p className="settings-page__empty">Nenhuma loja ativa.</p>
   }
@@ -316,6 +360,7 @@ export function SettingsPage() {
           onClose={() => setCategoriesModalOpen(false)}
         />
       )}
+
       <header className="settings-page__header">
         <div>
           <h1>Configurações</h1>
@@ -325,255 +370,305 @@ export function SettingsPage() {
         </div>
       </header>
 
-      <div className="settings-page__grid">
-        <form className="settings-page__stack" onSubmit={(e) => void handleSubmit(e)}>
-          <section className="settings-page__card">
-            <h2>Dados do comércio</h2>
-            <div className="settings-page__fields">
-              <label className="settings-page__span">
-                Nome
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={saving || !canEdit}
-                  required
-                />
-              </label>
-              <label>
-                CPF/CNPJ
-                <input
-                  value={document}
-                  onChange={(e) => setDocument(e.target.value)}
-                  disabled={saving || !canEdit}
-                />
-              </label>
-              <label>
-                Segmento
-                <select
-                  value={segment}
-                  onChange={(e) => setSegment(e.target.value)}
-                  disabled={saving || !canEdit}
-                >
-                  {BUSINESS_SEGMENTS.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                  {segment && !isKnownBusinessSegment(segment) && (
-                    <option value={segment}>{segment}</option>
-                  )}
-                </select>
-              </label>
-              <label>
-                Telefone
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={saving || !canEdit}
-                />
-              </label>
-              <label>
-                WhatsApp da loja
-                <input
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
-                  disabled={saving || !canEdit}
-                  placeholder="5511999999999"
-                />
-              </label>
-              <label className="settings-page__span">
-                Endereço
-                <input
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  disabled={saving || !canEdit}
-                />
-              </label>
-            </div>
-          </section>
+      <nav className="settings-page__nav" aria-label="Seções de configuração">
+        {SETTINGS_SECTIONS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={
+              section === item.id
+                ? 'settings-page__nav-btn settings-page__nav-btn--active'
+                : 'settings-page__nav-btn'
+            }
+            aria-current={section === item.id ? 'page' : undefined}
+            onClick={() => goToSection(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
 
-          <section className="settings-page__card">
-            <h2>Visual</h2>
-            <p className="settings-page__hint">
-              A cor principal marca botões e o menu. O fundo do app fica numa versão mais
-              clara do mesmo tema
-              {selectedTheme ? ` · ${selectedTheme.name}` : ''}.
-            </p>
-
-            <div className="settings-page__themes">
-              {THEME_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={
-                    themeColor.toLowerCase() === preset.color.toLowerCase()
-                      ? 'settings-page__theme settings-page__theme--active'
-                      : 'settings-page__theme'
-                  }
-                  onClick={() => setThemeColor(preset.color)}
-                  disabled={saving || !canEdit}
-                >
-                  <i aria-hidden>
-                    <b style={{ background: preset.color }} />
-                    <b style={{ background: preset.bg }} />
-                  </i>
-                  {preset.name}
-                </button>
-              ))}
-            </div>
-
-            <label className="settings-page__logo-box">
-              <img src={logoDataUrl || BALQO_LOGO_SRC} alt="" />
-              <div>
-                <strong>{logoDataUrl ? 'Logo selecionada' : 'Logo da loja (PNG)'}</strong>
-                <em>Fundo transparente fica melhor. Se não enviar, usamos a marca BALQO.</em>
-                <span>{logoDataUrl ? 'Trocar arquivo' : 'Escolher PNG'}</span>
+      <div className="settings-page__panel">
+        {section === 'loja' && (
+          <form className="settings-page__stack" onSubmit={(e) => void handleSubmit(e)}>
+            <section className="settings-page__card">
+              <h2>Dados do comércio</h2>
+              <p className="settings-page__hint">
+                Informações usadas em orçamentos, cupons e identificação da loja.
+              </p>
+              <div className="settings-page__fields">
+                <label className="settings-page__span">
+                  Nome
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={saving || !canEdit}
+                    required
+                  />
+                </label>
+                <label>
+                  CPF/CNPJ
+                  <input
+                    value={document}
+                    onChange={(e) => setDocument(e.target.value)}
+                    disabled={saving || !canEdit}
+                  />
+                </label>
+                <label>
+                  Segmento
+                  <select
+                    value={segment}
+                    onChange={(e) => setSegment(e.target.value)}
+                    disabled={saving || !canEdit}
+                  >
+                    {BUSINESS_SEGMENTS.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                    {segment && !isKnownBusinessSegment(segment) && (
+                      <option value={segment}>{segment}</option>
+                    )}
+                  </select>
+                </label>
+                <label>
+                  Telefone
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={saving || !canEdit}
+                  />
+                </label>
+                <label>
+                  WhatsApp da loja
+                  <input
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                    disabled={saving || !canEdit}
+                    placeholder="5511999999999"
+                  />
+                </label>
+                <label className="settings-page__span">
+                  Endereço
+                  <input
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    disabled={saving || !canEdit}
+                  />
+                </label>
               </div>
-              <input
-                type="file"
-                accept="image/png"
-                disabled={saving || !canEdit}
-                onChange={(e) => void handleLogoChange(e.target.files?.[0])}
-              />
-            </label>
-            {logoDataUrl && (
+            </section>
+
+            {!canEdit && (
+              <p className="settings-page__hint">Somente proprietário ou gerente pode editar.</p>
+            )}
+            {(localError || error) && showSaveFeedback && (
+              <p className="settings-page__error" role="alert">
+                {localError || error}
+              </p>
+            )}
+            {message && showSaveFeedback && <p className="settings-page__ok">{message}</p>}
+            <button className="settings-page__submit" type="submit" disabled={saving || !canEdit}>
+              {saving ? 'Salvando…' : 'Salvar dados da loja'}
+            </button>
+          </form>
+        )}
+
+        {section === 'aparencia' && (
+          <form className="settings-page__stack" onSubmit={(e) => void handleSubmit(e)}>
+            <section className="settings-page__card">
+              <h2>Visual da loja</h2>
+              <p className="settings-page__hint">
+                A cor principal marca botões e o menu. O fundo do app fica numa versão mais
+                clara do mesmo tema
+                {selectedTheme ? ` · ${selectedTheme.name}` : ''}.
+              </p>
+
+              <div className="settings-page__themes">
+                {THEME_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={
+                      themeColor.toLowerCase() === preset.color.toLowerCase()
+                        ? 'settings-page__theme settings-page__theme--active'
+                        : 'settings-page__theme'
+                    }
+                    onClick={() => setThemeColor(preset.color)}
+                    disabled={saving || !canEdit}
+                  >
+                    <i aria-hidden>
+                      <b style={{ background: preset.color }} />
+                      <b style={{ background: preset.bg }} />
+                    </i>
+                    {preset.name}
+                  </button>
+                ))}
+              </div>
+
+              <label className="settings-page__logo-box">
+                <img src={logoDataUrl || BALQO_LOGO_SRC} alt="" />
+                <div>
+                  <strong>{logoDataUrl ? 'Logo selecionada' : 'Logo da loja (PNG)'}</strong>
+                  <em>Fundo transparente fica melhor. Se não enviar, usamos a marca BALQO.</em>
+                  <span>{logoDataUrl ? 'Trocar arquivo' : 'Escolher PNG'}</span>
+                </div>
+                <input
+                  type="file"
+                  accept="image/png"
+                  disabled={saving || !canEdit}
+                  onChange={(e) => void handleLogoChange(e.target.files?.[0])}
+                />
+              </label>
+              {logoDataUrl && (
+                <button
+                  type="button"
+                  className="settings-page__clear-logo"
+                  onClick={() => {
+                    setLogoDataUrl(null)
+                    setLogoDirty(true)
+                  }}
+                  disabled={saving || !canEdit}
+                >
+                  Remover logo e usar BALQO
+                </button>
+              )}
+            </section>
+
+            {!canEdit && (
+              <p className="settings-page__hint">Somente proprietário ou gerente pode editar.</p>
+            )}
+            {(localError || error) && showSaveFeedback && (
+              <p className="settings-page__error" role="alert">
+                {localError || error}
+              </p>
+            )}
+            {message && showSaveFeedback && <p className="settings-page__ok">{message}</p>}
+            <button className="settings-page__submit" type="submit" disabled={saving || !canEdit}>
+              {saving ? 'Salvando…' : 'Salvar aparência'}
+            </button>
+          </form>
+        )}
+
+        {section === 'vendas' && (
+          <div className="settings-page__stack">
+            <section className="settings-page__card">
+              <h2>Impressora e comprovante</h2>
+              <p className="settings-page__hint">
+                {printOnSale
+                  ? `Cupom ao vender ligado${printerPath ? ` · ${printerPath}` : ' · janela do Windows'}`
+                  : 'Cupom ao vender desligado'}
+                {' · '}
+                {paperWidth}
+              </p>
               <button
                 type="button"
-                className="settings-page__clear-logo"
-                onClick={() => {
-                  setLogoDataUrl(null)
-                  setLogoDirty(true)
-                }}
-                disabled={saving || !canEdit}
+                className="settings-page__printer-btn"
+                onClick={() => setPrinterModalOpen(true)}
+                disabled={!canEdit}
               >
-                Remover logo e usar BALQO
+                Configurar impressora
               </button>
+            </section>
+
+            <section className="settings-page__card">
+              <h2>Comprovante WhatsApp</h2>
+              <p className="settings-page__hint">
+                {whatsappReceiptOnSale
+                  ? 'Após a venda, oferece opção de abrir o WhatsApp com o cupom pronto'
+                  : 'Oferta de WhatsApp após a venda desligada'}
+              </p>
+              <button
+                type="button"
+                className="settings-page__printer-btn"
+                onClick={() => setWhatsappModalOpen(true)}
+                disabled={!canEdit}
+              >
+                Configurar WhatsApp
+              </button>
+            </section>
+
+            <section className="settings-page__card">
+              <h2>Categorias de produtos</h2>
+              <p className="settings-page__hint">
+                Organize o catálogo. No cadastro do produto a categoria é opcional e só por
+                seleção.
+              </p>
+              <button
+                type="button"
+                className="settings-page__printer-btn"
+                onClick={() => setCategoriesModalOpen(true)}
+                disabled={!canEdit}
+              >
+                Gerenciar categorias
+              </button>
+            </section>
+
+            {!canEdit && (
+              <p className="settings-page__hint">Somente proprietário ou gerente pode editar.</p>
             )}
-          </section>
-
-          <section className="settings-page__card">
-            <h2>Impressora e comprovante</h2>
-            <p className="settings-page__hint">
-              {printOnSale
-                ? `Cupom ao vender ligado${printerPath ? ` · ${printerPath}` : ' · janela do Windows'}`
-                : 'Cupom ao vender desligado'}
-              {' · '}
-              {paperWidth}
-            </p>
-            <button
-              type="button"
-              className="settings-page__printer-btn"
-              onClick={() => setPrinterModalOpen(true)}
-              disabled={!canEdit}
-            >
-              Configurar impressora
-            </button>
-          </section>
-
-          <section className="settings-page__card">
-            <h2>Comprovante WhatsApp</h2>
-            <p className="settings-page__hint">
-              {whatsappReceiptOnSale
-                ? 'Após a venda, oferece opção de abrir o WhatsApp com o cupom pronto'
-                : 'Oferta de WhatsApp após a venda desligada'}
-            </p>
-            <button
-              type="button"
-              className="settings-page__printer-btn"
-              onClick={() => setWhatsappModalOpen(true)}
-              disabled={!canEdit}
-            >
-              Configurar WhatsApp
-            </button>
-          </section>
-
-          <section className="settings-page__card">
-            <h2>Categorias de produtos</h2>
-            <p className="settings-page__hint">
-              Organize o catálogo. No cadastro do produto a categoria é opcional e só por seleção.
-            </p>
-            <button
-              type="button"
-              className="settings-page__printer-btn"
-              onClick={() => setCategoriesModalOpen(true)}
-              disabled={!canEdit}
-            >
-              Gerenciar categorias
-            </button>
-          </section>
-
-          {!canEdit && (
-            <p className="settings-page__hint">Somente proprietário ou gerente pode editar.</p>
-          )}
-
-          {(localError || error) && (
-            <p className="settings-page__error" role="alert">
-              {localError || error}
-            </p>
-          )}
-          {message && <p className="settings-page__ok">{message}</p>}
-
-          <button className="settings-page__submit" type="submit" disabled={saving || !canEdit}>
-            {saving ? 'Salvando…' : 'Salvar configurações'}
-          </button>
-        </form>
-
-        <aside className="settings-page__side">
-          <div className="settings-page__card">
-            <h2>Conta</h2>
-            <p>
-              <strong>{user?.displayName}</strong>
-              <span>{user?.email}</span>
-            </p>
-            <Link to="/app/team">Gerenciar equipe e PIN</Link>
-            <Link to="/app/billing#assinatura">Plano, comprovante e pagamentos</Link>
           </div>
+        )}
 
-          {pinRequired && (
-            <div className="settings-page__card">
-              <h2>PINs da loja</h2>
-              <p>O proprietário entra pelo nome. Funcionários são cadastrados em Equipe.</p>
+        {section === 'acesso' && (
+          <div className="settings-page__stack">
+            <section className="settings-page__card settings-page__card--meta">
+              <h2>Conta</h2>
+              <p>
+                <strong>{user?.displayName}</strong>
+                <span>{user?.email}</span>
+              </p>
+              <div className="settings-page__link-row">
+                <Link to="/app/team">Gerenciar equipe e PIN</Link>
+                <Link to="/app/billing#assinatura">Plano, comprovante e pagamentos</Link>
+              </div>
+            </section>
+
+            {pinRequired && (
+              <section className="settings-page__card settings-page__card--meta">
+                <h2>PINs da loja</h2>
+                <p>
+                  O proprietário entra pelo nome. Funcionários são cadastrados em Equipe.
+                </p>
+                <ul className="settings-page__pins">
+                  {operators.map((op) => (
+                    <li key={op.id}>
+                      <strong>{op.displayName}</strong>
+                      <span>
+                        {POS_ROLE_LABELS[op.role]}
+                        {op.hasPin ? ' · PIN cadastrado' : ' · sem PIN'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/app/team">Editar PINs na equipe</Link>
+              </section>
+            )}
+
+            <section className="settings-page__card settings-page__card--meta">
+              <h2>Dispositivos autorizados</h2>
+              <p>
+                {activeDeviceCount}/{maxDevices} em uso. Lease de 24h · limite offline 72h.
+                Bloquear nunca apaga a fila de sync.
+              </p>
               <ul className="settings-page__pins">
-                {operators.map((op) => (
-                  <li key={op.id}>
-                    <strong>{op.displayName}</strong>
-                    <span>
-                      {POS_ROLE_LABELS[op.role]}
-                      {op.hasPin ? ' · PIN cadastrado' : ' · sem PIN'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <Link to="/app/team">Editar PINs na equipe</Link>
-            </div>
-          )}
-
-          <div className="settings-page__card">
-            <h2>Dispositivos autorizados</h2>
-            <p>
-              {devices.filter((d) => d.status !== 'removed').length}/{maxDevices} em uso. Lease
-              de 24h · limite offline 72h. Bloquear nunca apaga a fila de sync.
-            </p>
-            <ul className="settings-page__pins">
-              {devices.map((device) => {
-                const isThis = device.id === deviceId
-                const statusLabel =
-                  DEVICE_STATUS_LABELS[device.status] ?? device.status
-                return (
-                  <li key={device.id}>
-                    <strong>
-                      {device.label}
-                      {isThis ? ' · este aparelho' : ''}
-                    </strong>
-                    <span>
-                      {statusLabel}
-                      {device.operatorName ? ` · ${device.operatorName}` : ''}
-                      {' · '}
-                      visto {new Date(device.lastSeenAt).toLocaleString('pt-BR')}
-                    </span>
-                    {hasPrivilegedAccess && (
-                      <div className="settings-page__device-actions">
-                        {canEdit || hasPrivilegedAccess ? (
+                {devices.map((device) => {
+                  const isThis = device.id === deviceId
+                  const statusLabel = DEVICE_STATUS_LABELS[device.status] ?? device.status
+                  return (
+                    <li key={device.id}>
+                      <strong>
+                        {device.label}
+                        {isThis ? ' · este aparelho' : ''}
+                      </strong>
+                      <span>
+                        {statusLabel}
+                        {device.operatorName ? ` · ${device.operatorName}` : ''}
+                        {' · '}
+                        visto {new Date(device.lastSeenAt).toLocaleString('pt-BR')}
+                      </span>
+                      {hasPrivilegedAccess && (
+                        <div className="settings-page__device-actions">
                           <button
                             type="button"
                             className="settings-page__clear-logo"
@@ -589,115 +684,119 @@ export function SettingsPage() {
                           >
                             Renomear
                           </button>
-                        ) : null}
-                        {device.status === 'authorized' && !isThis ? (
-                          <button
-                            type="button"
-                            className="settings-page__clear-logo"
-                            onClick={() => {
-                              if (
-                                !window.confirm(
-                                  'Bloquear este aparelho? Ele não poderá vender ao reconectar. A fila local é preservada.',
-                                )
-                              ) {
-                                return
-                              }
-                              void blockDevice(device.id)
-                            }}
-                          >
-                            Bloquear
-                          </button>
-                        ) : null}
-                        {(device.status === 'blocked' || device.status === 'removed') && (
-                          <button
-                            type="button"
-                            className="settings-page__clear-logo"
-                            onClick={() => void authorizeDevice(device.id)}
-                          >
-                            Reautorizar
-                          </button>
-                        )}
-                        {device.status !== 'removed' && !isThis ? (
-                          <button
-                            type="button"
-                            className="settings-page__clear-logo"
-                            onClick={() => {
-                              if (
-                                !window.confirm(
-                                  'Remover autorização deste aparelho? A fila de sync local não será apagada.',
-                                )
-                              ) {
-                                return
-                              }
-                              void removeDevice(device.id)
-                            }}
-                          >
-                            Remover
-                          </button>
-                        ) : null}
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-            <button
-              type="button"
-              className="settings-page__clear-logo"
-              onClick={() => void refreshDevices()}
-            >
-              Atualizar lista
-            </button>
-            {!hasPrivilegedAccess && (
-              <p className="settings-page__hint">
-                Somente dono ou gerente pode bloquear ou reautorizar aparelhos.
-              </p>
-            )}
-          </div>
-
-          <div className="settings-page__card">
-            <h2>Aplicativo</h2>
-            <p>
-              Versão {APP_VERSION}. As atualizações chegam neste aparelho sem desinstalar.
-              Finalize a venda no PDV antes de aplicar.
-            </p>
-            <button
-              type="button"
-              className="settings-page__clear-logo"
-              onClick={() => requestPwaUpdateCheck()}
-            >
-              Procurar atualização
-            </button>
-          </div>
-
-          <div className="settings-page__card">
-            <h2>Termos e privacidade</h2>
-            <p>O BALQO não emite NF-e. O cupom é comprovante interno da loja.</p>
-            <div className="settings-page__legal-links">
-              <Link to="/termos">Termos de uso</Link>
-              <Link to="/privacidade">Política de privacidade</Link>
-            </div>
-          </div>
-
-          <div className="settings-page__card">
-            <h2>Suporte BALQO</h2>
-            <p>Dúvida de uso, cobrança ou implantação? Fale no WhatsApp.</p>
-            <a
-              className="settings-page__whatsapp"
-              href={whatsappUrl(
-                BALQO_SUPPORT_WHATSAPP,
-                `Olá, sou ${user?.displayName || 'o proprietário'} da loja ${organization.name}. Preciso de suporte no BALQO.`,
+                          {device.status === 'authorized' && !isThis ? (
+                            <button
+                              type="button"
+                              className="settings-page__clear-logo"
+                              onClick={() => {
+                                if (
+                                  !window.confirm(
+                                    'Bloquear este aparelho? Ele não poderá vender ao reconectar. A fila local é preservada.',
+                                  )
+                                ) {
+                                  return
+                                }
+                                void blockDevice(device.id)
+                              }}
+                            >
+                              Bloquear
+                            </button>
+                          ) : null}
+                          {(device.status === 'blocked' || device.status === 'removed') && (
+                            <button
+                              type="button"
+                              className="settings-page__clear-logo"
+                              onClick={() => void authorizeDevice(device.id)}
+                            >
+                              Reautorizar
+                            </button>
+                          )}
+                          {device.status !== 'removed' && !isThis ? (
+                            <button
+                              type="button"
+                              className="settings-page__clear-logo"
+                              onClick={() => {
+                                if (
+                                  !window.confirm(
+                                    'Remover autorização deste aparelho? A fila de sync local não será apagada.',
+                                  )
+                                ) {
+                                  return
+                                }
+                                void removeDevice(device.id)
+                              }}
+                            >
+                              Remover
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+              <button
+                type="button"
+                className="settings-page__clear-logo"
+                onClick={() => void refreshDevices()}
+              >
+                Atualizar lista
+              </button>
+              {!hasPrivilegedAccess && (
+                <p className="settings-page__hint">
+                  Somente dono ou gerente pode bloquear ou reautorizar aparelhos.
+                </p>
               )}
-              target="_blank"
-              rel="noreferrer"
-            >
-              WhatsApp suporte
-            </a>
-            <span className="settings-page__hint">
-              {formatWhatsappDisplay(BALQO_SUPPORT_WHATSAPP)}
-            </span>
+            </section>
           </div>
-        </aside>
+        )}
+
+        {section === 'app' && (
+          <div className="settings-page__stack">
+            <section className="settings-page__card settings-page__card--meta">
+              <h2>Aplicativo</h2>
+              <p>
+                Versão {APP_VERSION}. As atualizações chegam neste aparelho sem desinstalar.
+                Finalize a venda no PDV antes de aplicar.
+              </p>
+              <button
+                type="button"
+                className="settings-page__printer-btn"
+                onClick={() => requestPwaUpdateCheck()}
+              >
+                Procurar atualização
+              </button>
+            </section>
+
+            <section className="settings-page__card settings-page__card--meta">
+              <h2>Termos e privacidade</h2>
+              <p>O BALQO não emite NF-e. O cupom é comprovante interno da loja.</p>
+              <div className="settings-page__legal-links">
+                <Link to="/termos">Termos de uso</Link>
+                <Link to="/privacidade">Política de privacidade</Link>
+              </div>
+            </section>
+
+            <section className="settings-page__card settings-page__card--meta">
+              <h2>Suporte BALQO</h2>
+              <p>Dúvida de uso, cobrança ou implantação? Fale no WhatsApp.</p>
+              <a
+                className="settings-page__whatsapp"
+                href={whatsappUrl(
+                  BALQO_SUPPORT_WHATSAPP,
+                  `Olá, sou ${user?.displayName || 'o proprietário'} da loja ${organization.name}. Preciso de suporte no BALQO.`,
+                )}
+                target="_blank"
+                rel="noreferrer"
+              >
+                WhatsApp suporte
+              </a>
+              <span className="settings-page__hint">
+                {formatWhatsappDisplay(BALQO_SUPPORT_WHATSAPP)}
+              </span>
+            </section>
+          </div>
+        )}
       </div>
     </section>
   )
